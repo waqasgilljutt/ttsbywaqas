@@ -23,9 +23,16 @@ import { SavedClone } from './VoiceCloner';
 interface VoiceLibraryProps {
   onUseVoice: (clone: SavedClone) => void;
   onNavigateToCloner: () => void;
+  currentUser?: { name: string; email: string } | null;
+  onRequireAuth?: () => void;
 }
 
-export function VoiceLibrary({ onUseVoice, onNavigateToCloner }: VoiceLibraryProps) {
+export function VoiceLibrary({
+  onUseVoice,
+  onNavigateToCloner,
+  currentUser,
+  onRequireAuth,
+}: VoiceLibraryProps) {
   const [savedClones, setSavedClones] = useState<SavedClone[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activePlayingId, setActivePlayingId] = useState<string | null>(null);
@@ -125,7 +132,13 @@ export function VoiceLibrary({ onUseVoice, onNavigateToCloner }: VoiceLibraryPro
 
         <button
           type="button"
-          onClick={onNavigateToCloner}
+          onClick={() => {
+            if (!currentUser) {
+              onRequireAuth?.();
+              return;
+            }
+            onNavigateToCloner();
+          }}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-md shadow-brand-500/20 hover:scale-[1.02] active:scale-95 transition-all self-start sm:self-auto shrink-0"
         >
           <Plus className="w-4 h-4" />
@@ -320,7 +333,13 @@ export function VoiceLibrary({ onUseVoice, onNavigateToCloner }: VoiceLibraryPro
                 ) : (
                   <button
                     type="button"
-                    onClick={() => onUseVoice(clone)}
+                    onClick={() => {
+                      if (!currentUser) {
+                        onRequireAuth?.();
+                        return;
+                      }
+                      onUseVoice(clone);
+                    }}
                     className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-brand-600 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all group-hover:bg-brand-600"
                   >
                     <Sparkles className="w-3.5 h-3.5" />

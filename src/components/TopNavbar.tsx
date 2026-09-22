@@ -40,9 +40,14 @@ export function TopNavbar({
       title: 'About EmpireNexs',
       subtitle: 'Our technology, mission, and the story of Waqas Gill',
     },
+    'admin': {
+      title: 'Owner Command Center',
+      subtitle: 'Registered users, activity stats, and platform management',
+    },
   };
 
   const currentInfo = titles[activeTab] || titles['text-to-voice'];
+  const isOwner = currentUser?.email?.toLowerCase() === 'muhammadwaqasmwg@gmail.com';
 
   return (
     <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 py-3.5 flex items-center justify-between">
@@ -93,11 +98,22 @@ export function TopNavbar({
         {/* User Account / Sign In */}
         {currentUser ? (
           <div className="flex items-center gap-2 pl-2">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-xs font-semibold text-brand-700">
-              <div className="w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center text-[10px]">
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold ${
+              isOwner
+                ? 'bg-amber-50 border-amber-300 text-amber-900'
+                : 'bg-brand-50 border-brand-200 text-brand-700'
+            }`}>
+              <div className={`w-5 h-5 rounded-full text-white flex items-center justify-center text-[10px] font-bold ${
+                isOwner ? 'bg-gradient-to-tr from-amber-500 to-brand-600' : 'bg-brand-600'
+              }`}>
                 {currentUser.name[0].toUpperCase()}
               </div>
               <span className="max-w-[100px] truncate">{currentUser.name}</span>
+              {isOwner && (
+                <span className="px-1.5 py-0.2 rounded bg-amber-200/80 text-amber-900 text-[9px] font-extrabold">
+                  OWNER
+                </span>
+              )}
             </div>
 
             <button

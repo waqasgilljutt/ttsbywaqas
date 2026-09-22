@@ -38,6 +38,8 @@ export interface VoiceClonerProps {
   initialClone?: SavedClone | null;
   onClearInitialClone?: () => void;
   onNavigateToLibrary?: () => void;
+  currentUser?: { name: string; email: string } | null;
+  onRequireAuth?: () => void;
 }
 
 interface ClonedHistoryItem {
@@ -197,6 +199,8 @@ export function VoiceCloner({
   initialClone,
   onClearInitialClone,
   onNavigateToLibrary,
+  currentUser,
+  onRequireAuth,
 }: VoiceClonerProps = {}) {
   const [inputMode, setInputMode] = useState<'record' | 'upload'>('record');
 
@@ -309,6 +313,10 @@ export function VoiceCloner({
 
   // Start Mic Recording
   const startRecording = async () => {
+    if (!currentUser) {
+      onRequireAuth?.();
+      return;
+    }
     try {
       setErrorMsg(null);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -370,6 +378,10 @@ export function VoiceCloner({
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!currentUser) {
+      onRequireAuth?.();
+      return;
+    }
     setErrorMsg(null);
     const file = e.target.files?.[0];
     if (file) {
@@ -399,6 +411,10 @@ export function VoiceCloner({
 
   // Save current clone to library (persisted as Base64 Data URI)
   const handleSaveCloneToLibrary = async () => {
+    if (!currentUser) {
+      onRequireAuth?.();
+      return;
+    }
     const activeBlob = recordedAudioBlob || uploadedFile;
     const activeUrl = recordedAudioUrl || uploadedAudioUrl;
     if (!activeBlob && !activeUrl) {
@@ -469,6 +485,11 @@ export function VoiceCloner({
 
   // Trigger Voice Cloning Synthesis
   const handleCloneAndSpeak = async () => {
+    if (!currentUser) {
+      onRequireAuth?.();
+      return;
+    }
+
     let audioBlobToUse: Blob | null = recordedAudioBlob || uploadedFile;
 
     // If recordedAudioBlob is not in memory, recover from recordedAudioUrl
@@ -542,6 +563,14 @@ export function VoiceCloner({
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
       setCloneProgress(100);
       setCloneStatusText('Voice cloned successfully!');
+
+      if (currentUser?.email) {
+        fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'increment-usage', email: currentUser.email }),
+        }).catch(() => {});
+      }
 
       // Save to Cloned Generation History
       const historyItem: ClonedHistoryItem = {

@@ -13,6 +13,7 @@ import { VoiceCloner, SavedClone } from '@/components/VoiceCloner';
 import { VoiceLibrary } from '@/components/VoiceLibrary';
 import { PricingPage } from '@/components/PricingPage';
 import { AboutPage } from '@/components/AboutPage';
+import { AdminPanel } from '@/components/AdminPanel';
 import { Voice } from '@/lib/edge-tts-service';
 import { Sparkles, Loader2, AlertCircle, Info } from 'lucide-react';
 
@@ -79,7 +80,12 @@ export default function Home() {
       const savedHist = localStorage.getItem('edge_tts_history');
       if (savedHist) setHistory(JSON.parse(savedHist));
       const savedUser = localStorage.getItem('empirenexs_user');
-      if (savedUser) setCurrentUser(JSON.parse(savedUser));
+      if (savedUser) {
+        setCurrentUser(JSON.parse(savedUser));
+      } else {
+        // Automatically prompt sign in/sign up for guests
+        setIsAuthModalOpen(true);
+      }
     } catch (e) {
       console.warn('LocalStorage error:', e);
     }
@@ -101,6 +107,10 @@ export default function Home() {
     } catch (e) {
       console.warn('LocalStorage error:', e);
     }
+    if (activeTab === 'admin') {
+      setActiveTab('text-to-voice');
+    }
+    setIsAuthModalOpen(true);
   };
 
   const toggleFavorite = (shortName: string) => {
@@ -130,6 +140,13 @@ export default function Home() {
 
   const handleSynthesize = useCallback(async () => {
     if (!text.trim() || isSynthesizing) return;
+
+    // Gating check: User must be signed in
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+
     setIsSynthesizing(true);
     setSynthesisProgress(8);
     setSynthesisStatusText('Connecting to EmpireNexs Neural Speech Engine...');
@@ -174,6 +191,15 @@ export default function Home() {
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
       setSynthesisProgress(100);
       setSynthesisStatusText('Speech synthesized successfully!');
+
+      // Record audio generation usage in user store
+      if (currentUser?.email) {
+        fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'increment-usage', email: currentUser.email }),
+        }).catch(() => {});
+      }
 
       setTimeout(() => {
         setAudioUrl(url);
@@ -288,6 +314,7 @@ export default function Home() {
         onSelectTab={setActiveTab}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        currentUser={currentUser}
       />
 
       {/* Main Content Area */}
@@ -469,6 +496,8 @@ export default function Home() {
               initialClone={activeLoadedClone}
               onClearInitialClone={() => setActiveLoadedClone(null)}
               onNavigateToLibrary={() => setActiveTab('voice-library')}
+              currentUser={currentUser}
+              onRequireAuth={() => setIsAuthModalOpen(true)}
             />
           )}
 
@@ -476,10 +505,22 @@ export default function Home() {
           {activeTab === 'voice-library' && (
             <VoiceLibrary
               onUseVoice={(clone) => {
+                if (!currentUser) {
+                  setIsAuthModalOpen(true);
+                  return;
+                }
                 setActiveLoadedClone(clone);
                 setActiveTab('voice-cloning');
               }}
-              onNavigateToCloner={() => setActiveTab('voice-cloning')}
+              onNavigateToCloner={() => {
+                if (!currentUser) {
+                  setIsAuthModalOpen(true);
+                  return;
+                }
+                setActiveTab('voice-cloning');
+              }}
+              currentUser={currentUser}
+              onRequireAuth={() => setIsAuthModalOpen(true)}
             />
           )}
 
@@ -488,6 +529,17 @@ export default function Home() {
 
           {/* VIEW 5: ABOUT US */}
           {activeTab === 'about' && <AboutPage />}
+
+          {/* VIEW 6: OWNER ADMIN PANEL (Protected) */}
+          {activeTab === 'admin' && (
+            currentUser?.email?.toLowerCase() === 'muhammadwaqasmwg@gmail.com' ? (
+              <AdminPanel currentUser={currentUser} />
+            ) : (
+              <div className="p-12 text-center bg-white rounded-3xl border border-rose-200 text-rose-700 text-sm font-bold">
+                Access Denied: Owner credentials required.
+              </div>
+            )
+          )}
         </main>
 
         {/* Studio Footer */}
@@ -509,7 +561,6 @@ export default function Home() {
               target="_blank"
               rel="noopener noreferrer"
               className="text-brand-600 hover:text-brand-700 hover:underline font-bold transition-colors"
-              title="Connect with Waqas Gill on Facebook"
             >
               Waqas Gill
             </a>
@@ -522,6 +573,7 @@ export default function Home() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onSuccessLogin={handleLoginSuccess}
+        isRequired={!currentUser}
       />
     </div>
   );

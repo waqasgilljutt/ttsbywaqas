@@ -12,13 +12,14 @@ import {
   FolderHeart,
 } from 'lucide-react';
 
-export type TabType = 'text-to-voice' | 'voice-cloning' | 'voice-library' | 'pricing' | 'about';
+export type TabType = 'text-to-voice' | 'voice-cloning' | 'voice-library' | 'pricing' | 'about' | 'admin';
 
 interface SidebarProps {
   activeTab: TabType;
   onSelectTab: (tab: TabType) => void;
   isOpenMobile?: boolean;
   onCloseMobile?: () => void;
+  currentUser?: { name: string; email: string } | null;
 }
 
 export function Sidebar({
@@ -26,7 +27,10 @@ export function Sidebar({
   onSelectTab,
   isOpenMobile,
   onCloseMobile,
+  currentUser,
 }: SidebarProps) {
+  const isOwner = currentUser?.email?.toLowerCase() === 'muhammadwaqasmwg@gmail.com';
+
   const navItems = [
     {
       id: 'text-to-voice' as TabType,
@@ -64,6 +68,17 @@ export function Sidebar({
       badge: 'Company',
     },
   ];
+
+  // OWNER-ONLY TAB: Invisible to regular users
+  if (isOwner) {
+    navItems.push({
+      id: 'admin' as TabType,
+      label: 'Owner Command',
+      description: 'Registered users & stats',
+      icon: ShieldCheck,
+      badge: '👑 Owner',
+    });
+  }
 
   return (
     <>
