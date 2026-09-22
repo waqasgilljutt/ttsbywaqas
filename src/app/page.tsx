@@ -16,7 +16,7 @@ import { AboutPage } from '@/components/AboutPage';
 import { AdminPanel } from '@/components/AdminPanel';
 import { Voice } from '@/lib/edge-tts-service';
 import { synthesizeLargeScript } from '@/lib/batch-synthesizer';
-import { Sparkles, Loader2, AlertCircle, Info } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, Info, Zap } from 'lucide-react';
 
 const INITIAL_TEXT =
   "Welcome to TTS bY Waqas Gill by EmpireNexs! You can customize voice speed, pitch, and choose from over 320 high-fidelity neural voices across dozens of languages. Supports up to 50,000 characters per script!";
@@ -520,17 +520,33 @@ export default function Home() {
           {activeTab === 'text-to-voice' && (
             <div className="flex flex-col gap-8">
               {errorMessage && (
-                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
+                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in shadow-xs">
+                  <div className="flex items-center gap-2.5">
                     <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span>{errorMessage}</span>
+                    <span className="leading-relaxed">{errorMessage}</span>
                   </div>
-                  <button
-                    onClick={() => setErrorMessage(null)}
-                    className="font-semibold underline"
-                  >
-                    Dismiss
-                  </button>
+                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                    {errorMessage.toLowerCase().includes('credit') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('pricing');
+                          setErrorMessage(null);
+                        }}
+                        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                      >
+                        <Zap className="w-3.5 h-3.5 fill-white" />
+                        <span>Buy Credits</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setErrorMessage(null)}
+                      className="px-2.5 py-1 text-slate-500 hover:text-slate-800 font-semibold transition-colors cursor-pointer"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
                 </div>
               )}
 
