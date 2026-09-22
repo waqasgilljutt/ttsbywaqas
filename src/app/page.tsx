@@ -274,7 +274,6 @@ export default function Home() {
           body: JSON.stringify({
             action: 'increment-usage',
             email: currentUser.email,
-            characters: text.trim().length,
           }),
         })
           .then((res) => res.json())

@@ -619,7 +619,6 @@ export function VoiceCloner({
           body: JSON.stringify({
             action: 'increment-usage',
             email: currentUser.email,
-            characters: scriptText.trim().length,
           }),
         })
           .then(() => {

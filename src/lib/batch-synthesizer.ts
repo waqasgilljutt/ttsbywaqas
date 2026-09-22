@@ -24,7 +24,7 @@ export interface BatchProgressInfo {
  */
 export function splitScriptIntoNaturalChunks(
   text: string,
-  maxChunkLength: number = 2000
+  maxChunkLength: number = 800
 ): string[] {
   const trimmed = text.trim();
   if (trimmed.length <= maxChunkLength) {
@@ -92,12 +92,13 @@ export function splitScriptIntoNaturalChunks(
 /**
  * Orchestrates batch audio synthesis across multiple chunks and merges them
  * into a single unified continuous MP3 Blob.
+ * Uses 800-character chapters for fast, 0% timeout Vercel processing with auto-retries.
  */
 export async function synthesizeLargeScript(
   text: string,
   fetchChunkFn: (chunkText: string, chunkIndex: number, totalChunks: number) => Promise<Blob>,
   onProgress?: (info: BatchProgressInfo) => void,
-  maxChunkSize: number = 2000
+  maxChunkSize: number = 800
 ): Promise<Blob> {
   const chunks = splitScriptIntoNaturalChunks(text, maxChunkSize);
   const totalChunks = chunks.length;
@@ -113,7 +114,23 @@ export async function synthesizeLargeScript(
       statusText: 'Streaming audio from EmpireNexs Neural Engine...',
     });
 
-    const singleBlob = await fetchChunkFn(chunks[0] || text.trim(), 0, 1);
+    let singleBlob: Blob | null = null;
+    let lastErr: unknown = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        singleBlob = await fetchChunkFn(chunks[0] || text.trim(), 0, 1);
+        if (singleBlob && singleBlob.size > 0) break;
+      } catch (err) {
+        lastErr = err;
+        if (attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        }
+      }
+    }
+
+    if (!singleBlob) {
+      throw new Error((lastErr as Error)?.message || 'Speech synthesis failed. Please check network connection and try again.');
+    }
 
     onProgress?.({
       percent: 100,
@@ -127,7 +144,7 @@ export async function synthesizeLargeScript(
     return singleBlob;
   }
 
-  // Multi-chapter batch synthesis
+  // Multi-chapter batch synthesis with resilient auto-retry
   const audioBlobs: Blob[] = [];
   let completedChars = 0;
 
@@ -145,14 +162,40 @@ export async function synthesizeLargeScript(
       statusText: `Synthesizing Part ${chunkNum} of ${totalChunks} (${initialPercent}%) - ${completedChars.toLocaleString()} / ${totalChars.toLocaleString()} chars...`,
     });
 
-    try {
-      const chunkBlob = await fetchChunkFn(currentChunkText, i, totalChunks);
-      audioBlobs.push(chunkBlob);
-      completedChars += currentChunkText.length;
-    } catch (err: unknown) {
-      console.error(`Error in chunk ${chunkNum} of ${totalChunks}:`, err);
-      throw new Error(`Part ${chunkNum} of ${totalChunks} failed: ${(err as Error)?.message || 'Synthesis error'}`);
+    let chunkBlob: Blob | null = null;
+    let lastErr: unknown = null;
+    const maxRetries = 3;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        chunkBlob = await fetchChunkFn(currentChunkText, i, totalChunks);
+        if (chunkBlob && chunkBlob.size > 0) {
+          break;
+        }
+      } catch (err: unknown) {
+        lastErr = err;
+        console.warn(`Part ${chunkNum} of ${totalChunks} (Attempt ${attempt}) error:`, err);
+        if (attempt < maxRetries) {
+          onProgress?.({
+            percent: initialPercent,
+            currentChunk: chunkNum,
+            totalChunks,
+            completedChars,
+            totalChars,
+            statusText: `Retrying Part ${chunkNum} of ${totalChunks} (Attempt ${attempt + 1}/${maxRetries})...`,
+          });
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        }
+      }
     }
+
+    if (!chunkBlob) {
+      const errMsg = (lastErr as Error)?.message || 'Network error or timeout';
+      throw new Error(`Part ${chunkNum} of ${totalChunks} failed: ${errMsg}`);
+    }
+
+    audioBlobs.push(chunkBlob);
+    completedChars += currentChunkText.length;
 
     const postPercent = Math.round((chunkNum / totalChunks) * 100);
     onProgress?.({

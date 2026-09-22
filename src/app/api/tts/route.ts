@@ -3,6 +3,7 @@ import { synthesizeSpeech } from '@/lib/edge-tts-service';
 import { checkCreditBalance, deductCredits, MAX_PER_VOICE_CHARACTERS } from '@/lib/user-store';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {

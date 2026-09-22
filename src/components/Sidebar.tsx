@@ -35,7 +35,7 @@ export function Sidebar({
     {
       id: 'text-to-voice' as TabType,
       label: 'Text to Voice',
-      description: '320+ Neural Voices & 50k Words',
+      description: '320+ Neural Voices & 50k Chars',
       icon: Mic2,
       badge: 'Core',
     },
@@ -197,7 +197,7 @@ export function Sidebar({
               <span>Free Studio License</span>
             </div>
             <p className="text-[11px] text-slate-500 leading-relaxed">
-              Unlimited generations up to 50,000 words per script.
+              Generations up to 50,000 characters per voice.
             </p>
           </div>
 
