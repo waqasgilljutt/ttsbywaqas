@@ -9,6 +9,7 @@ import {
   DEFAULT_ADMIN_PIN,
   OWNER_EMAIL,
 } from '@/lib/user-store';
+import { getActiveOTPs } from '@/lib/email-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,8 @@ export async function GET(req: NextRequest) {
   }
 
   const users = getAllUsers();
-  return NextResponse.json({ success: true, users });
+  const otps = getActiveOTPs();
+  return NextResponse.json({ success: true, users, otps });
 }
 
 export async function POST(req: NextRequest) {
@@ -45,13 +47,48 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Register or Sync user
-    if (action === 'register' || action === 'sync') {
-      const { name, email } = body;
+    // Login action
+    if (action === 'login') {
+      const { email, password } = body;
       if (!email) {
         return NextResponse.json({ success: false, error: 'Email is required.' }, { status: 400 });
       }
-      const user = registerOrUpdateUser(name, email);
+      const normalizedEmail = email.trim().toLowerCase();
+      const user = getUserByEmail(normalizedEmail);
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'No account found with this Gmail address. Please Sign Up first.' },
+          { status: 404 }
+        );
+      }
+      if (user.isBlocked) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Your account has been blocked by the administrator (Waqas Gill). Please contact muhammadwaqasmwg@gmail.com.',
+          },
+          { status: 403 }
+        );
+      }
+      if (user.password && password && user.password !== password) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Incorrect password. Click "Forgot Password?" below to reset it via your Gmail.',
+          },
+          { status: 401 }
+        );
+      }
+      return NextResponse.json({ success: true, user });
+    }
+
+    // Register or Sync user
+    if (action === 'register' || action === 'sync') {
+      const { name, email, password } = body;
+      if (!email) {
+        return NextResponse.json({ success: false, error: 'Email is required.' }, { status: 400 });
+      }
+      const user = registerOrUpdateUser(name, email, password);
       return NextResponse.json({ success: true, user });
     }
 

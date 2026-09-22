@@ -4,6 +4,7 @@ export interface StoredUser {
   id: string;
   name: string;
   email: string;
+  password?: string;
   createdAt: string;
   lastActive: string;
   voicesGenerated: number;
@@ -20,6 +21,7 @@ let usersCache: StoredUser[] = [
     id: 'owner-waqas',
     name: 'Waqas Gill',
     email: OWNER_EMAIL,
+    password: 'owner_password_secure',
     createdAt: new Date().toISOString(),
     lastActive: new Date().toISOString(),
     voicesGenerated: 120,
@@ -36,13 +38,18 @@ export function getUserByEmail(email: string): StoredUser | undefined {
   return usersCache.find((u) => u.email.toLowerCase() === email.toLowerCase());
 }
 
-export function registerOrUpdateUser(name: string, email: string): StoredUser {
+export function isEmailRegistered(email: string): boolean {
+  return !!getUserByEmail(email);
+}
+
+export function registerOrUpdateUser(name: string, email: string, password?: string): StoredUser {
   const normalizedEmail = email.trim().toLowerCase();
   const existing = getUserByEmail(normalizedEmail);
 
   if (existing) {
     existing.lastActive = new Date().toISOString();
     if (name && name.trim()) existing.name = name.trim();
+    if (password) existing.password = password;
     return existing;
   }
 
@@ -51,6 +58,7 @@ export function registerOrUpdateUser(name: string, email: string): StoredUser {
     id: `user_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     name: name?.trim() || (isOwner ? 'Waqas Gill' : normalizedEmail.split('@')[0]),
     email: normalizedEmail,
+    password: password || '',
     createdAt: new Date().toISOString(),
     lastActive: new Date().toISOString(),
     voicesGenerated: 0,
@@ -60,6 +68,14 @@ export function registerOrUpdateUser(name: string, email: string): StoredUser {
 
   usersCache.unshift(newUser);
   return newUser;
+}
+
+export function updateUserPassword(email: string, newPassword: string): boolean {
+  const user = getUserByEmail(email);
+  if (!user) return false;
+  user.password = newPassword;
+  user.lastActive = new Date().toISOString();
+  return true;
 }
 
 export function toggleBlockUser(userId: string): { success: boolean; user?: StoredUser; error?: string } {

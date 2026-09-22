@@ -32,6 +32,7 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
   const [isVerifyingPin, setIsVerifyingPin] = useState(false);
 
   const [users, setUsers] = useState<StoredUser[]>([]);
+  const [otps, setOtps] = useState<Array<{ email: string; code: string; purpose: string; createdAt: string }>>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all');
@@ -118,8 +119,9 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
         },
       });
       const data = await res.json();
-      if (data.success && data.users) {
-        setUsers(data.users);
+      if (data.success) {
+        if (data.users) setUsers(data.users);
+        if (data.otps) setOtps(data.otps);
       }
     } catch (err) {
       console.warn('Failed to fetch users:', err);
@@ -440,6 +442,44 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
           </div>
         </div>
       </div>
+
+      {/* Live Email OTP Verification Monitor */}
+      {otps.length > 0 && (
+        <div className="p-5 rounded-3xl bg-slate-900 text-white shadow-md flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                Live Email OTP Verification Monitor
+              </h4>
+            </div>
+            <span className="text-[11px] text-slate-400 font-mono">
+              {otps.length} Recent Request{otps.length > 1 ? 's' : ''}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {otps.slice(0, 6).map((item, idx) => (
+              <div
+                key={idx}
+                className="p-3 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <span className="text-[11px] font-semibold text-slate-200 truncate block">
+                    {item.email}
+                  </span>
+                  <span className="text-[10px] text-slate-400 capitalize">
+                    {item.purpose === 'signup' ? 'New Account Verification' : 'Password Reset'}
+                  </span>
+                </div>
+                <div className="px-3 py-1 rounded-xl bg-brand-500/20 border border-brand-400/40 text-brand-300 font-mono text-base font-extrabold tracking-widest shrink-0">
+                  {item.code}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Users Management Card */}
       <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col">
