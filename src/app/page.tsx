@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Sidebar, TabType } from '@/components/Sidebar';
 import { TopNavbar } from '@/components/TopNavbar';
 import { AuthModal } from '@/components/AuthModal';
@@ -121,10 +121,32 @@ export default function Home() {
     setVolume(0);
   };
 
+  // Progress state for Simple Text to Speech
+  const [synthesisProgress, setSynthesisProgress] = useState(0);
+  const [synthesisStatusText, setSynthesisStatusText] = useState('');
+  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const handleSynthesize = useCallback(async () => {
     if (!text.trim() || isSynthesizing) return;
     setIsSynthesizing(true);
+    setSynthesisProgress(8);
+    setSynthesisStatusText('Connecting to EmpireNexs Neural Speech Engine...');
     setErrorMessage(null);
+
+    const steps = [
+      { progress: 25, text: 'Parsing script & detecting sentence boundaries...' },
+      { progress: 50, text: 'Synthesizing voice inflections & prosody tuning...' },
+      { progress: 75, text: 'Streaming audio frames from server...' },
+      { progress: 92, text: 'Rendering high-definition MP3 audio...' },
+    ];
+    let stepIndex = 0;
+    progressTimerRef.current = setInterval(() => {
+      if (stepIndex < steps.length) {
+        setSynthesisProgress(steps[stepIndex].progress);
+        setSynthesisStatusText(steps[stepIndex].text);
+        stepIndex++;
+      }
+    }, 450);
 
     try {
       const response = await fetch('/api/tts', {
@@ -146,7 +168,15 @@ export default function Home() {
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
-      setAudioUrl(url);
+
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      setSynthesisProgress(100);
+      setSynthesisStatusText('Speech synthesized successfully!');
+
+      setTimeout(() => {
+        setAudioUrl(url);
+        setIsSynthesizing(false);
+      }, 350);
 
       const newHistoryItem: HistoryItem = {
         id: Date.now().toString(),
@@ -170,9 +200,9 @@ export default function Home() {
         return updated;
       });
     } catch (err: unknown) {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
       console.error('Synthesis error:', err);
       setErrorMessage((err as Error)?.message || 'Failed to synthesize speech. Please try again.');
-    } finally {
       setIsSynthesizing(false);
     }
   }, [text, isSynthesizing, selectedVoice, rate, pitch, volume]);
@@ -338,6 +368,28 @@ export default function Home() {
                       onChangeText={setText}
                       disabled={isSynthesizing}
                     />
+
+                    {/* Progress bar with percentage for Simple Text to Speech */}
+                    {isSynthesizing && (
+                      <div className="mt-4 p-4 rounded-2xl bg-brand-50/70 border border-brand-200 flex flex-col gap-2.5 animate-in fade-in">
+                        <div className="flex items-center justify-between text-xs font-bold text-brand-900">
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin text-brand-600" />
+                            <span>{synthesisStatusText}</span>
+                          </div>
+                          <span className="font-mono text-brand-700 font-extrabold text-sm">
+                            {synthesisProgress}%
+                          </span>
+                        </div>
+
+                        <div className="w-full h-3 bg-brand-100 rounded-full overflow-hidden p-0.5">
+                          <div
+                            style={{ width: `${synthesisProgress}%` }}
+                            className="h-full bg-gradient-to-r from-brand-600 to-indigo-600 rounded-full transition-all duration-300 shadow-sm"
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-100">
                       <div className="text-xs text-slate-400 flex items-center gap-1.5">

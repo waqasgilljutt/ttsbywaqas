@@ -100,10 +100,12 @@ export function AudioPlayer({ audioUrl, voiceName, onDownload, isLoading }: Audi
   };
 
   const formatTime = (timeInSeconds: number) => {
-    if (isNaN(timeInSeconds)) return '0:00';
+    if (isNaN(timeInSeconds) || timeInSeconds < 0) return '00:00';
     const minutes = Math.floor(timeInSeconds / 60);
     const seconds = Math.floor(timeInSeconds % 60);
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    const mm = minutes < 10 ? `0${minutes}` : `${minutes}`;
+    const ss = seconds < 10 ? `0${seconds}` : `${seconds}`;
+    return `${mm}:${ss}`;
   };
 
   if (!audioUrl && !isLoading) {
@@ -200,10 +202,15 @@ export function AudioPlayer({ audioUrl, voiceName, onDownload, isLoading }: Audi
           className="w-full"
         />
 
-        {/* Time Labels */}
-        <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 font-medium">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
+        {/* Time Labels with digital clock indicators */}
+        <div className="flex items-center justify-between text-xs font-mono font-bold text-slate-700">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-brand-50 border border-brand-200 text-brand-700 shadow-xs">
+            <span className={`w-2 h-2 rounded-full bg-brand-600 ${isPlaying ? 'animate-ping' : ''}`} />
+            <span>Current: {formatTime(currentTime)}</span>
+          </div>
+          <div className="px-3 py-1 rounded-xl bg-slate-100 border border-slate-200 text-slate-600">
+            <span>Duration: {formatTime(duration)}</span>
+          </div>
         </div>
       </div>
 
