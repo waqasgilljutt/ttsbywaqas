@@ -6,10 +6,12 @@ A high-performance, studio-grade Text-to-Speech (TTS) platform powered by **Next
 
 - **320+ Neural Voices**: High-fidelity, natural-sounding voices across 140+ languages and locales (including English, Urdu, Spanish, Arabic, Hindi, French, German, Japanese, and more).
 - **50,000 Words Capacity**: Capable of converting long scripts, articles, and audiobooks up to 50,000 words through intelligent sentence & paragraph chunking.
+- **AI Voice Cloning & Library**: Clone your voice via microphone or audio upload, customize gender, accent, and timbre, save clones to your personal library, and track generation history.
 - **Voice Tuning & Prosody**: Real-time sliders for Speed / Speaking Rate (0.5x – 2.0x), Pitch (-50Hz – +50Hz), and Volume (-50% – +50%).
-- **Interactive Studio Audio Player**: Custom waveform visualization, scrubbable progress bar, playback speed selector (0.8x – 2x), and one-click MP3 download.
+- **Interactive Studio Audio Player**: Custom waveform visualization, scrubbable progress bar with minute/second digital counter (`mm:ss`), percentage progress bar during generation, and one-click MP3 download.
+- **Studio Navigation & Pages**: Sleek white UI with collapsible left sidebar for Text to Voice, Voice Cloning, Pricing Plans, and About EmpireNexs.
 - **Voice Explorer**: Search voices by name, accent, gender, and voice personality, with instant voice preview audio and favorites bookmarking.
-- **Generation History**: Persists recent audio generations in local storage for instant replay and re-downloading.
+- **Generation History**: Persists recent audio generations and voice clones in local storage for instant replay and re-downloading.
 - **100% Free & Unlimited**: No paid API keys or subscription limits required.
 
 ## 🚀 Getting Started

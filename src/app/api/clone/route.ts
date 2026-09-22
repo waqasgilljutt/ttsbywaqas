@@ -3,15 +3,25 @@ import { synthesizeSpeech } from '@/lib/edge-tts-service';
 
 export const dynamic = 'force-dynamic';
 
+const VOICE_MAP: Record<string, { male: string; female: string }> = {
+  'ur-PK': { male: 'ur-PK-AsadNeural', female: 'ur-PK-UzmaNeural' },
+  'en-PK': { male: 'en-IN-PrabhatNeural', female: 'en-IN-NeerjaNeural' },
+  'en-US': { male: 'en-US-GuyNeural', female: 'en-US-JennyNeural' },
+  'en-GB': { male: 'en-GB-RyanNeural', female: 'en-GB-SoniaNeural' },
+  'hi-IN': { male: 'hi-IN-MadhurNeural', female: 'hi-IN-SwaraNeural' },
+  'ar-SA': { male: 'ar-SA-HamedNeural', female: 'ar-SA-ZariyahNeural' },
+  'es-ES': { male: 'es-ES-AlvaroNeural', female: 'es-ES-ElviraNeural' },
+};
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const text = (formData.get('text') as string) || '';
     const voiceName = (formData.get('voiceName') as string) || 'My Cloned Voice';
     const audioFile = formData.get('audio') as Blob | null;
-    const rate = (formData.get('rate') as string) || '+0%';
-    const pitch = (formData.get('pitch') as string) || '+0Hz';
-    const volume = (formData.get('volume') as string) || '+0%';
+    const gender = ((formData.get('gender') as string) || 'Male').toLowerCase();
+    const locale = (formData.get('locale') as string) || 'ur-PK';
+    const tone = (formData.get('tone') as string) || 'natural';
 
     if (!text || text.trim().length === 0) {
       return NextResponse.json(
@@ -27,17 +37,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Process voice sample: analyze audio sample size & characteristics
-    // In our intelligent zero-cost bridge:
-    // It maps speaker acoustic characteristics to the optimal natural neural synthesis voice
-    // or customized pitch/formant for lifelike reproduction.
-    const selectedBaseVoice = 'en-US-JennyNeural';
+    // Determine target neural base voice according to speaker gender and accent
+    const mapping = VOICE_MAP[locale] || VOICE_MAP['ur-PK'];
+    const isMale = gender === 'male';
+    const selectedBaseVoice = isMale ? mapping.male : mapping.female;
+
+    // Apply acoustic tone adjustment based on user timbre
+    let calculatedPitch = '+0Hz';
+    if (tone === 'deep') {
+      calculatedPitch = isMale ? '-15Hz' : '-10Hz';
+    } else if (tone === 'warm') {
+      calculatedPitch = isMale ? '-5Hz' : '+0Hz';
+    } else if (tone === 'energetic') {
+      calculatedPitch = isMale ? '+10Hz' : '+15Hz';
+    }
 
     const { buffer, contentType } = await synthesizeSpeech(text.trim(), {
       voice: selectedBaseVoice,
-      rate,
-      pitch,
-      volume,
+      rate: '+0%',
+      pitch: calculatedPitch,
+      volume: '+0%',
     });
 
     return new Response(new Uint8Array(buffer), {
