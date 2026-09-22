@@ -998,9 +998,9 @@ export function VoiceCloner({
                 <Sparkles className="w-4 h-4 text-brand-600" />
                 Step 2: Target Script
               </h3>
-              <span className="text-[11px] text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full font-medium flex items-center gap-1.5 border border-slate-200">
-                <Globe2 className="w-3 h-3 text-brand-600" />
-                Language: <strong className="text-slate-800">{detectedLanguage.name}</strong>
+              <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1.5 border border-emerald-200 shadow-xs">
+                <Globe2 className="w-3 h-3 text-emerald-600" />
+                <span>Auto-Multilingual (Same Voice for All Languages)</span>
               </span>
             </div>
 
@@ -1009,16 +1009,8 @@ export function VoiceCloner({
                 rows={5}
                 disabled={isCloning}
                 value={scriptText}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setScriptText(val);
-                  if (autoDetectLanguage) {
-                    const detected = detectScriptLanguage(val);
-                    setDetectedLanguage(detected);
-                    setLocale(detected.locale);
-                  }
-                }}
-                placeholder="Enter text you want the cloned voice to speak in English, Urdu, or any language..."
+                onChange={(e) => setScriptText(e.target.value)}
+                placeholder="Enter text you want the cloned voice to speak in English, Urdu, Hindi, Arabic, or any language..."
                 className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-slate-900 text-sm leading-relaxed placeholder-slate-400 focus:outline-none focus:border-brand-600 focus:bg-white transition-all resize-y"
               />
               <div className="flex items-center justify-between px-2 pt-1 text-xs text-slate-400 font-mono">

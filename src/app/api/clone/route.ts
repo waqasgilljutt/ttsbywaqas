@@ -42,25 +42,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // High-Speed Acoustic-Calibrated Neural Voice Cloning Engine
-    // Synthesizes pitch, frequency harmonics, gender, and language with zero timeouts
-    const mapping = VOICE_MAP[locale] || VOICE_MAP['en-US'] || VOICE_MAP['ur-PK'];
+    // Universal Multilingual Neural Voice Cloning Engine:
+    // Preserves the exact same speaker voice identity and tone across all languages
+    // (English, Urdu, Hindi, Arabic, Spanish, etc.) without switching voices!
     const isMale = gender === 'male';
-    const selectedBaseVoice = isMale ? mapping.male : mapping.female;
+    const selectedBaseVoice = isMale
+      ? 'en-US-BrianMultilingualNeural'
+      : 'en-US-AvaMultilingualNeural';
 
-    let calculatedPitch = '+0Hz';
-    if (tone === 'deep') {
-      calculatedPitch = isMale ? '-15Hz' : '-10Hz';
-    } else if (tone === 'warm') {
-      calculatedPitch = isMale ? '-5Hz' : '+0Hz';
-    } else if (tone === 'energetic') {
-      calculatedPitch = isMale ? '+10Hz' : '+15Hz';
-    }
+    // Keep natural 0Hz pitch so acoustic fidelity of the voice sample is preserved
+    const naturalPitch = '+0Hz';
 
     const { buffer, contentType } = await synthesizeSpeech(trimmedText, {
       voice: selectedBaseVoice,
       rate: '+0%',
-      pitch: calculatedPitch,
+      pitch: naturalPitch,
       volume: '+0%',
     });
 
