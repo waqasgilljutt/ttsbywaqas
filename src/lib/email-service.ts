@@ -52,10 +52,13 @@ export function deleteOTPRecord(email: string): void {
   activeOTPs.delete(email.toLowerCase());
 }
 
+const DEFAULT_SMTP_EMAIL = 'oc8750714@gmail.com';
+const DEFAULT_SMTP_PASSWORD = 'vrleilglacauujwj';
+
 // Nodemailer transport setup
 function getEmailTransporter() {
-  const smtpEmail = (process.env.SMTP_EMAIL || process.env.GMAIL_USER || OWNER_EMAIL).trim();
-  const smtpPass = (process.env.SMTP_PASSWORD || process.env.GMAIL_APP_PASSWORD || '').trim().replace(/\s+/g, '');
+  const smtpEmail = (process.env.SMTP_EMAIL || process.env.GMAIL_USER || DEFAULT_SMTP_EMAIL).trim();
+  const smtpPass = (process.env.SMTP_PASSWORD || process.env.GMAIL_APP_PASSWORD || DEFAULT_SMTP_PASSWORD).trim().replace(/\s+/g, '');
 
   if (!smtpPass) {
     return null;
@@ -170,7 +173,7 @@ export async function sendOTPEmail(
   }
 
   try {
-    const fromEmail = (process.env.SMTP_EMAIL || process.env.GMAIL_USER || OWNER_EMAIL).trim();
+    const fromEmail = (process.env.SMTP_EMAIL || process.env.GMAIL_USER || DEFAULT_SMTP_EMAIL).trim();
     await transporter.sendMail({
       from: `"TTS bY Waqas Gill" <${fromEmail}>`,
       to: recipientEmail,
