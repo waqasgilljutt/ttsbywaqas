@@ -612,13 +612,41 @@ export function VoiceCloner({
       setCloneProgress(100);
       setCloneStatusText('Voice cloned successfully!');
 
+      // IMMEDIATELY DEDUCT CREDITS IN CLIENT STATE & LOCALSTORAGE
+      const charsDeducted = scriptText.trim().length;
       if (currentUser?.email) {
+        const targetEmail = currentUser.email.toLowerCase();
+        const isOwner = targetEmail === 'muhammadwaqasmwg@gmail.com';
+        let totalUsedNow = charsDeducted;
+
+        try {
+          const key = `empirenexs_credits_${targetEmail}`;
+          const currentStored = localStorage.getItem(key);
+          const parsed = currentStored ? JSON.parse(currentStored) : null;
+          const currentLimit = parsed ? parsed.creditLimit : (userCredits?.creditLimit || 30000);
+          const currentUsed = parsed ? parsed.creditsUsed : (userCredits?.creditsUsed || 0);
+          const isUnlimited = isOwner || parsed?.isUnlimited || userCredits?.isUnlimited || currentLimit === -1;
+          const newUsed = currentUsed + charsDeducted;
+          totalUsedNow = newUsed;
+          const newRemaining = isUnlimited ? Infinity : Math.max(0, currentLimit - newUsed);
+          const updated = {
+            isUnlimited,
+            creditsUsed: newUsed,
+            creditLimit: currentLimit,
+            remainingCredits: newRemaining,
+            planName: parsed?.planName || userCredits?.planName || (isUnlimited ? 'Unlimited VIP Lifetime' : 'Free Starter (30k)'),
+          };
+          localStorage.setItem(key, JSON.stringify(updated));
+        } catch {}
+
         fetch('/api/admin/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'increment-usage',
             email: currentUser.email,
+            characters: charsDeducted,
+            creditsUsed: totalUsedNow,
           }),
         })
           .then(() => {

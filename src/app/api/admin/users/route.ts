@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     // Register or Sync user
     if (action === 'register' || action === 'sync') {
-      const { name, email, password } = body;
+      const { name, email, password, creditsUsed, creditLimit, plan, planName } = body;
       if (!email || !isStrictGmail(email)) {
         return NextResponse.json(
           {
@@ -115,6 +115,14 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
+      if (typeof creditsUsed === 'number' && creditsUsed > (user.creditsUsed || 0)) {
+        user.creditsUsed = creditsUsed;
+      }
+      if (typeof creditLimit === 'number') {
+        user.creditLimit = creditLimit;
+      }
+      if (plan) user.plan = plan;
+      if (planName) user.planName = planName;
       return NextResponse.json({ success: true, user });
     }
 
@@ -133,9 +141,15 @@ export async function POST(req: NextRequest) {
 
     // Get live credit balance for a user
     if (action === 'get-credits') {
-      const { email } = body;
+      const { email, clientCreditsUsed } = body;
       if (!email) {
         return NextResponse.json({ success: false, error: 'Email required.' }, { status: 400 });
+      }
+      if (typeof clientCreditsUsed === 'number') {
+        const user = getUserByEmail(email);
+        if (user && clientCreditsUsed > (user.creditsUsed || 0)) {
+          user.creditsUsed = clientCreditsUsed;
+        }
       }
       const balance = checkCreditBalance(email, 0);
       return NextResponse.json({ success: true, balance });
@@ -143,11 +157,17 @@ export async function POST(req: NextRequest) {
 
     // Record voice synthesis / cloning usage and deduct credits (1 char = 1 credit)
     if (action === 'increment-usage') {
-      const { email, characters } = body;
+      const { email, characters, creditsUsed } = body;
       if (email) {
         recordAudioGeneration(email);
         if (characters && typeof characters === 'number') {
           deductCredits(email, characters);
+        }
+        if (typeof creditsUsed === 'number') {
+          const user = getUserByEmail(email);
+          if (user && creditsUsed > (user.creditsUsed || 0)) {
+            user.creditsUsed = creditsUsed;
+          }
         }
       }
       const balance = email ? checkCreditBalance(email, 0) : null;

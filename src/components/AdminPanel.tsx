@@ -127,10 +127,33 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
       // Sync local users to server (strictly @gmail.com only)
       for (const u of localUsers) {
         if (u.email && /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(u.email.trim())) {
+          let userCreditsUsed = u.creditsUsed || 0;
+          let userPlan = u.plan;
+          let userLimit = u.creditLimit;
+          let userPlanName = u.planName;
+          try {
+            const cachedCredits = localStorage.getItem(`empirenexs_credits_${u.email.toLowerCase()}`);
+            if (cachedCredits) {
+              const parsed = JSON.parse(cachedCredits);
+              if (parsed.creditsUsed > userCreditsUsed) userCreditsUsed = parsed.creditsUsed;
+              if (parsed.plan) userPlan = parsed.plan;
+              if (parsed.creditLimit) userLimit = parsed.creditLimit;
+              if (parsed.planName) userPlanName = parsed.planName;
+            }
+          } catch {}
+
           await fetch('/api/admin/users', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'sync', name: u.name, email: u.email }),
+            body: JSON.stringify({
+              action: 'sync',
+              name: u.name,
+              email: u.email,
+              creditsUsed: userCreditsUsed,
+              creditLimit: userLimit,
+              plan: userPlan,
+              planName: userPlanName,
+            }),
           }).catch(() => {});
         }
       }
@@ -272,6 +295,18 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
       const data = await res.json();
       if (data.success && data.users) {
         setUsers(data.users);
+        try {
+          const targetKey = `empirenexs_credits_${user.email.toLowerCase()}`;
+          const currentCredit = localStorage.getItem(targetKey);
+          const parsed = currentCredit ? JSON.parse(currentCredit) : {};
+          parsed.plan = planKey;
+          parsed.planName = data.user?.planName || planKey;
+          parsed.creditLimit = data.user?.creditLimit;
+          parsed.isUnlimited = planKey === 'unlimited';
+          parsed.remainingCredits = planKey === 'unlimited' ? Infinity : Math.max(0, (data.user?.creditLimit || 30000) - (parsed.creditsUsed || 0));
+          localStorage.setItem(targetKey, JSON.stringify(parsed));
+        } catch {}
+
         showNotice(`Plan for ${user.name} successfully updated to ${planKey.toUpperCase()}!`);
         setSelectedUserForPlan(null);
       } else {
@@ -308,6 +343,17 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
       const data = await res.json();
       if (data.success && data.users) {
         setUsers(data.users);
+        try {
+          const targetKey = `empirenexs_credits_${user.email.toLowerCase()}`;
+          const currentCredit = localStorage.getItem(targetKey);
+          const parsed = currentCredit ? JSON.parse(currentCredit) : {};
+          parsed.creditLimit = limitNum;
+          if (customPlanNameInput.trim()) parsed.planName = customPlanNameInput.trim();
+          parsed.isUnlimited = limitNum === -1;
+          parsed.remainingCredits = limitNum === -1 ? Infinity : Math.max(0, limitNum - (parsed.creditsUsed || 0));
+          localStorage.setItem(targetKey, JSON.stringify(parsed));
+        } catch {}
+
         showNotice(`Custom limit of ${limitNum === -1 ? 'Unlimited' : limitNum.toLocaleString()} credits set for ${user.name}!`);
         setSelectedUserForPlan(null);
       } else {

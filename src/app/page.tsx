@@ -66,15 +66,45 @@ export default function Home() {
   const refreshUserCredits = useCallback(async (email?: string) => {
     const targetEmail = email || currentUser?.email;
     if (!targetEmail) return;
+
+    // Load instantly from localStorage so user never sees stale credits
+    let cachedCreditsUsed = 0;
+    try {
+      const stored = localStorage.getItem(`empirenexs_credits_${targetEmail.toLowerCase()}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        cachedCreditsUsed = parsed.creditsUsed || 0;
+        setUserCredits(parsed);
+      }
+    } catch {}
+
     try {
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'get-credits', email: targetEmail }),
+        body: JSON.stringify({
+          action: 'get-credits',
+          email: targetEmail,
+          clientCreditsUsed: cachedCreditsUsed,
+        }),
       });
       const data = await res.json();
       if (data.success && data.balance) {
-        setUserCredits(data.balance);
+        const higherUsed = Math.max(data.balance.creditsUsed || 0, cachedCreditsUsed);
+        const mergedBalance = {
+          ...data.balance,
+          creditsUsed: higherUsed,
+          remainingCredits: data.balance.isUnlimited
+            ? Infinity
+            : Math.max(0, data.balance.creditLimit - higherUsed),
+        };
+        setUserCredits(mergedBalance);
+        try {
+          localStorage.setItem(
+            `empirenexs_credits_${targetEmail.toLowerCase()}`,
+            JSON.stringify(mergedBalance)
+          );
+        } catch {}
       }
     } catch (e) {
       console.warn('Failed to load user credits:', e);
@@ -266,21 +296,44 @@ export default function Home() {
       setSynthesisProgress(100);
       setSynthesisStatusText('Speech synthesized successfully!');
 
-      // Record audio generation usage in user store and refresh credit balance
+      // IMMEDIATELY DEDUCT CREDITS IN CLIENT STATE & LOCALSTORAGE
+      const charsDeducted = text.trim().length;
       if (currentUser?.email) {
+        const targetEmail = currentUser.email.toLowerCase();
+        const isOwner = targetEmail === 'muhammadwaqasmwg@gmail.com';
+        let totalUsedNow = charsDeducted;
+
+        setUserCredits((prev) => {
+          const currentLimit = prev ? prev.creditLimit : 30000;
+          const currentUsed = prev ? prev.creditsUsed : 0;
+          const isUnlimited = isOwner || prev?.isUnlimited || currentLimit === -1;
+          const newUsed = currentUsed + charsDeducted;
+          totalUsedNow = newUsed;
+          const newRemaining = isUnlimited ? Infinity : Math.max(0, currentLimit - newUsed);
+          const updated = {
+            isUnlimited,
+            creditsUsed: newUsed,
+            creditLimit: currentLimit,
+            remainingCredits: newRemaining,
+            planName: prev?.planName || (isUnlimited ? 'Unlimited VIP Lifetime' : 'Free Starter (30k)'),
+          };
+          try {
+            localStorage.setItem(`empirenexs_credits_${targetEmail}`, JSON.stringify(updated));
+          } catch {}
+          return updated;
+        });
+
+        // Sync with server store and admin dashboard
         fetch('/api/admin/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'increment-usage',
             email: currentUser.email,
+            characters: charsDeducted,
+            creditsUsed: totalUsedNow,
           }),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.balance) setUserCredits(data.balance);
-          })
-          .catch(() => {});
+        }).catch(() => {});
       }
 
       setTimeout(() => {
