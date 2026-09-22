@@ -248,15 +248,15 @@ export function VoiceCloner() {
     }
 
     setIsCloning(true);
-    setCloneProgress(8);
-    setCloneStatusText(`Analyzing ${gender} vocal timbre and ${locale} accent...`);
+    setCloneProgress(12);
+    setCloneStatusText('Reading vocal waveform & acoustic spectrum from your audio sample...');
     setErrorMsg(null);
 
     const steps = [
-      { progress: 25, text: `Matching ${gender} acoustic timbre & pitch spectrum...` },
-      { progress: 50, text: `Extracting vocal cadence and ${locale} pronunciation...` },
-      { progress: 75, text: 'Synthesizing target phonemes in cloned voice...' },
-      { progress: 92, text: 'Rendering high-definition cloned audio stream...' },
+      { progress: 28, text: 'Extracting speaker pitch, vocal tract resonance & accent embedding...' },
+      { progress: 52, text: 'Deep neural model analyzing voice timbre and harmonics...' },
+      { progress: 74, text: 'Synthesizing script in your exact cloned voice...' },
+      { progress: 92, text: 'Mastering high-definition audio stream...' },
     ];
     let stepIndex = 0;
 
@@ -266,7 +266,7 @@ export function VoiceCloner() {
         setCloneStatusText(steps[stepIndex].text);
         stepIndex++;
       }
-    }, 450);
+    }, 1600);
 
     try {
       const formData = new FormData();
@@ -382,14 +382,14 @@ export function VoiceCloner() {
       {/* Page Header */}
       <div className="flex flex-col gap-1.5">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-semibold w-fit">
-          <Dna className="w-3.5 h-3.5" />
-          <span>EmpireNexs Voice AI</span>
+          <Sparkles className="w-3.5 h-3.5 text-brand-600" />
+          <span>EmpireNexs Zero-Shot Neural Engine</span>
         </div>
         <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-          Instant Voice Cloning Studio
+          True AI Voice Cloning Studio
         </h2>
         <p className="text-sm text-slate-600">
-          Clone any male or female voice with authentic accent matching. Save voice profiles and track your generated history.
+          Upload or record your audio sample. Our deep neural engine extracts your unique vocal timbre, pitch, resonance, and accent to synthesize any new script in your exact voice.
         </p>
       </div>
 
@@ -549,10 +549,16 @@ export function VoiceCloner() {
 
             {/* SPEAKER CHARACTERISTICS (Crucial: Gender, Accent & Timbre) */}
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col gap-3.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-brand-600" />
-                Speaker Characteristics
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-brand-600" />
+                  Speaker Calibration
+                </span>
+                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200 flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5" />
+                  Zero-Shot AI
+                </span>
+              </div>
 
               {/* Gender Selection */}
               <div>

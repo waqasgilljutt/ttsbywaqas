@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@gradio/client": "^2.7.0",
     "clsx": "^2.1.1",
     "edge-tts": "^1.0.1",
     "lucide-react": "^0.475.0",
