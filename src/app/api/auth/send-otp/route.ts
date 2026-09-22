@@ -3,6 +3,7 @@ import { isEmailRegistered, getUserByEmail } from '@/lib/user-store';
 import {
   generateOTPCode,
   saveOTPRecord,
+  deleteOTPRecord,
   sendOTPEmail,
   OTPRecord,
 } from '@/lib/email-service';
@@ -93,12 +94,22 @@ export async function POST(req: NextRequest) {
     // 6. SEND EMAIL TO GMAIL
     const emailResult = await sendOTPEmail(normalizedEmail, code, purpose || 'signup', name);
 
+    if (!emailResult.deliveredViaSMTP) {
+      deleteOTPRecord(normalizedEmail);
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            emailResult.error ||
+            'Could not deliver verification code to your Gmail inbox. Please verify your email configuration.',
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      message: `A 6-digit verification code has been sent to ${normalizedEmail}.`,
-      deliveredViaSMTP: emailResult.deliveredViaSMTP,
-      // Provide OTP code in response if SMTP credentials aren't set yet or in dev so testing is never blocked
-      fallbackCode: !emailResult.deliveredViaSMTP ? code : undefined,
+      message: `A 6-digit verification code has been sent directly to your Gmail inbox (${normalizedEmail}).`,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Failed to send verification code';

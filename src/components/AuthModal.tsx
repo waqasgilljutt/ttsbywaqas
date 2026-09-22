@@ -52,7 +52,6 @@ export function AuthModal({
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [resendCountdown, setResendCountdown] = useState(0);
-  const [devCodeHint, setDevCodeHint] = useState<string | null>(null);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -73,7 +72,6 @@ export function AuthModal({
   const handleStartSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
-    setDevCodeHint(null);
 
     const normalizedEmail = email.trim().toLowerCase();
     if (!validateIsGmail(normalizedEmail)) {
@@ -108,10 +106,6 @@ export function AuthModal({
       if (!res.ok || !data.success) {
         setErrorMsg(data.error || 'Failed to send verification code.');
         return;
-      }
-
-      if (data.fallbackCode) {
-        setDevCodeHint(data.fallbackCode);
       }
 
       setMode('signup-otp');
@@ -228,7 +222,6 @@ export function AuthModal({
   const handleRequestPasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
-    setDevCodeHint(null);
 
     const normalizedEmail = email.trim().toLowerCase();
     if (!validateIsGmail(normalizedEmail)) {
@@ -254,10 +247,6 @@ export function AuthModal({
       if (!res.ok || !data.success) {
         setErrorMsg(data.error || 'Failed to send password reset code.');
         return;
-      }
-
-      if (data.fallbackCode) {
-        setDevCodeHint(data.fallbackCode);
       }
 
       setMode('reset-password-otp');
@@ -309,7 +298,6 @@ export function AuthModal({
         setMode('signin');
         setPassword('');
         setOtpCode('');
-        setDevCodeHint(null);
       }, 1500);
     } catch {
       setIsLoading(false);
@@ -453,19 +441,7 @@ export function AuthModal({
           </div>
         )}
 
-        {/* Dev OTP Code Banner (shows code if SMTP credentials aren't configured yet) */}
-        {devCodeHint && (
-          <div className="mb-4 p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-[11px] flex items-center justify-between">
-            <span>Verification Code: <strong className="font-mono text-sm tracking-widest text-amber-800">{devCodeHint}</strong></span>
-            <button
-              type="button"
-              onClick={() => setOtpCode(devCodeHint)}
-              className="text-[10px] font-bold underline text-amber-700"
-            >
-              Fill Code
-            </button>
-          </div>
-        )}
+
 
         {/* VIEW 1: SIGN IN */}
         {mode === 'signin' && (

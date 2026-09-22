@@ -54,15 +54,29 @@ export function deleteOTPRecord(email: string): void {
 
 // Nodemailer transport setup
 function getEmailTransporter() {
-  const smtpEmail = process.env.SMTP_EMAIL || process.env.GMAIL_USER || OWNER_EMAIL;
-  const smtpPass = process.env.SMTP_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+  const smtpEmail = (process.env.SMTP_EMAIL || process.env.GMAIL_USER || OWNER_EMAIL).trim();
+  const smtpPass = (process.env.SMTP_PASSWORD || process.env.GMAIL_APP_PASSWORD || '').trim().replace(/\s+/g, '');
 
   if (!smtpPass) {
     return null;
   }
 
+  if (process.env.SMTP_HOST) {
+    return nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT) || 587,
+      secure: Number(process.env.SMTP_PORT) === 465,
+      auth: {
+        user: smtpEmail,
+        pass: smtpPass,
+      },
+    });
+  }
+
   return nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
       user: smtpEmail,
       pass: smtpPass,
@@ -143,33 +157,35 @@ export async function sendOTPEmail(
 
   const transporter = getEmailTransporter();
 
-  if (transporter) {
-    try {
-      const fromEmail = process.env.SMTP_EMAIL || process.env.GMAIL_USER || OWNER_EMAIL;
-      await transporter.sendMail({
-        from: `"TTS bY Waqas Gill" <${fromEmail}>`,
-        to: recipientEmail,
-        subject: `${code} is your TTS bY Waqas Gill verification code`,
-        html: htmlContent,
-      });
-      console.log(`[Email Service] Verification email successfully sent via SMTP to ${recipientEmail}`);
-      return { success: true, deliveredViaSMTP: true };
-    } catch (err: unknown) {
-      console.warn('[Email Service] SMTP dispatch error:', err);
-      // Fallback: OTP is still recorded in server memory and visible to Admin
-      return {
-        success: true,
-        deliveredViaSMTP: false,
-        error: err instanceof Error ? err.message : 'SMTP delivery failed',
-      };
-    }
-  } else {
-    console.log(
-      `[Email Service] SMTP credentials not yet set in environment. OTP generated for ${recipientEmail}: ${code}`
+  if (!transporter) {
+    console.warn(
+      `[Email Service] Google App Password (SMTP_PASSWORD) is not configured in environment. Cannot deliver email to ${recipientEmail}`
     );
     return {
-      success: true,
+      success: false,
       deliveredViaSMTP: false,
+      error:
+        'Email delivery is not yet configured. Please set SMTP_PASSWORD (Google App Password) in your .env.local or Vercel Environment Variables.',
+    };
+  }
+
+  try {
+    const fromEmail = (process.env.SMTP_EMAIL || process.env.GMAIL_USER || OWNER_EMAIL).trim();
+    await transporter.sendMail({
+      from: `"TTS bY Waqas Gill" <${fromEmail}>`,
+      to: recipientEmail,
+      subject: `${code} is your verification code - TTS bY Waqas Gill`,
+      html: htmlContent,
+    });
+    console.log(`[Email Service] Verification email successfully delivered via Gmail SMTP to ${recipientEmail}`);
+    return { success: true, deliveredViaSMTP: true };
+  } catch (err: unknown) {
+    console.error('[Email Service] SMTP dispatch error:', err);
+    const errorMsg = err instanceof Error ? err.message : 'SMTP delivery failed';
+    return {
+      success: false,
+      deliveredViaSMTP: false,
+      error: `Could not send verification email to Gmail: ${errorMsg}`,
     };
   }
 }
