@@ -45,6 +45,13 @@ export async function POST(req: NextRequest) {
       );
       deleteOTPRecord(normalizedEmail);
 
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Registration failed. Only official @gmail.com accounts are permitted.' },
+          { status: 400 }
+        );
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Account verified and created successfully!',

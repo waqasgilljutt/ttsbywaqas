@@ -96,14 +96,24 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
       let localUsers: StoredUser[] = [];
       try {
         const stored = localStorage.getItem('empirenexs_registered_accounts');
-        if (stored) localUsers = JSON.parse(stored);
+        if (stored) {
+          localUsers = JSON.parse(stored);
+          // Purge any temporary/disposable/non-gmail accounts permanently
+          const cleaned = localUsers.filter(
+            (u) => u.email && /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(u.email.trim())
+          );
+          if (cleaned.length !== localUsers.length) {
+            localStorage.setItem('empirenexs_registered_accounts', JSON.stringify(cleaned));
+            localUsers = cleaned;
+          }
+        }
       } catch (e) {
         console.warn('Local storage error:', e);
       }
 
-      // Sync local users to server
+      // Sync local users to server (strictly @gmail.com only)
       for (const u of localUsers) {
-        if (u.email) {
+        if (u.email && /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(u.email.trim())) {
           await fetch('/api/admin/users', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -120,7 +130,13 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
       });
       const data = await res.json();
       if (data.success) {
-        if (data.users) setUsers(data.users);
+        if (data.users) {
+          // Strict Gmail filter: do not display any temp mail under any condition
+          const gmailUsers = (data.users as StoredUser[]).filter(
+            (u) => u.email && /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(u.email.trim())
+          );
+          setUsers(gmailUsers);
+        }
         if (data.otps) setOtps(data.otps);
       }
     } catch (err) {

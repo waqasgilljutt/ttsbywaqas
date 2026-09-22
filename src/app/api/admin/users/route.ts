@@ -6,6 +6,7 @@ import {
   toggleBlockUser,
   deleteUser,
   recordAudioGeneration,
+  isStrictGmail,
   DEFAULT_ADMIN_PIN,
   OWNER_EMAIL,
 } from '@/lib/user-store';
@@ -50,8 +51,11 @@ export async function POST(req: NextRequest) {
     // Login action
     if (action === 'login') {
       const { email, password } = body;
-      if (!email) {
-        return NextResponse.json({ success: false, error: 'Email is required.' }, { status: 400 });
+      if (!email || !isStrictGmail(email)) {
+        return NextResponse.json(
+          { success: false, error: 'Only official @gmail.com accounts are accepted.' },
+          { status: 400 }
+        );
       }
       const normalizedEmail = email.trim().toLowerCase();
       const user = getUserByEmail(normalizedEmail);
@@ -85,10 +89,26 @@ export async function POST(req: NextRequest) {
     // Register or Sync user
     if (action === 'register' || action === 'sync') {
       const { name, email, password } = body;
-      if (!email) {
-        return NextResponse.json({ success: false, error: 'Email is required.' }, { status: 400 });
+      if (!email || !isStrictGmail(email)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'Only official @gmail.com accounts are accepted. Temporary, disposable, and non-Gmail emails are strictly blocked.',
+          },
+          { status: 400 }
+        );
       }
       const user = registerOrUpdateUser(name, email, password);
+      if (!user) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Failed to register. Only valid @gmail.com accounts are permitted.',
+          },
+          { status: 400 }
+        );
+      }
       return NextResponse.json({ success: true, user });
     }
 

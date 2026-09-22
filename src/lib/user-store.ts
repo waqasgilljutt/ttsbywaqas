@@ -30,11 +30,19 @@ let usersCache: StoredUser[] = [
   },
 ];
 
+export function isStrictGmail(email: string): boolean {
+  if (!email || typeof email !== 'string') return false;
+  return /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(email.trim());
+}
+
 export function getAllUsers(): StoredUser[] {
+  // Enforce Gmail only: automatically purge any temp/disposable/non-gmail accounts
+  usersCache = usersCache.filter((u) => isStrictGmail(u.email));
   return usersCache;
 }
 
 export function getUserByEmail(email: string): StoredUser | undefined {
+  if (!isStrictGmail(email)) return undefined;
   return usersCache.find((u) => u.email.toLowerCase() === email.toLowerCase());
 }
 
@@ -42,8 +50,13 @@ export function isEmailRegistered(email: string): boolean {
   return !!getUserByEmail(email);
 }
 
-export function registerOrUpdateUser(name: string, email: string, password?: string): StoredUser {
+export function registerOrUpdateUser(name: string, email: string, password?: string): StoredUser | null {
   const normalizedEmail = email.trim().toLowerCase();
+  if (!isStrictGmail(normalizedEmail)) {
+    console.warn(`[User Store] Blocked registration of non-Gmail account: ${email}`);
+    return null;
+  }
+
   const existing = getUserByEmail(normalizedEmail);
 
   if (existing) {
