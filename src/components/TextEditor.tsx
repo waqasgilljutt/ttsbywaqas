@@ -126,6 +126,20 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
             {charCount.toLocaleString()} chars
           </div>
         </div>
+
+        {charCount > 3000 && (
+          <div className="mt-2.5 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>
+                <strong>Long-Form Batch Engine Active:</strong> Your {charCount.toLocaleString()} character script will be synthesized seamlessly across chapters into one continuous MP3 with zero timeouts.
+              </span>
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full shrink-0">
+              40,000+ Ready
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

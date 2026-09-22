@@ -15,6 +15,7 @@ import { PricingPage } from '@/components/PricingPage';
 import { AboutPage } from '@/components/AboutPage';
 import { AdminPanel } from '@/components/AdminPanel';
 import { Voice } from '@/lib/edge-tts-service';
+import { synthesizeLargeScript } from '@/lib/batch-synthesizer';
 import { Sparkles, Loader2, AlertCircle, Info } from 'lucide-react';
 
 const INITIAL_TEXT =
@@ -185,24 +186,43 @@ export default function Home() {
     }, 450);
 
     try {
-      const response = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: text.trim(),
-          voice: selectedVoice?.ShortName || 'en-US-JennyNeural',
-          rate: rate !== 0 ? `${rate >= 0 ? '+' : ''}${rate}%` : '+0%',
-          pitch: pitch !== 0 ? `${pitch >= 0 ? '+' : ''}${pitch}Hz` : '+0Hz',
-          volume: volume !== 0 ? `${volume >= 0 ? '+' : ''}${volume}%` : '+0%',
-        }),
-      });
+      const voiceShortName = selectedVoice?.ShortName || 'en-US-JennyNeural';
+      const formattedRate = rate !== 0 ? `${rate >= 0 ? '+' : ''}${rate}%` : '+0%';
+      const formattedPitch = pitch !== 0 ? `${pitch >= 0 ? '+' : ''}${pitch}Hz` : '+0Hz';
+      const formattedVolume = volume !== 0 ? `${volume >= 0 ? '+' : ''}${volume}%` : '+0%';
 
-      if (!response.ok) {
-        const errorJson = await response.json().catch(() => ({}));
-        throw new Error(errorJson.error || `Synthesis failed with status ${response.status}`);
-      }
+      // High-capacity batch synthesis: handles 1 chunk or 40,000+ characters across chapters
+      const blob = await synthesizeLargeScript(
+        text.trim(),
+        async (chunkText) => {
+          const res = await fetch('/api/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: chunkText,
+              voice: voiceShortName,
+              rate: formattedRate,
+              pitch: formattedPitch,
+              volume: formattedVolume,
+            }),
+          });
 
-      const blob = await response.blob();
+          if (!res.ok) {
+            const errorJson = await res.json().catch(() => ({}));
+            throw new Error(errorJson.error || `Synthesis failed with status ${res.status}`);
+          }
+
+          return await res.blob();
+        },
+        (progressInfo) => {
+          if (progressTimerRef.current && progressInfo.totalChunks > 1) {
+            clearInterval(progressTimerRef.current);
+          }
+          setSynthesisProgress(progressInfo.percent);
+          setSynthesisStatusText(progressInfo.statusText);
+        }
+      );
+
       const url = URL.createObjectURL(blob);
 
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);

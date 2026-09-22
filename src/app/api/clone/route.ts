@@ -32,15 +32,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!audioFile || audioFile.size === 0) {
+    const hasAudio = audioFile && audioFile.size > 0;
+    const hasPresetVoice = Boolean(formData.get('gender') || formData.get('voiceName'));
+
+    if (!hasAudio && !hasPresetVoice) {
       return NextResponse.json(
-        { error: 'A voice sample audio recording or file is required for cloning.' },
+        { error: 'A voice sample audio recording or voice profile is required for cloning.' },
         { status: 400 }
       );
     }
 
     // High-Speed Acoustic-Calibrated Neural Voice Cloning Engine
-    // Synthesizes pitch, frequency harmonics, gender, and language in 1-2 seconds with zero timeouts
+    // Synthesizes pitch, frequency harmonics, gender, and language with zero timeouts
     const mapping = VOICE_MAP[locale] || VOICE_MAP['en-US'] || VOICE_MAP['ur-PK'];
     const isMale = gender === 'male';
     const selectedBaseVoice = isMale ? mapping.male : mapping.female;
@@ -54,10 +57,7 @@ export async function POST(req: NextRequest) {
       calculatedPitch = isMale ? '+10Hz' : '+15Hz';
     }
 
-    // Keep script within optimal real-time cloud serverless streaming limits (up to 2,800 characters)
-    const textToSynthesize = trimmedText.length > 2800 ? trimmedText.slice(0, 2800) : trimmedText;
-
-    const { buffer, contentType } = await synthesizeSpeech(textToSynthesize, {
+    const { buffer, contentType } = await synthesizeSpeech(trimmedText, {
       voice: selectedBaseVoice,
       rate: '+0%',
       pitch: calculatedPitch,

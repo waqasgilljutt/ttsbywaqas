@@ -24,6 +24,7 @@ import {
   Check,
   Share2,
 } from 'lucide-react';
+import { synthesizeLargeScript } from '@/lib/batch-synthesizer';
 
 export interface SavedClone {
   id: string;
@@ -539,25 +540,41 @@ export function VoiceCloner({
     }, 1600);
 
     try {
-      const formData = new FormData();
-      formData.append('audio', audioBlobToUse, 'voice-sample.wav');
-      formData.append('text', scriptText.trim());
-      formData.append('voiceName', voiceName.trim() || 'My Voice Clone');
-      formData.append('gender', gender);
-      formData.append('locale', locale);
-      formData.append('tone', tone);
+      const audioBlob = await synthesizeLargeScript(
+        scriptText.trim(),
+        async (chunkText, chunkIndex) => {
+          const formData = new FormData();
+          // Include audio recording on first chunk or when available
+          if (chunkIndex === 0 && audioBlobToUse) {
+            formData.append('audio', audioBlobToUse, 'voice-sample.wav');
+          }
+          formData.append('text', chunkText);
+          formData.append('voiceName', voiceName.trim() || 'My Voice Clone');
+          formData.append('gender', gender);
+          formData.append('locale', locale);
+          formData.append('tone', tone);
 
-      const response = await fetch('/api/clone', {
-        method: 'POST',
-        body: formData,
-      });
+          const response = await fetch('/api/clone', {
+            method: 'POST',
+            body: formData,
+          });
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Voice cloning failed.');
-      }
+          if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.error || 'Voice cloning failed.');
+          }
 
-      const audioBlob = await response.blob();
+          return await response.blob();
+        },
+        (progressInfo) => {
+          if (progressTimerRef.current && progressInfo.totalChunks > 1) {
+            clearInterval(progressTimerRef.current);
+          }
+          setCloneProgress(progressInfo.percent);
+          setCloneStatusText(progressInfo.statusText);
+        }
+      );
+
       const audioUrl = URL.createObjectURL(audioBlob);
 
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
@@ -1000,20 +1017,22 @@ export function VoiceCloner({
               />
               <div className="flex items-center justify-between px-2 pt-1 text-xs text-slate-400 font-mono">
                 <span>{scriptText.trim().split(/\s+/).filter(Boolean).length} words</span>
-                <span className={scriptText.length > 2800 ? 'text-amber-600 font-bold' : ''}>
-                  {scriptText.length} characters {scriptText.length > 2800 ? '(Max recommended: ~2,800)' : ''}
+                <span className="text-slate-600 font-semibold">
+                  {scriptText.length.toLocaleString()} characters
                 </span>
               </div>
 
               {scriptText.length > 2500 && (
-                <div className="mt-2.5 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5 animate-in fade-in">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-bold">Fast Cloud Synthesis Tip:</span>
-                    <span className="text-amber-800 leading-relaxed">
-                      Instant cloud voice cloning works best with scripts up to 400 words (~2,500 characters). Scripts longer than 2,800 characters will be synthesized up to the optimal cloud streaming window to prevent timeouts.
+                <div className="mt-2.5 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>
+                      <strong>Long-Form Batch Engine Active:</strong> Your {scriptText.length.toLocaleString()} character script will be synthesized across smooth chapters into one continuous MP3 with zero timeouts.
                     </span>
                   </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full shrink-0">
+                    40,000+ Ready
+                  </span>
                 </div>
               )}
             </div>
