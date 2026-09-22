@@ -81,7 +81,20 @@ export default function Home() {
       if (savedHist) setHistory(JSON.parse(savedHist));
       const savedUser = localStorage.getItem('empirenexs_user');
       if (savedUser) {
-        setCurrentUser(JSON.parse(savedUser));
+        try {
+          const parsed = JSON.parse(savedUser);
+          if (parsed?.email && /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(parsed.email.trim())) {
+            setCurrentUser(parsed);
+          } else {
+            // Immediately purge any old temp mail or invalid account session
+            localStorage.removeItem('empirenexs_user');
+            setCurrentUser(null);
+            setIsAuthModalOpen(true);
+          }
+        } catch {
+          localStorage.removeItem('empirenexs_user');
+          setIsAuthModalOpen(true);
+        }
       } else {
         // Automatically prompt sign in/sign up for guests
         setIsAuthModalOpen(true);
@@ -92,6 +105,10 @@ export default function Home() {
   }, []);
 
   const handleLoginSuccess = (user: { name: string; email: string }) => {
+    if (!user.email || !/^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(user.email.trim())) {
+      console.warn('Blocked non-Gmail session:', user.email);
+      return;
+    }
     setCurrentUser(user);
     try {
       localStorage.setItem('empirenexs_user', JSON.stringify(user));

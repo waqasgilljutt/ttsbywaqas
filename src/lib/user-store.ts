@@ -15,7 +15,12 @@ export interface StoredUser {
 export const OWNER_EMAIL = 'muhammadwaqasmwg@gmail.com';
 export const DEFAULT_ADMIN_PIN = process.env.ADMIN_SECRET_PIN || '7860';
 
-// In-memory cache on server, seeded with Waqas Gill owner account
+export function isStrictGmail(email: string): boolean {
+  if (!email || typeof email !== 'string') return false;
+  return /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(email.trim());
+}
+
+// In-memory cache on server seeded with Waqas Gill owner account and saiem049382
 let usersCache: StoredUser[] = [
   {
     id: 'owner-waqas',
@@ -28,12 +33,17 @@ let usersCache: StoredUser[] = [
     role: 'owner',
     isBlocked: false,
   },
+  {
+    id: 'user_1790054111',
+    name: 'saiem049382',
+    email: 'saiem049382@gmail.com',
+    createdAt: '2026-09-21T23:00:00.000Z',
+    lastActive: new Date().toISOString(),
+    voicesGenerated: 0,
+    role: 'user',
+    isBlocked: false,
+  },
 ];
-
-export function isStrictGmail(email: string): boolean {
-  if (!email || typeof email !== 'string') return false;
-  return /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(email.trim());
-}
 
 export function getAllUsers(): StoredUser[] {
   // Enforce Gmail only: automatically purge any temp/disposable/non-gmail accounts
@@ -84,6 +94,7 @@ export function registerOrUpdateUser(name: string, email: string, password?: str
 }
 
 export function updateUserPassword(email: string, newPassword: string): boolean {
+  if (!isStrictGmail(email)) return false;
   const user = getUserByEmail(email);
   if (!user) return false;
   user.password = newPassword;
@@ -120,6 +131,7 @@ export function deleteUser(userId: string): { success: boolean; error?: string }
 }
 
 export function recordAudioGeneration(email: string): void {
+  if (!isStrictGmail(email)) return;
   const user = getUserByEmail(email);
   if (user) {
     user.voicesGenerated = (user.voicesGenerated || 0) + 1;

@@ -154,6 +154,28 @@ export function AuthModal({
 
       try {
         localStorage.setItem('empirenexs_user', JSON.stringify(verifiedUser));
+
+        // Mirror to registered accounts for Admin Panel
+        const stored = localStorage.getItem('empirenexs_registered_accounts');
+        let list: Array<{ id: string; name: string; email: string; createdAt: string; lastActive: string; voicesGenerated: number; role: string; isBlocked: boolean }> = [];
+        if (stored) {
+          try {
+            list = JSON.parse(stored);
+          } catch {}
+        }
+        if (!list.some((u) => u.email.toLowerCase() === verifiedUser.email.toLowerCase())) {
+          list.unshift({
+            id: verifiedUser.id || `user_${Date.now()}`,
+            name: verifiedUser.name,
+            email: verifiedUser.email,
+            createdAt: new Date().toISOString(),
+            lastActive: new Date().toISOString(),
+            voicesGenerated: 0,
+            role: 'user',
+            isBlocked: false,
+          });
+          localStorage.setItem('empirenexs_registered_accounts', JSON.stringify(list));
+        }
       } catch (e) {
         console.warn('LocalStorage error:', e);
       }
@@ -173,9 +195,14 @@ export function AuthModal({
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
-    setIsLoading(true);
 
     const normalizedEmail = email.trim().toLowerCase();
+    if (!validateIsGmail(normalizedEmail)) {
+      setErrorMsg('Only official @gmail.com accounts are accepted.');
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       const res = await fetch('/api/admin/users', {
