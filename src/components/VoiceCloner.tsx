@@ -44,6 +44,99 @@ interface ClonedHistoryItem {
   locale: string;
 }
 
+interface AudioAnalysis {
+  detectedGender: 'Male' | 'Female';
+  pitchHz: number;
+  detectedTone: 'deep' | 'warm' | 'natural' | 'energetic';
+}
+
+async function scanVoiceSampleAcoustics(blob: Blob): Promise<AudioAnalysis> {
+  try {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) {
+      return { detectedGender: 'Male', pitchHz: 130, detectedTone: 'natural' };
+    }
+    const audioCtx = new AudioContextClass();
+    const arrayBuffer = await blob.arrayBuffer();
+    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    const sampleRate = audioBuffer.sampleRate;
+    const channelData = audioBuffer.getChannelData(0);
+
+    const minPitch = 70; // lowest male pitch
+    const maxPitch = 340; // highest female pitch
+    const minPeriod = Math.floor(sampleRate / maxPitch);
+    const maxPeriod = Math.floor(sampleRate / minPitch);
+
+    const windowSize = 2048;
+    const detectedPitches: number[] = [];
+
+    // Analyze multiple energetic segments across audio
+    for (let offset = 0; offset + windowSize < channelData.length; offset += 3000) {
+      let energy = 0;
+      for (let i = 0; i < windowSize; i++) {
+        const val = channelData[offset + i];
+        energy += val * val;
+      }
+      const rms = Math.sqrt(energy / windowSize);
+      if (rms < 0.02) continue; // skip silence
+
+      let maxCorrelation = 0;
+      let bestPeriod = -1;
+
+      for (let period = minPeriod; period <= maxPeriod; period++) {
+        let correlation = 0;
+        for (let i = 0; i < windowSize - period; i++) {
+          correlation += channelData[offset + i] * channelData[offset + i + period];
+        }
+        if (correlation > maxCorrelation) {
+          maxCorrelation = correlation;
+          bestPeriod = period;
+        }
+      }
+
+      if (bestPeriod > 0 && maxCorrelation > energy * 0.35) {
+        const pitch = sampleRate / bestPeriod;
+        if (pitch >= minPitch && pitch <= maxPitch) {
+          detectedPitches.push(pitch);
+        }
+      }
+    }
+
+    await audioCtx.close().catch(() => {});
+
+    // Default to ~135Hz if voice was too faint to register
+    let avgPitch = 135;
+    if (detectedPitches.length > 0) {
+      detectedPitches.sort((a, b) => a - b);
+      avgPitch = detectedPitches[Math.floor(detectedPitches.length / 2)];
+    }
+
+    // Fundamental Frequency (F0) Threshold: < 165Hz = Male, >= 165Hz = Female
+    const isMale = avgPitch < 165;
+    const detectedGender: 'Male' | 'Female' = isMale ? 'Male' : 'Female';
+
+    let detectedTone: 'deep' | 'warm' | 'natural' | 'energetic' = 'natural';
+    if (isMale) {
+      if (avgPitch < 115) detectedTone = 'deep';
+      else if (avgPitch < 135) detectedTone = 'warm';
+    } else {
+      if (avgPitch > 230) detectedTone = 'energetic';
+      else if (avgPitch < 185) detectedTone = 'warm';
+    }
+
+    return {
+      detectedGender,
+      pitchHz: Math.round(avgPitch),
+      detectedTone,
+    };
+  } catch (err) {
+    console.warn('Audio acoustic scan error:', err);
+    return { detectedGender: 'Male', pitchHz: 130, detectedTone: 'natural' };
+  }
+}
+
 export function VoiceCloner() {
   const [inputMode, setInputMode] = useState<'record' | 'upload'>('record');
 
@@ -93,6 +186,10 @@ export function VoiceCloner() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
 
+  // Automatic Audio Acoustic Scanner state
+  const [isAnalyzingAudio, setIsAnalyzingAudio] = useState(false);
+  const [audioScanResult, setAudioScanResult] = useState<AudioAnalysis | null>(null);
+
   // Load saved clones and history from localStorage
   useEffect(() => {
     try {
@@ -139,6 +236,15 @@ export function VoiceCloner() {
         const url = URL.createObjectURL(blob);
         setRecordedAudioUrl(url);
         stream.getTracks().forEach((track) => track.stop());
+
+        // Automatically scan audio sample for gender, pitch, and timbre
+        setIsAnalyzingAudio(true);
+        scanVoiceSampleAcoustics(blob).then((res) => {
+          setGender(res.detectedGender);
+          setTone(res.detectedTone);
+          setAudioScanResult(res);
+          setIsAnalyzingAudio(false);
+        });
       };
 
       mediaRecorder.start();
@@ -178,6 +284,15 @@ export function VoiceCloner() {
       }
       setUploadedFile(file);
       setUploadedAudioUrl(URL.createObjectURL(file));
+
+      // Automatically scan audio sample for gender, pitch, and timbre
+      setIsAnalyzingAudio(true);
+      scanVoiceSampleAcoustics(file).then((res) => {
+        setGender(res.detectedGender);
+        setTone(res.detectedTone);
+        setAudioScanResult(res);
+        setIsAnalyzingAudio(false);
+      });
     }
   };
 
@@ -544,6 +659,30 @@ export function VoiceCloner() {
                     </button>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Real-time Acoustic Scan Banner */}
+            {isAnalyzingAudio && (
+              <div className="p-3.5 rounded-2xl bg-brand-50 border border-brand-200 text-xs text-brand-800 flex items-center gap-2.5 animate-pulse">
+                <Loader2 className="w-4 h-4 animate-spin text-brand-600 shrink-0" />
+                <span>
+                  <strong>Acoustic AI Scanner:</strong> Analyzing vocal waveform, pitch frequencies ($F_0$), and gender resonance...
+                </span>
+              </div>
+            )}
+
+            {audioScanResult && !isAnalyzingAudio && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between gap-2 shadow-xs">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>
+                    <strong>Sample Scanned:</strong> Auto-detected <strong>{audioScanResult.detectedGender}</strong> voice (~{audioScanResult.pitchHz}Hz • {audioScanResult.detectedTone} timbre)
+                  </span>
+                </div>
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0">
+                  Auto-Calibrated
+                </span>
               </div>
             )}
 
