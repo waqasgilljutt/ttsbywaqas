@@ -577,6 +577,7 @@ export function VoiceCloner({
           formData.append('locale', locale);
           formData.append('tone', tone);
           formData.append('userEmail', currentUser.email);
+          formData.append('skipDeduct', 'true');
 
           const response = await fetch('/api/clone', {
             method: 'POST',

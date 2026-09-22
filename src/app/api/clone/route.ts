@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
     const audioFile = formData.get('audio') as Blob | null;
     const gender = ((formData.get('gender') as string) || 'Male').toLowerCase();
     const userEmail = (formData.get('userEmail') as string) || req.headers.get('x-user-email');
+    const skipDeduct = formData.get('skipDeduct') === 'true';
 
     const trimmedText = text.trim();
     if (!trimmedText || trimmedText.length === 0) {
@@ -36,7 +37,8 @@ export async function POST(req: NextRequest) {
 
     // 2. Enforce Account Credits: 1 Character = 1 Credit
     if (userEmail) {
-      const quota = checkCreditBalance(userEmail, charCount);
+      // If skipDeduct is active (multi-part batch chunk), verify that the account has not already exceeded limit
+      const quota = checkCreditBalance(userEmail, skipDeduct ? 0 : charCount);
       if (!quota.allowed) {
         return NextResponse.json(
           {
@@ -79,8 +81,8 @@ export async function POST(req: NextRequest) {
       volume: '+0%',
     });
 
-    // Deduct credits on successful generation (1 char = 1 credit)
-    if (userEmail) {
+    // Deduct credits on successful generation (1 char = 1 credit) unless skipped for client batch orchestrator
+    if (userEmail && !skipDeduct) {
       deductCredits(userEmail, charCount);
     }
 

@@ -15,6 +15,7 @@ import {
   isStrictGmail,
   DEFAULT_ADMIN_PIN,
   OWNER_EMAIL,
+  StoredUser,
 } from '@/lib/user-store';
 import { getActiveOTPs } from '@/lib/email-service';
 
@@ -145,11 +146,12 @@ export async function POST(req: NextRequest) {
       if (!email) {
         return NextResponse.json({ success: false, error: 'Email required.' }, { status: 400 });
       }
-      if (typeof clientCreditsUsed === 'number') {
-        const user = getUserByEmail(email);
-        if (user && clientCreditsUsed > (user.creditsUsed || 0)) {
-          user.creditsUsed = clientCreditsUsed;
-        }
+      let user: StoredUser | null | undefined = getUserByEmail(email);
+      if (!user && isStrictGmail(email)) {
+        user = registerOrUpdateUser(email.split('@')[0], email);
+      }
+      if (user && typeof clientCreditsUsed === 'number' && clientCreditsUsed > (user.creditsUsed || 0)) {
+        user.creditsUsed = clientCreditsUsed;
       }
       const balance = checkCreditBalance(email, 0);
       return NextResponse.json({ success: true, balance });
@@ -159,15 +161,15 @@ export async function POST(req: NextRequest) {
     if (action === 'increment-usage') {
       const { email, characters, creditsUsed } = body;
       if (email) {
-        recordAudioGeneration(email);
-        if (characters && typeof characters === 'number') {
-          deductCredits(email, characters);
+        let user: StoredUser | null | undefined = getUserByEmail(email);
+        if (!user && isStrictGmail(email)) {
+          user = registerOrUpdateUser(email.split('@')[0], email);
         }
-        if (typeof creditsUsed === 'number') {
-          const user = getUserByEmail(email);
-          if (user && creditsUsed > (user.creditsUsed || 0)) {
-            user.creditsUsed = creditsUsed;
-          }
+        recordAudioGeneration(email);
+        if (typeof creditsUsed === 'number' && user) {
+          user.creditsUsed = Math.max(user.creditsUsed || 0, creditsUsed);
+        } else if (characters && typeof characters === 'number') {
+          deductCredits(email, characters);
         }
       }
       const balance = email ? checkCreditBalance(email, 0) : null;

@@ -35,6 +35,18 @@ export default function Home() {
     planName: string;
   } | null>(null);
 
+  const currentUserRef = useRef<{ name: string; email: string } | null>(null);
+  const userCreditsRef = useRef<{
+    isUnlimited: boolean;
+    creditsUsed: number;
+    creditLimit: number;
+    remainingCredits: number;
+    planName: string;
+  } | null>(null);
+
+  currentUserRef.current = currentUser;
+  userCreditsRef.current = userCredits;
+
   // Core TTS states
   const [voices, setVoices] = useState<Voice[]>([]);
   const [locales, setLocales] = useState<{ locale: string; name: string; count: number }[]>([]);
@@ -64,17 +76,21 @@ export default function Home() {
   const [previewAudioObj, setPreviewAudioObj] = useState<HTMLAudioElement | null>(null);
 
   const refreshUserCredits = useCallback(async (email?: string) => {
-    const targetEmail = email || currentUser?.email;
+    const targetEmail = email || currentUserRef.current?.email;
     if (!targetEmail) return;
+
+    const emailKey = targetEmail.toLowerCase();
+    const isOwner = emailKey === 'muhammadwaqasmwg@gmail.com';
 
     // Load instantly from localStorage so user never sees stale credits
     let cachedCreditsUsed = 0;
     try {
-      const stored = localStorage.getItem(`empirenexs_credits_${targetEmail.toLowerCase()}`);
+      const stored = localStorage.getItem(`empirenexs_credits_${emailKey}`);
       if (stored) {
         const parsed = JSON.parse(stored);
         cachedCreditsUsed = parsed.creditsUsed || 0;
         setUserCredits(parsed);
+        userCreditsRef.current = parsed;
       }
     } catch {}
 
@@ -91,17 +107,23 @@ export default function Home() {
       const data = await res.json();
       if (data.success && data.balance) {
         const higherUsed = Math.max(data.balance.creditsUsed || 0, cachedCreditsUsed);
+        const isUnlimited = isOwner || data.balance.isUnlimited || data.balance.creditLimit === -1;
+        const currentLimit = data.balance.creditLimit || 30000;
         const mergedBalance = {
           ...data.balance,
+          isUnlimited,
+          creditLimit: currentLimit,
           creditsUsed: higherUsed,
-          remainingCredits: data.balance.isUnlimited
+          remainingCredits: isUnlimited
             ? Infinity
-            : Math.max(0, data.balance.creditLimit - higherUsed),
+            : Math.max(0, currentLimit - higherUsed),
+          planName: data.balance.planName || (isUnlimited ? 'Unlimited VIP Lifetime' : 'Free Starter (30k)'),
         };
         setUserCredits(mergedBalance);
+        userCreditsRef.current = mergedBalance;
         try {
           localStorage.setItem(
-            `empirenexs_credits_${targetEmail.toLowerCase()}`,
+            `empirenexs_credits_${emailKey}`,
             JSON.stringify(mergedBalance)
           );
         } catch {}
@@ -109,7 +131,7 @@ export default function Home() {
     } catch (e) {
       console.warn('Failed to load user credits:', e);
     }
-  }, [currentUser]);
+  }, []);
 
   // Load voices and cached state on mount
   useEffect(() => {
@@ -141,11 +163,24 @@ export default function Home() {
           const parsed = JSON.parse(savedUser);
           if (parsed?.email && /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(parsed.email.trim())) {
             setCurrentUser(parsed);
+            currentUserRef.current = parsed;
+
+            // Immediately load cached credits so UI shows exact remaining credits without waiting
+            const cachedCredits = localStorage.getItem(`empirenexs_credits_${parsed.email.toLowerCase()}`);
+            if (cachedCredits) {
+              try {
+                const creds = JSON.parse(cachedCredits);
+                setUserCredits(creds);
+                userCreditsRef.current = creds;
+              } catch {}
+            }
+
             refreshUserCredits(parsed.email);
           } else {
             // Immediately purge any old temp mail or invalid account session
             localStorage.removeItem('empirenexs_user');
             setCurrentUser(null);
+            currentUserRef.current = null;
             setIsAuthModalOpen(true);
           }
         } catch {
@@ -167,6 +202,18 @@ export default function Home() {
       return;
     }
     setCurrentUser(user);
+    currentUserRef.current = user;
+
+    // Load cached credits if available
+    const cachedCredits = localStorage.getItem(`empirenexs_credits_${user.email.toLowerCase()}`);
+    if (cachedCredits) {
+      try {
+        const creds = JSON.parse(cachedCredits);
+        setUserCredits(creds);
+        userCreditsRef.current = creds;
+      } catch {}
+    }
+
     refreshUserCredits(user.email);
     try {
       localStorage.setItem('empirenexs_user', JSON.stringify(user));
@@ -177,7 +224,9 @@ export default function Home() {
 
   const handleLogout = () => {
     setCurrentUser(null);
+    currentUserRef.current = null;
     setUserCredits(null);
+    userCreditsRef.current = null;
     try {
       localStorage.removeItem('empirenexs_user');
     } catch (e) {
@@ -218,15 +267,17 @@ export default function Home() {
     if (!text.trim() || isSynthesizing) return;
 
     // Gating check: User must be signed in
-    if (!currentUser) {
+    const activeUser = currentUserRef.current || currentUser;
+    if (!activeUser) {
       setIsAuthModalOpen(true);
       return;
     }
 
+    const currentCreds = userCreditsRef.current || userCredits;
     // Check credit balance before starting synthesis
-    if (userCredits && !userCredits.isUnlimited && userCredits.remainingCredits < text.trim().length) {
+    if (currentCreds && !currentCreds.isUnlimited && currentCreds.remainingCredits < text.trim().length) {
       setErrorMessage(
-        `Insufficient credits! This script requires ${text.trim().length.toLocaleString()} credits, but you have ${userCredits.remainingCredits.toLocaleString()} credits left. Please upgrade your plan or shorten your script.`
+        `Insufficient credits! This script requires ${text.trim().length.toLocaleString()} credits, but you have ${currentCreds.remainingCredits.toLocaleString()} credits left. Please upgrade your plan or shorten your script.`
       );
       return;
     }
@@ -270,7 +321,8 @@ export default function Home() {
               rate: formattedRate,
               pitch: formattedPitch,
               volume: formattedVolume,
-              userEmail: currentUser?.email,
+              userEmail: activeUser.email,
+              skipDeduct: true,
             }),
           });
 
@@ -298,30 +350,29 @@ export default function Home() {
 
       // IMMEDIATELY DEDUCT CREDITS IN CLIENT STATE & LOCALSTORAGE
       const charsDeducted = text.trim().length;
-      if (currentUser?.email) {
-        const targetEmail = currentUser.email.toLowerCase();
+      if (activeUser?.email) {
+        const targetEmail = activeUser.email.toLowerCase();
         const isOwner = targetEmail === 'muhammadwaqasmwg@gmail.com';
-        let totalUsedNow = charsDeducted;
+        const prev = userCreditsRef.current || userCredits;
+        const currentLimit = prev ? prev.creditLimit : 30000;
+        const currentUsed = prev ? (prev.creditsUsed || 0) : 0;
+        const isUnlimited = isOwner || prev?.isUnlimited || currentLimit === -1;
+        const newUsed = currentUsed + charsDeducted;
+        const newRemaining = isUnlimited ? Infinity : Math.max(0, currentLimit - newUsed);
+        const updated = {
+          isUnlimited,
+          creditsUsed: newUsed,
+          creditLimit: currentLimit,
+          remainingCredits: newRemaining,
+          planName: prev?.planName || (isUnlimited ? 'Unlimited VIP Lifetime' : 'Free Starter (30k)'),
+        };
 
-        setUserCredits((prev) => {
-          const currentLimit = prev ? prev.creditLimit : 30000;
-          const currentUsed = prev ? prev.creditsUsed : 0;
-          const isUnlimited = isOwner || prev?.isUnlimited || currentLimit === -1;
-          const newUsed = currentUsed + charsDeducted;
-          totalUsedNow = newUsed;
-          const newRemaining = isUnlimited ? Infinity : Math.max(0, currentLimit - newUsed);
-          const updated = {
-            isUnlimited,
-            creditsUsed: newUsed,
-            creditLimit: currentLimit,
-            remainingCredits: newRemaining,
-            planName: prev?.planName || (isUnlimited ? 'Unlimited VIP Lifetime' : 'Free Starter (30k)'),
-          };
-          try {
-            localStorage.setItem(`empirenexs_credits_${targetEmail}`, JSON.stringify(updated));
-          } catch {}
-          return updated;
-        });
+        userCreditsRef.current = updated;
+        setUserCredits(updated);
+
+        try {
+          localStorage.setItem(`empirenexs_credits_${targetEmail}`, JSON.stringify(updated));
+        } catch {}
 
         // Sync with server store and admin dashboard
         fetch('/api/admin/users', {
@@ -329,9 +380,9 @@ export default function Home() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'increment-usage',
-            email: currentUser.email,
+            email: activeUser.email,
             characters: charsDeducted,
-            creditsUsed: totalUsedNow,
+            creditsUsed: newUsed,
           }),
         }).catch(() => {});
       }
@@ -368,7 +419,7 @@ export default function Home() {
       setErrorMessage((err as Error)?.message || 'Failed to synthesize speech. Please try again.');
       setIsSynthesizing(false);
     }
-  }, [text, isSynthesizing, selectedVoice, rate, pitch, volume]);
+  }, [text, isSynthesizing, selectedVoice, rate, pitch, volume, currentUser, userCredits]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
