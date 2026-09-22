@@ -41,6 +41,15 @@ export interface VoiceClonerProps {
   onNavigateToLibrary?: () => void;
   currentUser?: { name: string; email: string } | null;
   onRequireAuth?: () => void;
+  userCredits?: {
+    isUnlimited: boolean;
+    creditsUsed: number;
+    creditLimit: number;
+    remainingCredits: number;
+    planName: string;
+  } | null;
+  onRefreshCredits?: () => void;
+  onOpenPricing?: () => void;
 }
 
 interface ClonedHistoryItem {
@@ -202,6 +211,9 @@ export function VoiceCloner({
   onNavigateToLibrary,
   currentUser,
   onRequireAuth,
+  userCredits,
+  onRefreshCredits,
+  onOpenPricing,
 }: VoiceClonerProps = {}) {
   const [inputMode, setInputMode] = useState<'record' | 'upload'>('record');
 
@@ -518,6 +530,18 @@ export function VoiceCloner({
       return;
     }
 
+    if (scriptText.trim().length > 50000) {
+      setErrorMsg('Maximum character limit per voice request is 50,000 characters. Please shorten your script.');
+      return;
+    }
+
+    if (userCredits && !userCredits.isUnlimited && userCredits.remainingCredits < scriptText.trim().length) {
+      setErrorMsg(
+        `Insufficient credits! This script requires ${scriptText.trim().length.toLocaleString()} credits, but you have ${userCredits.remainingCredits.toLocaleString()} credits remaining. Please upgrade your plan or shorten your script.`
+      );
+      return;
+    }
+
     setIsCloning(true);
     setCloneProgress(12);
     setCloneStatusText('Reading vocal waveform & acoustic spectrum from your audio sample...');
@@ -552,6 +576,7 @@ export function VoiceCloner({
           formData.append('gender', gender);
           formData.append('locale', locale);
           formData.append('tone', tone);
+          formData.append('userEmail', currentUser.email);
 
           const response = await fetch('/api/clone', {
             method: 'POST',
@@ -591,8 +616,16 @@ export function VoiceCloner({
         fetch('/api/admin/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'increment-usage', email: currentUser.email }),
-        }).catch(() => {});
+          body: JSON.stringify({
+            action: 'increment-usage',
+            email: currentUser.email,
+            characters: scriptText.trim().length,
+          }),
+        })
+          .then(() => {
+            onRefreshCredits?.();
+          })
+          .catch(() => {});
       }
 
       // Save to Cloned Generation History
@@ -1015,10 +1048,31 @@ export function VoiceCloner({
               />
               <div className="flex items-center justify-between px-2 pt-1 text-xs text-slate-400 font-mono">
                 <span>{scriptText.trim().split(/\s+/).filter(Boolean).length} words</span>
-                <span className="text-slate-600 font-semibold">
-                  {scriptText.length.toLocaleString()} characters
+                <span className={scriptText.length > 50000 ? 'text-rose-600 font-bold' : 'text-slate-600 font-semibold'}>
+                  {scriptText.length.toLocaleString()} / 50,000 characters (1 char = 1 credit)
                 </span>
               </div>
+
+              {userCredits && !userCredits.isUnlimited && userCredits.remainingCredits < scriptText.trim().length && (
+                <div className="mt-2.5 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>
+                      Needs <strong>{scriptText.trim().length.toLocaleString()}</strong> credits, but you only have{' '}
+                      <strong>{userCredits.remainingCredits.toLocaleString()}</strong> credits left.
+                    </span>
+                  </div>
+                  {onOpenPricing && (
+                    <button
+                      type="button"
+                      onClick={onOpenPricing}
+                      className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold shrink-0 text-xs shadow-xs transition-colors"
+                    >
+                      Upgrade Plan
+                    </button>
+                  )}
+                </div>
+              )}
 
               {scriptText.length > 2500 && (
                 <div className="mt-2.5 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between gap-2 animate-in fade-in">
@@ -1029,7 +1083,7 @@ export function VoiceCloner({
                     </span>
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full shrink-0">
-                    40,000+ Ready
+                    50,000 Ready
                   </span>
                 </div>
               )}

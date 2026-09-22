@@ -1,18 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { synthesizeSpeech } from '@/lib/edge-tts-service';
+import { checkCreditBalance, deductCredits, MAX_PER_VOICE_CHARACTERS } from '@/lib/user-store';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
-const VOICE_MAP: Record<string, { male: string; female: string }> = {
-  'ur-PK': { male: 'ur-PK-AsadNeural', female: 'ur-PK-UzmaNeural' },
-  'en-PK': { male: 'en-IN-PrabhatNeural', female: 'en-IN-NeerjaNeural' },
-  'en-US': { male: 'en-US-BrianMultilingualNeural', female: 'en-US-JennyNeural' },
-  'en-GB': { male: 'en-GB-RyanNeural', female: 'en-GB-SoniaNeural' },
-  'hi-IN': { male: 'hi-IN-MadhurNeural', female: 'hi-IN-SwaraNeural' },
-  'ar-SA': { male: 'ar-SA-HamedNeural', female: 'ar-SA-ZariyahNeural' },
-  'es-ES': { male: 'es-ES-AlvaroNeural', female: 'es-ES-ElviraNeural' },
-};
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,8 +12,7 @@ export async function POST(req: NextRequest) {
     const voiceName = (formData.get('voiceName') as string) || 'Waqas Gill Cloned Voice';
     const audioFile = formData.get('audio') as Blob | null;
     const gender = ((formData.get('gender') as string) || 'Male').toLowerCase();
-    const locale = (formData.get('locale') as string) || 'en-US';
-    const tone = (formData.get('tone') as string) || 'natural';
+    const userEmail = (formData.get('userEmail') as string) || req.headers.get('x-user-email');
 
     const trimmedText = text.trim();
     if (!trimmedText || trimmedText.length === 0) {
@@ -30,6 +20,35 @@ export async function POST(req: NextRequest) {
         { error: 'Text to synthesize in cloned voice cannot be empty.' },
         { status: 400 }
       );
+    }
+
+    const charCount = trimmedText.length;
+
+    // 1. Enforce Per-Voice Limit of 50,000 Characters
+    if (charCount > MAX_PER_VOICE_CHARACTERS) {
+      return NextResponse.json(
+        {
+          error: `Text exceeds the maximum per-voice limit of ${MAX_PER_VOICE_CHARACTERS.toLocaleString()} characters (current: ${charCount.toLocaleString()} characters).`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // 2. Enforce Account Credits: 1 Character = 1 Credit
+    if (userEmail) {
+      const quota = checkCreditBalance(userEmail, charCount);
+      if (!quota.allowed) {
+        return NextResponse.json(
+          {
+            error: quota.error || 'Your 30,000 free credit limit has been reached. Please upgrade to a Paid Plan to continue generating voice.',
+            creditExceeded: true,
+            remainingCredits: quota.remainingCredits,
+            creditsUsed: quota.creditsUsed,
+            creditLimit: quota.creditLimit,
+          },
+          { status: 403 }
+        );
+      }
     }
 
     const hasAudio = audioFile && audioFile.size > 0;
@@ -59,6 +78,11 @@ export async function POST(req: NextRequest) {
       pitch: naturalPitch,
       volume: '+0%',
     });
+
+    // Deduct credits on successful generation (1 char = 1 credit)
+    if (userEmail) {
+      deductCredits(userEmail, charCount);
+    }
 
     return new Response(new Uint8Array(buffer), {
       status: 200,

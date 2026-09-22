@@ -38,8 +38,7 @@ const TEMPLATES = [
 
 export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
   const charCount = text.length;
-  const maxWords = 50000;
-  const maxChars = 300000;
+  const maxChars = 50000;
   const wordsArray = text.trim() ? text.trim().split(/\s+/) : [];
   const wordCount = wordsArray.length;
   const totalSeconds = Math.max(1, Math.round((wordCount / 150) * 60));
@@ -100,8 +99,8 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
           rows={6}
           disabled={disabled}
           value={text}
-          onChange={(e) => onChangeText(e.target.value.slice(0, maxChars))}
-          placeholder="Enter or paste the text you want the voice to read aloud (up to 50,000 words)..."
+          onChange={(e) => onChangeText(e.target.value)}
+          placeholder="Enter or paste the text you want the voice to read aloud (up to 50,000 characters)..."
           className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-600 focus:bg-white transition-all resize-y text-sm leading-relaxed"
         />
 
@@ -110,7 +109,7 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <FileText className="w-3.5 h-3.5 text-brand-600" />
-              <strong className="text-slate-900 font-bold">{wordCount.toLocaleString()}</strong> / {maxWords.toLocaleString()} words
+              <strong className="text-slate-900 font-bold">{wordCount.toLocaleString()}</strong> words
             </span>
             <span className="flex items-center gap-1">
               <Clock className="w-3.5 h-3.5 text-slate-400" />
@@ -119,15 +118,26 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
           </div>
 
           <div
-            className={`font-mono text-[11px] ${
-              wordCount > maxWords ? 'text-rose-600 font-bold' : 'text-slate-400'
+            className={`font-mono text-xs font-semibold ${
+              charCount > maxChars ? 'text-rose-600 font-bold' : 'text-slate-600'
             }`}
           >
-            {charCount.toLocaleString()} chars
+            <span className={charCount > maxChars ? 'text-rose-600' : 'text-brand-700 font-bold'}>
+              {charCount.toLocaleString()}
+            </span>{' '}
+            / {maxChars.toLocaleString()} characters (1 char = 1 credit)
           </div>
         </div>
 
-        {charCount > 3000 && (
+        {charCount > maxChars && (
+          <div className="mt-2.5 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between gap-2 animate-in fade-in font-medium">
+            <span>
+              <strong>Limit Exceeded:</strong> Maximum allowed per voice generation is 50,000 characters. Please trim your script.
+            </span>
+          </div>
+        )}
+
+        {charCount > 3000 && charCount <= maxChars && (
           <div className="mt-2.5 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between gap-2 animate-in fade-in">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -136,7 +146,7 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
               </span>
             </div>
             <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full shrink-0">
-              40,000+ Ready
+              50,000 Max Ready
             </span>
           </div>
         )}

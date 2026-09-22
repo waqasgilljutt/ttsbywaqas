@@ -19,7 +19,7 @@ import { synthesizeLargeScript } from '@/lib/batch-synthesizer';
 import { Sparkles, Loader2, AlertCircle, Info } from 'lucide-react';
 
 const INITIAL_TEXT =
-  "Welcome to TTS bY Waqas Gill by EmpireNexs! You can customize voice speed, pitch, and choose from over 320 high-fidelity neural voices across dozens of languages. Supports up to 50,000 words!";
+  "Welcome to TTS bY Waqas Gill by EmpireNexs! You can customize voice speed, pitch, and choose from over 320 high-fidelity neural voices across dozens of languages. Supports up to 50,000 characters per script!";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('text-to-voice');
@@ -27,6 +27,13 @@ export default function Home() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
+  const [userCredits, setUserCredits] = useState<{
+    isUnlimited: boolean;
+    creditsUsed: number;
+    creditLimit: number;
+    remainingCredits: number;
+    planName: string;
+  } | null>(null);
 
   // Core TTS states
   const [voices, setVoices] = useState<Voice[]>([]);
@@ -55,6 +62,24 @@ export default function Home() {
   // Voice preview state
   const [previewingVoiceShortName, setPreviewingVoiceShortName] = useState<string | null>(null);
   const [previewAudioObj, setPreviewAudioObj] = useState<HTMLAudioElement | null>(null);
+
+  const refreshUserCredits = useCallback(async (email?: string) => {
+    const targetEmail = email || currentUser?.email;
+    if (!targetEmail) return;
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get-credits', email: targetEmail }),
+      });
+      const data = await res.json();
+      if (data.success && data.balance) {
+        setUserCredits(data.balance);
+      }
+    } catch (e) {
+      console.warn('Failed to load user credits:', e);
+    }
+  }, [currentUser]);
 
   // Load voices and cached state on mount
   useEffect(() => {
@@ -86,6 +111,7 @@ export default function Home() {
           const parsed = JSON.parse(savedUser);
           if (parsed?.email && /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(parsed.email.trim())) {
             setCurrentUser(parsed);
+            refreshUserCredits(parsed.email);
           } else {
             // Immediately purge any old temp mail or invalid account session
             localStorage.removeItem('empirenexs_user');
@@ -103,7 +129,7 @@ export default function Home() {
     } catch (e) {
       console.warn('LocalStorage error:', e);
     }
-  }, []);
+  }, [refreshUserCredits]);
 
   const handleLoginSuccess = (user: { name: string; email: string }) => {
     if (!user.email || !/^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(user.email.trim())) {
@@ -111,6 +137,7 @@ export default function Home() {
       return;
     }
     setCurrentUser(user);
+    refreshUserCredits(user.email);
     try {
       localStorage.setItem('empirenexs_user', JSON.stringify(user));
     } catch (e) {
@@ -120,6 +147,7 @@ export default function Home() {
 
   const handleLogout = () => {
     setCurrentUser(null);
+    setUserCredits(null);
     try {
       localStorage.removeItem('empirenexs_user');
     } catch (e) {
@@ -165,6 +193,14 @@ export default function Home() {
       return;
     }
 
+    // Check credit balance before starting synthesis
+    if (userCredits && !userCredits.isUnlimited && userCredits.remainingCredits < text.trim().length) {
+      setErrorMessage(
+        `Insufficient credits! This script requires ${text.trim().length.toLocaleString()} credits, but you have ${userCredits.remainingCredits.toLocaleString()} credits left. Please upgrade your plan or shorten your script.`
+      );
+      return;
+    }
+
     setIsSynthesizing(true);
     setSynthesisProgress(8);
     setSynthesisStatusText('Connecting to EmpireNexs Neural Speech Engine...');
@@ -191,7 +227,7 @@ export default function Home() {
       const formattedPitch = pitch !== 0 ? `${pitch >= 0 ? '+' : ''}${pitch}Hz` : '+0Hz';
       const formattedVolume = volume !== 0 ? `${volume >= 0 ? '+' : ''}${volume}%` : '+0%';
 
-      // High-capacity batch synthesis: handles 1 chunk or 40,000+ characters across chapters
+      // High-capacity batch synthesis: handles 1 chunk or 50,000 characters across chapters
       const blob = await synthesizeLargeScript(
         text.trim(),
         async (chunkText) => {
@@ -204,6 +240,7 @@ export default function Home() {
               rate: formattedRate,
               pitch: formattedPitch,
               volume: formattedVolume,
+              userEmail: currentUser?.email,
             }),
           });
 
@@ -229,13 +266,22 @@ export default function Home() {
       setSynthesisProgress(100);
       setSynthesisStatusText('Speech synthesized successfully!');
 
-      // Record audio generation usage in user store
+      // Record audio generation usage in user store and refresh credit balance
       if (currentUser?.email) {
         fetch('/api/admin/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'increment-usage', email: currentUser.email }),
-        }).catch(() => {});
+          body: JSON.stringify({
+            action: 'increment-usage',
+            email: currentUser.email,
+            characters: text.trim().length,
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.balance) setUserCredits(data.balance);
+          })
+          .catch(() => {});
       }
 
       setTimeout(() => {
@@ -362,6 +408,8 @@ export default function Home() {
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
           currentUser={currentUser}
           onLogout={handleLogout}
+          userCredits={userCredits}
+          onOpenPricing={() => setActiveTab('pricing')}
         />
 
         <main className="flex-1 px-4 sm:px-8 py-8 max-w-7xl w-full mx-auto">
@@ -440,7 +488,7 @@ export default function Home() {
                         title="Connect with Waqas Gill on Facebook"
                       >
                         Waqas Gill
-                      </a>. Harnesses Microsoft neural speech synthesis delivering hyper-realistic human voiceovers across 320+ voices with up to 50,000 words capacity.
+                      </a>. Harnesses Microsoft neural speech synthesis delivering hyper-realistic human voiceovers across 320+ voices with up to 50,000 characters per voice.
                     </p>
                   </div>
                 </div>
@@ -535,6 +583,9 @@ export default function Home() {
               onNavigateToLibrary={() => setActiveTab('voice-library')}
               currentUser={currentUser}
               onRequireAuth={() => setIsAuthModalOpen(true)}
+              userCredits={userCredits}
+              onRefreshCredits={() => currentUser?.email && refreshUserCredits(currentUser.email)}
+              onOpenPricing={() => setActiveTab('pricing')}
             />
           )}
 

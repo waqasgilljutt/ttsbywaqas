@@ -6,6 +6,12 @@ import {
   toggleBlockUser,
   deleteUser,
   recordAudioGeneration,
+  checkCreditBalance,
+  deductCredits,
+  setUserPlan,
+  adjustUserCreditLimit,
+  PLANS_CONFIG,
+  UserPlanType,
   isStrictGmail,
   DEFAULT_ADMIN_PIN,
   OWNER_EMAIL,
@@ -125,16 +131,30 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Record voice synthesis / cloning usage
-    if (action === 'increment-usage') {
+    // Get live credit balance for a user
+    if (action === 'get-credits') {
       const { email } = body;
-      if (email) {
-        recordAudioGeneration(email);
+      if (!email) {
+        return NextResponse.json({ success: false, error: 'Email required.' }, { status: 400 });
       }
-      return NextResponse.json({ success: true });
+      const balance = checkCreditBalance(email, 0);
+      return NextResponse.json({ success: true, balance });
     }
 
-    // Protected Admin Actions: Toggle Block & Delete
+    // Record voice synthesis / cloning usage and deduct credits (1 char = 1 credit)
+    if (action === 'increment-usage') {
+      const { email, characters } = body;
+      if (email) {
+        recordAudioGeneration(email);
+        if (characters && typeof characters === 'number') {
+          deductCredits(email, characters);
+        }
+      }
+      const balance = email ? checkCreditBalance(email, 0) : null;
+      return NextResponse.json({ success: true, balance });
+    }
+
+    // Protected Admin Actions: Toggle Block, Delete, Plan & Credit Management
     const pin = body.pin || req.headers.get('x-admin-pin');
     const userEmail = req.headers.get('x-user-email');
     const isOwner = userEmail && userEmail.toLowerCase() === OWNER_EMAIL.toLowerCase();
@@ -145,6 +165,26 @@ export async function POST(req: NextRequest) {
         { success: false, error: 'Unauthorized: Invalid Admin PIN or credentials.' },
         { status: 403 }
       );
+    }
+
+    // Admin: Set a predefined plan (Free, 1M, 3M, 10M, Unlimited)
+    if (action === 'set-plan') {
+      const { userId, planKey } = body;
+      const result = setUserPlan(userId, planKey as UserPlanType);
+      if (!result.success) {
+        return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+      }
+      return NextResponse.json({ success: true, user: result.user, users: getAllUsers() });
+    }
+
+    // Admin: Dynamically adjust / set custom credit limit
+    if (action === 'adjust-credits') {
+      const { userId, newCreditLimit, customPlanName } = body;
+      const result = adjustUserCreditLimit(userId, Number(newCreditLimit), customPlanName);
+      if (!result.success) {
+        return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+      }
+      return NextResponse.json({ success: true, user: result.user, users: getAllUsers() });
     }
 
     if (action === 'toggle-block') {
