@@ -42,8 +42,8 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
   const maxChars = 300000;
   const wordsArray = text.trim() ? text.trim().split(/\s+/) : [];
   const wordCount = wordsArray.length;
-  // Average speaking rate: ~150 words per minute
   const totalSeconds = Math.max(1, Math.round((wordCount / 150) * 60));
+
   const formatSpeechTime = (sec: number) => {
     if (sec < 60) return `~${sec}s speech`;
     const mins = Math.floor(sec / 60);
@@ -57,19 +57,18 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
       {/* Header and Template Badges */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Type className="w-4 h-4 text-brand-400" />
-          <label className="text-sm font-semibold text-studio-200">
+          <Type className="w-4 h-4 text-brand-600" />
+          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
             Script / Text to Synthesize
           </label>
         </div>
 
-        {/* Clear Button */}
         {text.length > 0 && (
           <button
             type="button"
             onClick={() => onChangeText('')}
             disabled={disabled}
-            className="text-xs text-studio-400 hover:text-rose-400 flex items-center gap-1 transition-colors self-end sm:self-auto"
+            className="text-xs text-slate-500 hover:text-rose-600 flex items-center gap-1 transition-colors font-medium self-end sm:self-auto"
           >
             <Trash2 className="w-3.5 h-3.5" />
             Clear
@@ -79,8 +78,8 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
 
       {/* Preset Templates */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-        <span className="text-studio-500 flex items-center gap-1 text-[11px] shrink-0">
-          <Sparkles className="w-3 h-3 text-brand-400" /> Presets:
+        <span className="text-slate-400 flex items-center gap-1 text-[11px] shrink-0 font-medium">
+          <Sparkles className="w-3 h-3 text-brand-600" /> Presets:
         </span>
         {TEMPLATES.map((item) => (
           <button
@@ -88,7 +87,7 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
             type="button"
             disabled={disabled}
             onClick={() => onChangeText(item.text)}
-            className="px-2.5 py-1 rounded-lg bg-studio-900/80 border border-studio-800 text-studio-300 hover:text-white hover:border-brand-500/50 hover:bg-studio-800 transition-all whitespace-nowrap text-[11px]"
+            className="px-3 py-1 rounded-xl bg-slate-100 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-200 border border-slate-200/80 text-slate-700 transition-all whitespace-nowrap text-xs font-medium"
           >
             {item.name}
           </button>
@@ -102,26 +101,26 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
           disabled={disabled}
           value={text}
           onChange={(e) => onChangeText(e.target.value.slice(0, maxChars))}
-          placeholder="Enter or paste the text you want the voice to read aloud..."
-          className="w-full bg-studio-900/60 border border-studio-800 rounded-2xl p-4 text-slate-100 placeholder-studio-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all resize-y text-base leading-relaxed"
+          placeholder="Enter or paste the text you want the voice to read aloud (up to 50,000 words)..."
+          className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-600 focus:bg-white transition-all resize-y text-sm leading-relaxed"
         />
 
         {/* Floating Stats */}
-        <div className="flex items-center justify-between px-2 pt-1 text-xs text-studio-400">
+        <div className="flex items-center justify-between px-2 pt-1 text-xs text-slate-500">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <FileText className="w-3.5 h-3.5 text-brand-400" />
-              <strong className="text-slate-200">{wordCount.toLocaleString()}</strong> / {maxWords.toLocaleString()} words
+              <FileText className="w-3.5 h-3.5 text-brand-600" />
+              <strong className="text-slate-900 font-bold">{wordCount.toLocaleString()}</strong> / {maxWords.toLocaleString()} words
             </span>
             <span className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-studio-500" />
+              <Clock className="w-3.5 h-3.5 text-slate-400" />
               {formatSpeechTime(totalSeconds)}
             </span>
           </div>
 
           <div
             className={`font-mono text-[11px] ${
-              wordCount > maxWords ? 'text-rose-400 font-semibold' : 'text-studio-500'
+              wordCount > maxWords ? 'text-rose-600 font-bold' : 'text-slate-400'
             }`}
           >
             {charCount.toLocaleString()} chars

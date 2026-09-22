@@ -1,19 +1,30 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Header } from '@/components/Header';
+import { Sidebar, TabType } from '@/components/Sidebar';
+import { TopNavbar } from '@/components/TopNavbar';
+import { AuthModal } from '@/components/AuthModal';
 import { VoiceSelector } from '@/components/VoiceSelector';
 import { TextEditor } from '@/components/TextEditor';
 import { ProsodyControls } from '@/components/ProsodyControls';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { HistoryPanel, HistoryItem } from '@/components/HistoryPanel';
+import { VoiceCloner } from '@/components/VoiceCloner';
+import { PricingPage } from '@/components/PricingPage';
+import { AboutPage } from '@/components/AboutPage';
 import { Voice } from '@/lib/edge-tts-service';
-import { Sparkles, Loader2, PlayCircle, AlertCircle, Info, Mic2 } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, Info } from 'lucide-react';
 
 const INITIAL_TEXT =
-  "Welcome to TTS bY Waqas Gill! You can customize voice speed, pitch, and choose from over 320 high-fidelity neural voices across dozens of languages. Supports up to 50,000 words!";
+  "Welcome to TTS bY Waqas Gill by EmpireNexs! You can customize voice speed, pitch, and choose from over 320 high-fidelity neural voices across dozens of languages. Supports up to 50,000 words!";
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<TabType>('text-to-voice');
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
+
+  // Core TTS states
   const [voices, setVoices] = useState<Voice[]>([]);
   const [locales, setLocales] = useState<{ locale: string; name: string; count: number }[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
@@ -31,13 +42,17 @@ export default function Home() {
 
   // History & Favorites
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [favorites, setFavorites] = useState<string[]>(['en-US-JennyNeural', 'en-US-GuyNeural', 'ur-PK-UzmaNeural']);
+  const [favorites, setFavorites] = useState<string[]>([
+    'en-US-JennyNeural',
+    'en-US-GuyNeural',
+    'ur-PK-UzmaNeural',
+  ]);
 
   // Voice preview state
   const [previewingVoiceShortName, setPreviewingVoiceShortName] = useState<string | null>(null);
   const [previewAudioObj, setPreviewAudioObj] = useState<HTMLAudioElement | null>(null);
 
-  // Load voices on mount
+  // Load voices and cached state on mount
   useEffect(() => {
     async function loadVoices() {
       try {
@@ -46,7 +61,6 @@ export default function Home() {
         if (data.success && data.voices) {
           setVoices(data.voices);
           setLocales(data.locales || []);
-          // Pick default voice: Jenny (en-US) or first available
           const defaultVoice =
             data.voices.find((v: Voice) => v.ShortName === 'en-US-JennyNeural') || data.voices[0];
           setSelectedVoice(defaultVoice);
@@ -57,18 +71,36 @@ export default function Home() {
     }
     loadVoices();
 
-    // Load favorites and history from localStorage
     try {
       const savedFavs = localStorage.getItem('edge_tts_favorites');
       if (savedFavs) setFavorites(JSON.parse(savedFavs));
       const savedHist = localStorage.getItem('edge_tts_history');
       if (savedHist) setHistory(JSON.parse(savedHist));
+      const savedUser = localStorage.getItem('empirenexs_user');
+      if (savedUser) setCurrentUser(JSON.parse(savedUser));
     } catch (e) {
       console.warn('LocalStorage error:', e);
     }
   }, []);
 
-  // Persist favorites
+  const handleLoginSuccess = (user: { name: string; email: string }) => {
+    setCurrentUser(user);
+    try {
+      localStorage.setItem('empirenexs_user', JSON.stringify(user));
+    } catch (e) {
+      console.warn('LocalStorage error:', e);
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('empirenexs_user');
+    } catch (e) {
+      console.warn('LocalStorage error:', e);
+    }
+  };
+
   const toggleFavorite = (shortName: string) => {
     setFavorites((prev) => {
       const updated = prev.includes(shortName)
@@ -83,14 +115,12 @@ export default function Home() {
     });
   };
 
-  // Reset prosody settings
   const handleResetProsody = () => {
     setRate(0);
     setPitch(0);
     setVolume(0);
   };
 
-  // Main TTS synthesis
   const handleSynthesize = useCallback(async () => {
     if (!text.trim() || isSynthesizing) return;
     setIsSynthesizing(true);
@@ -118,11 +148,12 @@ export default function Home() {
       const url = URL.createObjectURL(blob);
       setAudioUrl(url);
 
-      // Save generation to history
       const newHistoryItem: HistoryItem = {
         id: Date.now().toString(),
         text: text.trim(),
-        voiceName: selectedVoice?.FriendlyName.replace('Microsoft ', '').replace(' Online (Natural)', '') || 'Neural Voice',
+        voiceName:
+          selectedVoice?.FriendlyName.replace('Microsoft ', '').replace(' Online (Natural)', '') ||
+          'Neural Voice',
         audioUrl: url,
         timestamp: Date.now(),
         rate,
@@ -130,7 +161,7 @@ export default function Home() {
       };
 
       setHistory((prev) => {
-        const updated = [newHistoryItem, ...prev.slice(0, 19)]; // Keep latest 20
+        const updated = [newHistoryItem, ...prev.slice(0, 19)];
         try {
           localStorage.setItem('edge_tts_history', JSON.stringify(updated));
         } catch (e) {
@@ -146,7 +177,6 @@ export default function Home() {
     }
   }, [text, isSynthesizing, selectedVoice, rate, pitch, volume]);
 
-  // Keyboard shortcut: Ctrl+Enter or Cmd+Enter to synthesize
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -158,25 +188,20 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSynthesize]);
 
-  // Voice Preview
   const handlePreviewVoice = async (voice: Voice) => {
-    // If already previewing this voice, stop it
     if (previewingVoiceShortName === voice.ShortName) {
-      if (previewAudioObj) {
-        previewAudioObj.pause();
-      }
+      if (previewAudioObj) previewAudioObj.pause();
       setPreviewingVoiceShortName(null);
       return;
     }
 
-    if (previewAudioObj) {
-      previewAudioObj.pause();
-    }
-
+    if (previewAudioObj) previewAudioObj.pause();
     setPreviewingVoiceShortName(voice.ShortName);
 
     try {
-      const sampleText = `Hello, this is ${voice.FriendlyName.replace('Microsoft ', '').split(' ')[0]} speaking natural speech.`;
+      const sampleText = `Hello, this is ${
+        voice.FriendlyName.replace('Microsoft ', '').split(' ')[0]
+      } speaking natural speech.`;
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -194,11 +219,7 @@ export default function Home() {
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       setPreviewAudioObj(audio);
-
-      audio.onended = () => {
-        setPreviewingVoiceShortName(null);
-      };
-
+      audio.onended = () => setPreviewingVoiceShortName(null);
       await audio.play();
     } catch (e) {
       console.error('Preview error:', e);
@@ -206,7 +227,6 @@ export default function Home() {
     }
   };
 
-  // Delete history item
   const handleDeleteHistoryItem = (id: string) => {
     setHistory((prev) => {
       const updated = prev.filter((item) => item.id !== id);
@@ -219,7 +239,6 @@ export default function Home() {
     });
   };
 
-  // Clear all history
   const handleClearHistory = () => {
     setHistory([]);
     try {
@@ -230,148 +249,171 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header totalVoices={voices.length} selectedVoiceName={selectedVoice?.ShortName} />
+    <div className="flex min-h-screen bg-slate-50 text-slate-900">
+      {/* Left Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        isOpenMobile={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+      />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Error Banner */}
-        {errorMessage && (
-          <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-center justify-between gap-3 animate-in fade-in">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-            <button
-              onClick={() => setErrorMessage(null)}
-              className="text-xs hover:text-white underline"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <TopNavbar
+          activeTab={activeTab}
+          onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+          onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          currentUser={currentUser}
+          onLogout={handleLogout}
+        />
 
-        {/* Workstation Studio Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column: Voice Selector & Prosody Controls (5 cols) */}
-          <div className="lg:col-span-5 flex flex-col gap-6">
-            {/* Voice Selection */}
-            <div className="p-5 rounded-2xl bg-studio-900/60 border border-studio-800">
-              <VoiceSelector
-                voices={voices}
-                locales={locales}
-                selectedVoice={selectedVoice}
-                onSelectVoice={setSelectedVoice}
-                favorites={favorites}
-                onToggleFavorite={toggleFavorite}
-                onPreviewVoice={handlePreviewVoice}
-                previewingVoiceShortName={previewingVoiceShortName}
-              />
-            </div>
-
-            {/* Prosody Controls (Rate, Pitch, Volume) */}
-            <ProsodyControls
-              rate={rate}
-              onChangeRate={setRate}
-              pitch={pitch}
-              onChangePitch={setPitch}
-              volume={volume}
-              onChangeVolume={setVolume}
-              onReset={handleResetProsody}
-            />
-
-            {/* Info / Engine details card */}
-            <div className="p-5 rounded-2xl bg-gradient-to-b from-studio-900/60 to-studio-950/80 border border-brand-500/20 text-xs text-studio-400 flex flex-col gap-3 shadow-lg shadow-brand-500/5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-studio-200 font-semibold text-sm">
-                  <Sparkles className="w-4 h-4 text-brand-400" />
-                  <span>About TTS bY Waqas Gill</span>
+        <main className="flex-1 px-4 sm:px-8 py-8 max-w-7xl w-full mx-auto">
+          {/* VIEW 1: TEXT TO VOICE STUDIO */}
+          {activeTab === 'text-to-voice' && (
+            <div className="flex flex-col gap-8">
+              {errorMessage && (
+                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{errorMessage}</span>
+                  </div>
+                  <button
+                    onClick={() => setErrorMessage(null)}
+                    className="font-semibold underline"
+                  >
+                    Dismiss
+                  </button>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-300 border border-brand-500/20 text-[10px] font-mono font-medium">
-                  EmpireNexs
-                </span>
-              </div>
-              <p className="leading-relaxed text-studio-300">
-                Crafted and powered by <strong className="text-white font-medium">EmpireNexs</strong> under the visionary direction of <strong className="text-brand-300 font-medium">Waqas Gill</strong>. This platform harnesses state-of-the-art neural speech synthesis to deliver hyper-realistic human voiceovers, authentic accents, and flawless pronunciation across 320+ global voices with up to 50,000 words capacity.
-              </p>
-              <div className="pt-2 border-t border-studio-800/80 flex items-center justify-between text-[11px] text-studio-500">
-                <span>Free &amp; Unlimited Studio Edition</span>
-                <span className="text-brand-400 font-medium">© EmpireNexs • Waqas Gill</span>
-              </div>
-            </div>
-          </div>
+              )}
 
-          {/* Right Column: Script Editor, Generation CTA, Audio Player & History (7 cols) */}
-          <div className="lg:col-span-7 flex flex-col gap-6">
-            {/* Script Editor */}
-            <div className="p-5 rounded-2xl bg-studio-900/60 border border-studio-800">
-              <TextEditor
-                text={text}
-                onChangeText={setText}
-                disabled={isSynthesizing}
-              />
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                {/* Left Column: Voice Selector & Prosody Controls (5 cols) */}
+                <div className="lg:col-span-5 flex flex-col gap-6">
+                  <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs">
+                    <VoiceSelector
+                      voices={voices}
+                      locales={locales}
+                      selectedVoice={selectedVoice}
+                      onSelectVoice={setSelectedVoice}
+                      favorites={favorites}
+                      onToggleFavorite={toggleFavorite}
+                      onPreviewVoice={handlePreviewVoice}
+                      previewingVoiceShortName={previewingVoiceShortName}
+                    />
+                  </div>
 
-              {/* Action Buttons Row */}
-              <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-studio-800/80">
-                <div className="text-xs text-studio-400 flex items-center gap-1.5">
-                  <span className="px-1.5 py-0.5 rounded bg-studio-800 font-mono text-[10px]">
-                    Ctrl + Enter
-                  </span>
-                  <span>to generate</span>
+                  <ProsodyControls
+                    rate={rate}
+                    onChangeRate={setRate}
+                    pitch={pitch}
+                    onChangePitch={setPitch}
+                    volume={volume}
+                    onChangeVolume={setVolume}
+                    onReset={handleResetProsody}
+                  />
+
+                  {/* Info / Engine details card */}
+                  <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs text-xs text-slate-600 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
+                        <Sparkles className="w-4 h-4 text-brand-600" />
+                        <span>About TTS bY Waqas Gill</span>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full bg-brand-50 text-brand-700 font-mono text-[10px] font-bold border border-brand-200">
+                        EmpireNexs
+                      </span>
+                    </div>
+                    <p className="leading-relaxed">
+                      Crafted and powered by <strong className="text-slate-900">EmpireNexs</strong> under the direction of <strong className="text-brand-700">Waqas Gill</strong>. Harnesses Microsoft neural speech synthesis delivering hyper-realistic human voiceovers across 320+ voices with up to 50,000 words capacity.
+                    </p>
+                  </div>
                 </div>
 
-                <button
-                  type="button"
-                  disabled={isSynthesizing || !text.trim()}
-                  onClick={handleSynthesize}
-                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-xl shadow-brand-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  {isSynthesizing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Synthesizing Audio...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      <span>Generate Speech</span>
-                    </>
-                  )}
-                </button>
+                {/* Right Column: Script Editor, Generation CTA, Audio Player & History (7 cols) */}
+                <div className="lg:col-span-7 flex flex-col gap-6">
+                  <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs">
+                    <TextEditor
+                      text={text}
+                      onChangeText={setText}
+                      disabled={isSynthesizing}
+                    />
+
+                    <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-100">
+                      <div className="text-xs text-slate-400 flex items-center gap-1.5">
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-600 font-mono text-[10px] font-bold">
+                          Ctrl + Enter
+                        </span>
+                        <span>to generate</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={isSynthesizing || !text.trim()}
+                        onClick={handleSynthesize}
+                        className="w-full sm:w-auto px-7 py-3 rounded-2xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-sm shadow-md shadow-brand-500/25 disabled:opacity-50 transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        {isSynthesizing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Synthesizing Speech...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4" />
+                            <span>Generate Speech</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <AudioPlayer
+                    audioUrl={audioUrl}
+                    voiceName={selectedVoice?.ShortName}
+                    isLoading={isSynthesizing}
+                  />
+
+                  <HistoryPanel
+                    history={history}
+                    onSelectHistory={(item) => {
+                      setAudioUrl(item.audioUrl);
+                      setText(item.text);
+                      setRate(item.rate);
+                      setPitch(item.pitch);
+                    }}
+                    onDeleteHistoryItem={handleDeleteHistoryItem}
+                    onClearHistory={handleClearHistory}
+                  />
+                </div>
               </div>
             </div>
+          )}
 
-            {/* Audio Player */}
-            <AudioPlayer
-              audioUrl={audioUrl}
-              voiceName={selectedVoice?.ShortName}
-              isLoading={isSynthesizing}
-            />
+          {/* VIEW 2: VOICE CLONING */}
+          {activeTab === 'voice-cloning' && <VoiceCloner />}
 
-            {/* History Panel */}
-            <HistoryPanel
-              history={history}
-              onSelectHistory={(item) => {
-                setAudioUrl(item.audioUrl);
-                setText(item.text);
-                setRate(item.rate);
-                setPitch(item.pitch);
-              }}
-              onDeleteHistoryItem={handleDeleteHistoryItem}
-              onClearHistory={handleClearHistory}
-            />
-          </div>
-        </div>
-      </main>
+          {/* VIEW 3: PRICING */}
+          {activeTab === 'pricing' && <PricingPage />}
 
-      {/* Footer */}
-      <footer className="border-t border-studio-900 py-6 mt-12 bg-studio-950/60 text-xs text-studio-500 text-center flex flex-col items-center gap-1">
-        <p className="text-studio-400">
-          <strong className="text-slate-200 font-medium">TTS bY Waqas Gill</strong> • An <span className="text-brand-400 font-medium">EmpireNexs</span> Innovation
-        </p>
-        <p className="text-[11px] text-studio-500">
-          Developed with precision by Waqas Gill • Powered by Next.js 15 &amp; Microsoft Neural Speech Engine
-        </p>
-      </footer>
+          {/* VIEW 4: ABOUT US */}
+          {activeTab === 'about' && <AboutPage />}
+        </main>
+
+        {/* Studio Footer */}
+        <footer className="border-t border-slate-200/80 py-6 px-4 text-center text-xs text-slate-400 bg-white">
+          <p>
+            TTS bY Waqas Gill • An <strong className="text-brand-600 font-semibold">EmpireNexs</strong> Innovation • Developed with precision by Waqas Gill
+          </p>
+        </footer>
+      </div>
+
+      {/* Auth Modal (Sign In / Sign Up) */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccessLogin={handleLoginSuccess}
+      />
     </div>
   );
 }

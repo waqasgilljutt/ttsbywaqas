@@ -8,11 +8,8 @@ import {
   Pause,
   Star,
   Globe,
-  User,
-  SlidersHorizontal,
   ChevronDown,
   Volume2,
-  Sparkles,
 } from 'lucide-react';
 import { Voice } from '@/lib/edge-tts-service';
 
@@ -43,7 +40,6 @@ export function VoiceSelector({
   const [selectedGender, setSelectedGender] = useState<'all' | 'Female' | 'Male'>('all');
   const [onlyFavorites, setOnlyFavorites] = useState(false);
 
-  // Top popular locales for quick tabs
   const popularLocales = [
     { code: 'all', label: 'All Languages' },
     { code: 'en-US', label: 'English (US)' },
@@ -58,19 +54,9 @@ export function VoiceSelector({
 
   const filteredVoices = useMemo(() => {
     return voices.filter((v) => {
-      // Favorites filter
-      if (onlyFavorites && !favorites.includes(v.ShortName)) {
-        return false;
-      }
-      // Locale filter
-      if (selectedLocale !== 'all' && v.Locale.toLowerCase() !== selectedLocale.toLowerCase()) {
-        return false;
-      }
-      // Gender filter
-      if (selectedGender !== 'all' && v.Gender !== selectedGender) {
-        return false;
-      }
-      // Search filter
+      if (onlyFavorites && !favorites.includes(v.ShortName)) return false;
+      if (selectedLocale !== 'all' && v.Locale.toLowerCase() !== selectedLocale.toLowerCase()) return false;
+      if (selectedGender !== 'all' && v.Gender !== selectedGender) return false;
       if (search.trim()) {
         const query = search.toLowerCase();
         const matchesName = v.FriendlyName.toLowerCase().includes(query);
@@ -89,14 +75,14 @@ export function VoiceSelector({
     <div className="flex flex-col gap-3">
       {/* Current Voice Banner / Toggle Button */}
       <div className="flex items-center justify-between">
-        <label className="text-sm font-semibold text-studio-200 flex items-center gap-2">
-          <Volume2 className="w-4 h-4 text-brand-400" />
-          Selected Voice
+        <label className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+          <Volume2 className="w-4 h-4 text-brand-600" />
+          Selected Neural Voice
         </label>
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="text-xs text-brand-400 hover:text-brand-300 transition-colors font-medium flex items-center gap-1"
+          className="text-xs text-brand-600 hover:text-brand-700 transition-colors font-semibold flex items-center gap-1"
         >
           {isOpen ? 'Close Browser' : 'Browse All 320+ Voices'}
           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -107,34 +93,34 @@ export function VoiceSelector({
       {selectedVoice && (
         <div
           onClick={() => setIsOpen(!isOpen)}
-          className="p-3.5 rounded-xl bg-studio-900/90 border border-brand-500/30 shadow-lg shadow-brand-500/5 hover:border-brand-500/60 transition-all cursor-pointer flex items-center justify-between group"
+          className="p-4 rounded-2xl bg-white border border-brand-200/90 shadow-xs hover:border-brand-500 transition-all cursor-pointer flex items-center justify-between group"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400 font-bold text-sm">
+            <div className="w-10 h-10 rounded-xl bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600 font-extrabold text-sm">
               {selectedVoice.Locale.slice(0, 2).toUpperCase()}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-white text-sm group-hover:text-brand-300 transition-colors">
+                <span className="font-bold text-slate-900 text-sm group-hover:text-brand-600 transition-colors">
                   {selectedVoice.FriendlyName.replace('Microsoft ', '').replace(' Online (Natural)', '')}
                 </span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                  className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
                     selectedVoice.Gender === 'Female'
-                      ? 'bg-pink-500/10 text-pink-400 border border-pink-500/20'
-                      : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                      ? 'bg-pink-50 text-pink-700 border border-pink-200'
+                      : 'bg-blue-50 text-blue-700 border border-blue-200'
                   }`}
                 >
                   {selectedVoice.Gender}
                 </span>
               </div>
-              <p className="text-xs text-studio-400 flex items-center gap-1.5 mt-0.5">
-                <Globe className="w-3 h-3 text-studio-500" />
+              <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5 font-medium">
+                <Globe className="w-3 h-3 text-slate-400" />
                 {selectedVoice.LocaleName || selectedVoice.Locale}
                 {selectedVoice.VoiceTag?.VoicePersonalities?.[0] && (
                   <>
                     <span>•</span>
-                    <span className="text-studio-300">{selectedVoice.VoiceTag.VoicePersonalities[0]}</span>
+                    <span className="text-slate-600">{selectedVoice.VoiceTag.VoicePersonalities[0]}</span>
                   </>
                 )}
               </p>
@@ -149,31 +135,31 @@ export function VoiceSelector({
                 e.stopPropagation();
                 onPreviewVoice(selectedVoice);
               }}
-              className="p-2 rounded-lg bg-studio-800 hover:bg-brand-600 text-studio-300 hover:text-white transition-colors"
+              className="p-2.5 rounded-xl bg-slate-100 hover:bg-brand-600 text-slate-600 hover:text-white transition-colors"
             >
               {previewingVoiceShortName === selectedVoice.ShortName ? (
                 <Pause className="w-4 h-4 text-white animate-pulse" />
               ) : (
-                <Play className="w-4 h-4" />
+                <Play className="w-4 h-4 ml-0.5" />
               )}
             </button>
           </div>
         </div>
       )}
 
-      {/* Expanded Voice Explorer Modal / Drawer */}
+      {/* Expanded Voice Explorer Modal / Dropdown */}
       {isOpen && (
-        <div className="rounded-2xl bg-studio-900/95 border border-studio-800 p-4 shadow-2xl flex flex-col gap-4 animate-in fade-in duration-200">
+        <div className="rounded-3xl bg-white border border-slate-200 p-5 shadow-xl flex flex-col gap-4 animate-in fade-in duration-150">
           {/* Search bar and Filters */}
           <div className="flex flex-col sm:flex-row gap-2.5">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 text-studio-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search by speaker, accent, or country..."
+                placeholder="Search speaker, accent, or country..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-studio-950 border border-studio-800 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-100 placeholder-studio-500 focus:outline-none focus:border-brand-500 transition-colors"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-600 focus:bg-white transition-all"
               />
             </div>
 
@@ -181,7 +167,7 @@ export function VoiceSelector({
             <select
               value={selectedLocale}
               onChange={(e) => setSelectedLocale(e.target.value)}
-              className="bg-studio-950 border border-studio-800 rounded-xl px-3 py-2 text-sm text-studio-200 focus:outline-none focus:border-brand-500"
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-brand-600 font-medium"
             >
               <option value="all">All Locales ({voices.length})</option>
               {locales.map((loc) => (
@@ -193,18 +179,18 @@ export function VoiceSelector({
           </div>
 
           {/* Quick Filter Pills */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-studio-800/60">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
             {/* Quick Language Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full text-xs">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
               {popularLocales.map((item) => (
                 <button
                   key={item.code}
                   type="button"
                   onClick={() => setSelectedLocale(item.code)}
-                  className={`px-2.5 py-1 rounded-lg transition-colors whitespace-nowrap ${
+                  className={`px-3 py-1 rounded-xl transition-colors whitespace-nowrap text-xs ${
                     selectedLocale === item.code
-                      ? 'bg-brand-600 text-white font-medium'
-                      : 'bg-studio-950/70 text-studio-400 hover:text-studio-200 hover:bg-studio-800'
+                      ? 'bg-brand-600 text-white font-semibold shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
                   }`}
                 >
                   {item.label}
@@ -212,18 +198,18 @@ export function VoiceSelector({
               ))}
             </div>
 
-            {/* Gender and Favorites Filter */}
+            {/* Gender and Favorites */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center bg-studio-950 rounded-lg p-0.5 border border-studio-800 text-xs">
+              <div className="flex items-center bg-slate-100 rounded-xl p-0.5 text-xs">
                 {(['all', 'Female', 'Male'] as const).map((g) => (
                   <button
                     key={g}
                     type="button"
                     onClick={() => setSelectedGender(g)}
-                    className={`px-2 py-1 rounded-md transition-colors ${
+                    className={`px-2.5 py-1 rounded-lg transition-colors font-medium ${
                       selectedGender === g
-                        ? 'bg-brand-600 text-white font-medium'
-                        : 'text-studio-400 hover:text-studio-200'
+                        ? 'bg-white text-brand-700 shadow-xs font-semibold'
+                        : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     {g === 'all' ? 'All' : g}
@@ -234,13 +220,13 @@ export function VoiceSelector({
               <button
                 type="button"
                 onClick={() => setOnlyFavorites(!onlyFavorites)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl border text-xs transition-colors ${
                   onlyFavorites
-                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 font-medium'
-                    : 'bg-studio-950 border-studio-800 text-studio-400 hover:text-studio-200'
+                    ? 'bg-amber-50 border-amber-300 text-amber-800 font-bold'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Star className={`w-3.5 h-3.5 ${onlyFavorites ? 'fill-amber-400 text-amber-400' : ''}`} />
+                <Star className={`w-3.5 h-3.5 ${onlyFavorites ? 'fill-amber-500 text-amber-500' : ''}`} />
                 <span>Favorites</span>
               </button>
             </div>
@@ -249,8 +235,8 @@ export function VoiceSelector({
           {/* Voice Cards Grid */}
           <div className="max-h-80 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
             {filteredVoices.length === 0 ? (
-              <div className="col-span-full py-8 text-center text-studio-400 text-sm">
-                No voices found matching your search and filter criteria.
+              <div className="col-span-full py-8 text-center text-slate-500 text-sm">
+                No voices found matching your criteria.
               </div>
             ) : (
               filteredVoices.map((voice) => {
@@ -261,41 +247,39 @@ export function VoiceSelector({
                 return (
                   <div
                     key={voice.ShortName}
-                    onClick={() => {
-                      onSelectVoice(voice);
-                    }}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between group ${
+                    onClick={() => onSelectVoice(voice)}
+                    className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group ${
                       isSelected
-                        ? 'bg-brand-950/40 border-brand-500 shadow-md shadow-brand-500/10'
-                        : 'bg-studio-950/60 border-studio-800/80 hover:border-studio-700 hover:bg-studio-900/80'
+                        ? 'bg-brand-50/60 border-brand-500 shadow-xs'
+                        : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-extrabold shrink-0 ${
                           isSelected
                             ? 'bg-brand-600 text-white'
-                            : 'bg-studio-900 text-studio-300 border border-studio-800'
+                            : 'bg-slate-100 text-slate-600 border border-slate-200'
                         }`}
                       >
                         {voice.Locale.slice(0, 2).toUpperCase()}
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 truncate">
-                          <span className="font-medium text-white text-xs truncate">
+                          <span className="font-bold text-slate-900 text-xs truncate">
                             {voice.FriendlyName.replace('Microsoft ', '').replace(' Online (Natural)', '')}
                           </span>
                           <span
-                            className={`text-[9px] px-1 py-0.2 rounded shrink-0 ${
+                            className={`text-[9px] px-1 py-0.2 rounded shrink-0 font-medium ${
                               voice.Gender === 'Female'
-                                ? 'bg-pink-500/10 text-pink-400'
-                                : 'bg-blue-500/10 text-blue-400'
+                                ? 'bg-pink-50 text-pink-700'
+                                : 'bg-blue-50 text-blue-700'
                             }`}
                           >
                             {voice.Gender[0]}
                           </span>
                         </div>
-                        <p className="text-[11px] text-studio-400 truncate">
+                        <p className="text-[11px] text-slate-500 truncate">
                           {voice.LocaleName || voice.Locale}
                         </p>
                       </div>
@@ -312,7 +296,7 @@ export function VoiceSelector({
                         className={`p-1.5 rounded-lg transition-colors ${
                           isPlaying
                             ? 'bg-brand-600 text-white'
-                            : 'text-studio-400 hover:text-white hover:bg-studio-800'
+                            : 'text-slate-400 hover:text-slate-800 hover:bg-slate-100'
                         }`}
                       >
                         {isPlaying ? (
@@ -331,15 +315,15 @@ export function VoiceSelector({
                         }}
                         className={`p-1.5 rounded-lg transition-colors ${
                           isFav
-                            ? 'text-amber-400'
-                            : 'text-studio-500 hover:text-amber-400 hover:bg-studio-800'
+                            ? 'text-amber-500'
+                            : 'text-slate-300 hover:text-amber-500 hover:bg-slate-100'
                         }`}
                       >
-                        <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-amber-400' : ''}`} />
+                        <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-amber-500' : ''}`} />
                       </button>
 
                       {isSelected && (
-                        <div className="w-5 h-5 rounded-full bg-brand-500 text-white flex items-center justify-center ml-1">
+                        <div className="w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center ml-1">
                           <Check className="w-3 h-3 stroke-[3]" />
                         </div>
                       )}
