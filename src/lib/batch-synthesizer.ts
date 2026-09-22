@@ -20,10 +20,11 @@ export interface BatchProgressInfo {
  * Splits large text into natural, spoken chapters/chunks.
  * Preserves sentence terminators (. ! ? 。 । ۔ ;) and paragraph breaks so
  * that speech never cuts off mid-word or mid-sentence.
+ * Guaranteed to never drop a single character even with dense, unspaced, or repeated text.
  */
 export function splitScriptIntoNaturalChunks(
   text: string,
-  maxChunkLength: number = 2400
+  maxChunkLength: number = 2000
 ): string[] {
   const trimmed = text.trim();
   if (trimmed.length <= maxChunkLength) {
@@ -31,69 +32,58 @@ export function splitScriptIntoNaturalChunks(
   }
 
   const chunks: string[] = [];
-  // Split on double or single newlines (paragraphs)
-  const paragraphs = trimmed.split(/\n+/);
-  let currentChunk = '';
+  let remaining = trimmed;
 
-  for (const para of paragraphs) {
-    const trimmedPara = para.trim();
-    if (!trimmedPara) continue;
+  while (remaining.length > 0) {
+    if (remaining.length <= maxChunkLength) {
+      chunks.push(remaining.trim());
+      break;
+    }
 
-    const candidate = currentChunk ? `${currentChunk}\n\n${trimmedPara}` : trimmedPara;
+    // Examine the window up to maxChunkLength
+    const window = remaining.slice(0, maxChunkLength);
+    const minSearchIndex = Math.floor(maxChunkLength * 0.4);
 
-    if (candidate.length <= maxChunkLength) {
-      currentChunk = candidate;
-    } else {
-      // If currentChunk already has content, flush it
-      if (currentChunk) {
-        chunks.push(currentChunk.trim());
-        currentChunk = '';
+    let cutIndex = -1;
+
+    // 1. First priority: Paragraph boundary (\n\n or \n) in last 60% of window
+    const paraMatch = window.slice(minSearchIndex).lastIndexOf('\n');
+    if (paraMatch !== -1) {
+      cutIndex = minSearchIndex + paraMatch + 1;
+    }
+
+    // 2. Second priority: Sentence boundary (. ! ? । ۔ ;) in last 60% of window
+    if (cutIndex === -1) {
+      const sentenceRegex = /[.!?।۔;:]/g;
+      let match: RegExpExecArray | null;
+      const searchRegion = window.slice(minSearchIndex);
+      let lastSentenceMatch = -1;
+      while ((match = sentenceRegex.exec(searchRegion)) !== null) {
+        lastSentenceMatch = match.index;
       }
-
-      // If paragraph itself is small enough, start new chunk with it
-      if (trimmedPara.length <= maxChunkLength) {
-        currentChunk = trimmedPara;
-      } else {
-        // Break large paragraph along sentence boundaries: . ! ? । ۔ ;
-        const sentences = trimmedPara.match(/[^.!?।۔;\n]+[.!?।۔;\n]+(?:\s+|$)|[^.!?।۔;\n]+$/g) || [trimmedPara];
-
-        for (const sentence of sentences) {
-          const s = sentence.trim();
-          if (!s) continue;
-
-          const sentenceCandidate = currentChunk ? `${currentChunk} ${s}` : s;
-
-          if (sentenceCandidate.length <= maxChunkLength) {
-            currentChunk = sentenceCandidate;
-          } else {
-            if (currentChunk) {
-              chunks.push(currentChunk.trim());
-              currentChunk = '';
-            }
-
-            if (s.length <= maxChunkLength) {
-              currentChunk = s;
-            } else {
-              // Fallback for extremely long sentences without punctuation: split by words
-              const words = s.split(/\s+/);
-              for (const word of words) {
-                const wordCandidate = currentChunk ? `${currentChunk} ${word}` : word;
-                if (wordCandidate.length <= maxChunkLength) {
-                  currentChunk = wordCandidate;
-                } else {
-                  if (currentChunk) chunks.push(currentChunk.trim());
-                  currentChunk = word;
-                }
-              }
-            }
-          }
-        }
+      if (lastSentenceMatch !== -1) {
+        cutIndex = minSearchIndex + lastSentenceMatch + 1;
       }
     }
-  }
 
-  if (currentChunk.trim()) {
-    chunks.push(currentChunk.trim());
+    // 3. Third priority: Word boundary (whitespace) in last 60% of window
+    if (cutIndex === -1) {
+      const spaceMatch = window.slice(minSearchIndex).lastIndexOf(' ');
+      if (spaceMatch !== -1) {
+        cutIndex = minSearchIndex + spaceMatch + 1;
+      }
+    }
+
+    // 4. Hard fallback if no punctuation or space found in region
+    if (cutIndex === -1) {
+      cutIndex = maxChunkLength;
+    }
+
+    const chunk = remaining.slice(0, cutIndex).trim();
+    if (chunk.length > 0) {
+      chunks.push(chunk);
+    }
+    remaining = remaining.slice(cutIndex).trim();
   }
 
   return chunks.filter((c) => c.length > 0);
@@ -107,7 +97,7 @@ export async function synthesizeLargeScript(
   text: string,
   fetchChunkFn: (chunkText: string, chunkIndex: number, totalChunks: number) => Promise<Blob>,
   onProgress?: (info: BatchProgressInfo) => void,
-  maxChunkSize: number = 2400
+  maxChunkSize: number = 2000
 ): Promise<Blob> {
   const chunks = splitScriptIntoNaturalChunks(text, maxChunkSize);
   const totalChunks = chunks.length;
@@ -155,9 +145,14 @@ export async function synthesizeLargeScript(
       statusText: `Synthesizing Part ${chunkNum} of ${totalChunks} (${initialPercent}%) - ${completedChars.toLocaleString()} / ${totalChars.toLocaleString()} chars...`,
     });
 
-    const chunkBlob = await fetchChunkFn(currentChunkText, i, totalChunks);
-    audioBlobs.push(chunkBlob);
-    completedChars += currentChunkText.length;
+    try {
+      const chunkBlob = await fetchChunkFn(currentChunkText, i, totalChunks);
+      audioBlobs.push(chunkBlob);
+      completedChars += currentChunkText.length;
+    } catch (err: unknown) {
+      console.error(`Error in chunk ${chunkNum} of ${totalChunks}:`, err);
+      throw new Error(`Part ${chunkNum} of ${totalChunks} failed: ${(err as Error)?.message || 'Synthesis error'}`);
+    }
 
     const postPercent = Math.round((chunkNum / totalChunks) * 100);
     onProgress?.({

@@ -544,8 +544,7 @@ export function VoiceCloner({
         scriptText.trim(),
         async (chunkText, chunkIndex) => {
           const formData = new FormData();
-          // Include audio recording on first chunk or when available
-          if (chunkIndex === 0 && audioBlobToUse) {
+          if (audioBlobToUse) {
             formData.append('audio', audioBlobToUse, 'voice-sample.wav');
           }
           formData.append('text', chunkText);
@@ -560,8 +559,15 @@ export function VoiceCloner({
           });
 
           if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            throw new Error(data.error || 'Voice cloning failed.');
+            const errText = await response.text().catch(() => '');
+            let parsedErr = '';
+            try {
+              const data = JSON.parse(errText);
+              parsedErr = data.error;
+            } catch {
+              parsedErr = errText.slice(0, 120);
+            }
+            throw new Error(parsedErr || `Voice cloning failed (HTTP ${response.status}).`);
           }
 
           return await response.blob();
