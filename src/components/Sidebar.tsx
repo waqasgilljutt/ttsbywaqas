@@ -9,9 +9,10 @@ import {
   Sparkles,
   ChevronRight,
   ShieldCheck,
+  FolderHeart,
 } from 'lucide-react';
 
-export type TabType = 'text-to-voice' | 'voice-cloning' | 'pricing' | 'about';
+export type TabType = 'text-to-voice' | 'voice-cloning' | 'voice-library' | 'pricing' | 'about';
 
 interface SidebarProps {
   activeTab: TabType;
@@ -37,9 +38,16 @@ export function Sidebar({
     {
       id: 'voice-cloning' as TabType,
       label: 'Voice Cloning',
-      description: 'Mic & Audio File Voice Cloner',
+      description: 'Zero-Shot Mic & Audio Cloner',
       icon: Dna,
       badge: 'AI Studio',
+    },
+    {
+      id: 'voice-library' as TabType,
+      label: 'Voice Library',
+      description: 'Saved custom voice profiles',
+      icon: FolderHeart,
+      badge: 'Library',
     },
     {
       id: 'pricing' as TabType,

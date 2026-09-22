@@ -28,6 +28,10 @@ export function TopNavbar({
       title: 'Instant Voice Cloner',
       subtitle: 'Record or upload audio to synthesize in your cloned voice',
     },
+    'voice-library': {
+      title: 'Voice Clones Library',
+      subtitle: 'Manage, preview, and activate your saved cloned voice models',
+    },
     'pricing': {
       title: 'Pricing & Plans',
       subtitle: 'Transparent plans for creators, developers, and businesses',

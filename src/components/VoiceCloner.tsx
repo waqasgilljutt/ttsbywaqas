@@ -25,13 +25,19 @@ import {
   Share2,
 } from 'lucide-react';
 
-interface SavedClone {
+export interface SavedClone {
   id: string;
   name: string;
   date: string;
   audioUrl: string;
-  gender: 'Male' | 'Female';
-  locale: string;
+  gender?: 'Male' | 'Female';
+  locale?: string;
+}
+
+export interface VoiceClonerProps {
+  initialClone?: SavedClone | null;
+  onClearInitialClone?: () => void;
+  onNavigateToLibrary?: () => void;
 }
 
 interface ClonedHistoryItem {
@@ -160,7 +166,11 @@ function detectScriptLanguage(text: string): { locale: string; name: string } {
   return { locale: 'en-US', name: 'English (United States)' };
 }
 
-export function VoiceCloner() {
+export function VoiceCloner({
+  initialClone,
+  onClearInitialClone,
+  onNavigateToLibrary,
+}: VoiceClonerProps = {}) {
   const [inputMode, setInputMode] = useState<'record' | 'upload'>('record');
 
   // Recording states
@@ -230,6 +240,21 @@ export function VoiceCloner() {
       console.warn('LocalStorage error:', e);
     }
   }, []);
+
+  // Listen to initialClone activated from Voice Library
+  useEffect(() => {
+    if (initialClone) {
+      setVoiceName(initialClone.name);
+      if (initialClone.gender) setGender(initialClone.gender);
+      if (initialClone.locale) setLocale(initialClone.locale);
+      setSelectedCloneId(initialClone.id);
+      setRecordedAudioUrl(initialClone.audioUrl);
+      fetch(initialClone.audioUrl)
+        .then((r) => r.blob())
+        .then((b) => setRecordedAudioBlob(b))
+        .catch(() => {});
+    }
+  }, [initialClone]);
 
   const formatTime = (timeInSeconds: number) => {
     if (isNaN(timeInSeconds) || timeInSeconds < 0) return '00:00';
@@ -714,97 +739,31 @@ export function VoiceCloner() {
               </div>
             )}
 
-            {/* SPEAKER CHARACTERISTICS (Crucial: Gender, Accent & Timbre) */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col gap-3.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-brand-600" />
-                  Speaker Calibration
-                </span>
-                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200 flex items-center gap-1">
-                  <Sparkles className="w-2.5 h-2.5" />
-                  Zero-Shot AI
-                </span>
-              </div>
-
-              {/* Gender Selection */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Voice Gender
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['Male', 'Female'] as const).map((g) => (
-                    <button
-                      key={g}
-                      type="button"
-                      onClick={() => setGender(g)}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                        gender === g
-                          ? 'bg-brand-600 text-white shadow-xs'
-                          : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      <span>{g === 'Male' ? '👨 Male' : '👩 Female'}</span>
-                    </button>
-                  ))}
+            {/* Active Voice from Library Badge */}
+            {selectedCloneId && (
+              <div className="p-3.5 rounded-2xl bg-brand-50 border border-brand-200 flex items-center justify-between gap-3 text-xs animate-in fade-in">
+                <div className="flex items-center gap-2 text-brand-900">
+                  <CheckCircle2 className="w-4 h-4 text-brand-600 shrink-0" />
+                  <span>
+                    Active Voice: <strong>{voiceName}</strong> (Loaded from Voice Library)
+                  </span>
                 </div>
-              </div>
-
-              {/* Accent / Language Selection */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold text-slate-700">
-                    Language &amp; Accent
-                  </label>
-                  {autoDetectLanguage && (
-                    <span className="text-[10px] text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded font-medium border border-brand-200 flex items-center gap-1">
-                      <Globe2 className="w-2.5 h-2.5" />
-                      Auto-Matched
-                    </span>
-                  )}
-                </div>
-                <select
-                  value={autoDetectLanguage ? 'auto' : locale}
-                  onChange={(e) => {
-                    if (e.target.value === 'auto') {
-                      setAutoDetectLanguage(true);
-                      const detected = detectScriptLanguage(scriptText);
-                      setLocale(detected.locale);
-                    } else {
-                      setAutoDetectLanguage(false);
-                      setLocale(e.target.value);
-                    }
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCloneId(null);
+                    setRecordedAudioBlob(null);
+                    setRecordedAudioUrl(null);
+                    setUploadedFile(null);
+                    setUploadedAudioUrl(null);
+                    if (onClearInitialClone) onClearInitialClone();
                   }}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-semibold focus:outline-none focus:border-brand-600"
+                  className="text-brand-600 hover:text-brand-800 font-bold hover:underline shrink-0"
                 >
-                  <option value="auto">✨ Auto-Detect ({detectedLanguage.name})</option>
-                  <option value="en-US">English (United States)</option>
-                  <option value="en-PK">English (Pakistan / Subcontinent)</option>
-                  <option value="en-GB">English (United Kingdom)</option>
-                  <option value="ur-PK">Urdu (Pakistan) - اردُو</option>
-                  <option value="hi-IN">Hindi (India) - हिन्दी</option>
-                  <option value="ar-SA">Arabic (Saudi Arabia) - العربية</option>
-                  <option value="es-ES">Spanish (Spain)</option>
-                </select>
+                  Change Voice
+                </button>
               </div>
-
-              {/* Vocal Tone */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Vocal Pitch / Timbre
-                </label>
-                <select
-                  value={tone}
-                  onChange={(e) => setTone(e.target.value as any)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-semibold focus:outline-none focus:border-brand-600"
-                >
-                  <option value="natural">Natural Balance</option>
-                  <option value="deep">Deep / Authoritative Pitch</option>
-                  <option value="warm">Warm &amp; Conversational</option>
-                  <option value="energetic">Bright &amp; Energetic</option>
-                </select>
-              </div>
-            </div>
+            )}
 
             {/* Voice Profile Name & Save to Library Button */}
             <div className="flex flex-col gap-3">

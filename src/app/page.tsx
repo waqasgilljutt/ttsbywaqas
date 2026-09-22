@@ -9,7 +9,8 @@ import { TextEditor } from '@/components/TextEditor';
 import { ProsodyControls } from '@/components/ProsodyControls';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { HistoryPanel, HistoryItem } from '@/components/HistoryPanel';
-import { VoiceCloner } from '@/components/VoiceCloner';
+import { VoiceCloner, SavedClone } from '@/components/VoiceCloner';
+import { VoiceLibrary } from '@/components/VoiceLibrary';
 import { PricingPage } from '@/components/PricingPage';
 import { AboutPage } from '@/components/AboutPage';
 import { Voice } from '@/lib/edge-tts-service';
@@ -20,6 +21,7 @@ const INITIAL_TEXT =
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('text-to-voice');
+  const [activeLoadedClone, setActiveLoadedClone] = useState<SavedClone | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
@@ -462,12 +464,29 @@ export default function Home() {
           )}
 
           {/* VIEW 2: VOICE CLONING */}
-          {activeTab === 'voice-cloning' && <VoiceCloner />}
+          {activeTab === 'voice-cloning' && (
+            <VoiceCloner
+              initialClone={activeLoadedClone}
+              onClearInitialClone={() => setActiveLoadedClone(null)}
+              onNavigateToLibrary={() => setActiveTab('voice-library')}
+            />
+          )}
 
-          {/* VIEW 3: PRICING */}
+          {/* VIEW 3: VOICE LIBRARY */}
+          {activeTab === 'voice-library' && (
+            <VoiceLibrary
+              onUseVoice={(clone) => {
+                setActiveLoadedClone(clone);
+                setActiveTab('voice-cloning');
+              }}
+              onNavigateToCloner={() => setActiveTab('voice-cloning')}
+            />
+          )}
+
+          {/* VIEW 4: PRICING */}
           {activeTab === 'pricing' && <PricingPage />}
 
-          {/* VIEW 4: ABOUT US */}
+          {/* VIEW 5: ABOUT US */}
           {activeTab === 'about' && <AboutPage />}
         </main>
 
