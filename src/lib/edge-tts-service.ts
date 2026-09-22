@@ -179,19 +179,17 @@ export async function synthesizeSpeech(
   const pitch = options.pitch || '+0Hz';
   const volume = options.volume || '+0%';
 
-  const chunks = splitTextIntoChunks(text.trim(), 2500);
+  const chunks = splitTextIntoChunks(text.trim(), 3500);
 
   if (chunks.length === 1) {
     const buffer = await synthesizeChunk(chunks[0], voice, rate, pitch, volume);
     return { buffer, contentType: 'audio/mpeg' };
   }
 
-  // Synthesize chunks sequentially for seamless audio concatenation
-  const audioBuffers: Buffer[] = [];
-  for (const chunk of chunks) {
-    const buf = await synthesizeChunk(chunk, voice, rate, pitch, volume);
-    audioBuffers.push(buf);
-  }
+  // Synthesize chunks in parallel for maximum performance
+  const audioBuffers = await Promise.all(
+    chunks.map((chunk) => synthesizeChunk(chunk, voice, rate, pitch, volume))
+  );
 
   return {
     buffer: Buffer.concat(audioBuffers),
