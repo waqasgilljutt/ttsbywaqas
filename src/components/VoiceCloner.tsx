@@ -274,19 +274,21 @@ export function VoiceCloner({
       setVoiceName(initialClone.name);
       if (initialClone.gender) setGender(initialClone.gender);
       if (initialClone.locale) setLocale(initialClone.locale);
-      setSelectedCloneId(initialClone.id);
-      setRecordedAudioUrl(initialClone.audioUrl);
 
-      if (initialClone.audioUrl.startsWith('data:')) {
+      if (initialClone.audioUrl && initialClone.audioUrl.startsWith('data:')) {
         const b = base64ToBlob(initialClone.audioUrl);
         setRecordedAudioBlob(b);
+        setRecordedAudioUrl(initialClone.audioUrl);
+        setSelectedCloneId(initialClone.id);
+        setErrorMsg(null);
       } else {
-        fetch(initialClone.audioUrl)
-          .then((r) => r.blob())
-          .then((b) => setRecordedAudioBlob(b))
-          .catch((err) => {
-            console.warn('Dangling or expired blob URL:', err);
-          });
+        // Legacy temporary blob URL from previous sessions
+        setErrorMsg(
+          'This voice profile was saved in an older version with a temporary link. Please record or upload your audio sample once more and click "Save This Clone" to store it permanently.'
+        );
+        setSelectedCloneId(null);
+        setRecordedAudioBlob(null);
+        setRecordedAudioUrl(null);
       }
     }
   }, [initialClone]);
@@ -321,8 +323,13 @@ export function VoiceCloner({
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'audio/webm' });
         setRecordedAudioBlob(blob);
-        const url = URL.createObjectURL(blob);
-        setRecordedAudioUrl(url);
+        blobToBase64(blob)
+          .then((dataUrl) => {
+            setRecordedAudioUrl(dataUrl);
+          })
+          .catch(() => {
+            setRecordedAudioUrl(URL.createObjectURL(blob));
+          });
         stream.getTracks().forEach((track) => track.stop());
 
         // Automatically scan audio sample for gender, pitch, and timbre
@@ -371,7 +378,13 @@ export function VoiceCloner({
         return;
       }
       setUploadedFile(file);
-      setUploadedAudioUrl(URL.createObjectURL(file));
+      blobToBase64(file)
+        .then((dataUrl) => {
+          setUploadedAudioUrl(dataUrl);
+        })
+        .catch(() => {
+          setUploadedAudioUrl(URL.createObjectURL(file));
+        });
 
       // Automatically scan audio sample for gender, pitch, and timbre
       setIsAnalyzingAudio(true);
@@ -439,16 +452,18 @@ export function VoiceCloner({
     setVoiceName(clone.name);
     if (clone.gender) setGender(clone.gender);
     if (clone.locale) setLocale(clone.locale);
-    setRecordedAudioUrl(clone.audioUrl);
 
-    if (clone.audioUrl.startsWith('data:')) {
+    if (clone.audioUrl && clone.audioUrl.startsWith('data:')) {
       const b = base64ToBlob(clone.audioUrl);
       setRecordedAudioBlob(b);
+      setRecordedAudioUrl(clone.audioUrl);
+      setErrorMsg(null);
     } else {
-      fetch(clone.audioUrl)
-        .then((r) => r.blob())
-        .then((b) => setRecordedAudioBlob(b))
-        .catch(() => {});
+      setErrorMsg(
+        'This voice profile was saved in an older version with a temporary link. Please record or upload your audio sample once more and click "Save to Library" to store it permanently.'
+      );
+      setRecordedAudioBlob(null);
+      setRecordedAudioUrl(null);
     }
   };
 
