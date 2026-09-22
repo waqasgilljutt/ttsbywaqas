@@ -1000,8 +1000,22 @@ export function VoiceCloner({
               />
               <div className="flex items-center justify-between px-2 pt-1 text-xs text-slate-400 font-mono">
                 <span>{scriptText.trim().split(/\s+/).filter(Boolean).length} words</span>
-                <span>{scriptText.length} characters</span>
+                <span className={scriptText.length > 2800 ? 'text-amber-600 font-bold' : ''}>
+                  {scriptText.length} characters {scriptText.length > 2800 ? '(Max recommended: ~2,800)' : ''}
+                </span>
               </div>
+
+              {scriptText.length > 2500 && (
+                <div className="mt-2.5 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5 animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-bold">Fast Cloud Synthesis Tip:</span>
+                    <span className="text-amber-800 leading-relaxed">
+                      Instant cloud voice cloning works best with scripts up to 400 words (~2,500 characters). Scripts longer than 2,800 characters will be synthesized up to the optimal cloud streaming window to prevent timeouts.
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* PROGRESS BAR WITH PERCENTAGE & STATUS */}
