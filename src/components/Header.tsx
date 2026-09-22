@@ -22,14 +22,32 @@ export function Header({ totalVoices, selectedVoiceName }: HeaderProps) {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
-                TTS <span className="bg-gradient-to-r from-brand-400 to-indigo-300 bg-clip-text text-transparent">bY Waqas Gill</span>
+                TTS{' '}
+                <a
+                  href="https://www.facebook.com/mwaqasgillcs/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gradient-to-r from-brand-400 to-indigo-300 bg-clip-text text-transparent hover:opacity-80 transition-opacity"
+                  title="Connect with Waqas Gill on Facebook"
+                >
+                  bY Waqas Gill
+                </a>
               </h1>
               <span className="px-2 py-0.5 text-[11px] font-semibold bg-brand-500/10 text-brand-300 border border-brand-500/20 rounded-full">
                 Studio
               </span>
             </div>
             <p className="text-xs text-studio-400 hidden sm:block">
-              Professional Text-to-Speech Platform • EmpireNexs by Waqas Gill
+              Professional Text-to-Speech Platform • EmpireNexs by{' '}
+              <a
+                href="https://www.facebook.com/mwaqasgillcs/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-studio-300 hover:text-white hover:underline transition-colors font-medium"
+                title="Connect with Waqas Gill on Facebook"
+              >
+                Waqas Gill
+              </a>
             </p>
           </div>
         </div>

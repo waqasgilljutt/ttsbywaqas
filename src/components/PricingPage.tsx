@@ -172,7 +172,25 @@ export function PricingPage() {
                 {plan.features.map((feat) => (
                   <div key={feat} className="flex items-start gap-2.5 text-xs text-slate-700">
                     <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>{feat}</span>
+                    <span>
+                      {feat.includes('Waqas Gill') ? (
+                        <>
+                          Direct 1-on-1 support from{' '}
+                          <a
+                            href="https://www.facebook.com/mwaqasgillcs/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-brand-600 hover:text-brand-700 hover:underline font-semibold"
+                            title="Connect with Waqas Gill on Facebook"
+                          >
+                            Waqas Gill
+                          </a>{' '}
+                          &amp; EmpireNexs engineering team
+                        </>
+                      ) : (
+                        feat
+                      )}
+                    </span>
                   </div>
                 ))}
               </div>

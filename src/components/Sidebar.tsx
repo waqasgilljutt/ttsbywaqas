@@ -83,7 +83,16 @@ export function Sidebar({
             <div>
               <div className="flex items-center gap-1.5">
                 <h1 className="text-base font-bold text-slate-900 tracking-tight">
-                  TTS <span className="text-brand-600">bY Waqas Gill</span>
+                  TTS{' '}
+                  <a
+                    href="https://www.facebook.com/mwaqasgillcs/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-brand-600 hover:text-brand-700 hover:underline transition-all"
+                    title="Connect with Waqas Gill on Facebook"
+                  >
+                    bY Waqas Gill
+                  </a>
                 </h1>
               </div>
               <p className="text-[11px] font-semibold text-brand-700 uppercase tracking-wider mt-0.5">
@@ -170,7 +179,16 @@ export function Sidebar({
           </div>
 
           <div className="text-center text-[11px] text-slate-400">
-            © EmpireNexs • Waqas Gill
+            © EmpireNexs •{' '}
+            <a
+              href="https://www.facebook.com/mwaqasgillcs/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-600 hover:text-brand-600 hover:underline font-medium transition-colors"
+              title="Connect with Waqas Gill on Facebook"
+            >
+              Waqas Gill
+            </a>
           </div>
         </div>
       </aside>

@@ -57,7 +57,22 @@ export function TopNavbar({
             {currentInfo.title}
           </h2>
           <p className="text-xs text-slate-500 hidden sm:block">
-            {currentInfo.subtitle}
+            {activeTab === 'about' ? (
+              <>
+                Our technology, mission, and the story of{' '}
+                <a
+                  href="https://www.facebook.com/mwaqasgillcs/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-600 hover:underline font-medium"
+                  title="Connect with Waqas Gill on Facebook"
+                >
+                  Waqas Gill
+                </a>
+              </>
+            ) : (
+              currentInfo.subtitle
+            )}
           </p>
         </div>
       </div>

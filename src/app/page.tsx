@@ -348,14 +348,33 @@ export default function Home() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
                         <Sparkles className="w-4 h-4 text-brand-600" />
-                        <span>About TTS bY Waqas Gill</span>
+                        <span>
+                          About TTS{' '}
+                          <a
+                            href="https://www.facebook.com/mwaqasgillcs/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-brand-600 hover:underline"
+                          >
+                            bY Waqas Gill
+                          </a>
+                        </span>
                       </div>
                       <span className="px-2.5 py-0.5 rounded-full bg-brand-50 text-brand-700 font-mono text-[10px] font-bold border border-brand-200">
                         EmpireNexs
                       </span>
                     </div>
                     <p className="leading-relaxed">
-                      Crafted and powered by <strong className="text-slate-900">EmpireNexs</strong> under the direction of <strong className="text-brand-700">Waqas Gill</strong>. Harnesses Microsoft neural speech synthesis delivering hyper-realistic human voiceovers across 320+ voices with up to 50,000 words capacity.
+                      Crafted and powered by <strong className="text-slate-900">EmpireNexs</strong> under the direction of{' '}
+                      <a
+                        href="https://www.facebook.com/mwaqasgillcs/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-700 hover:text-brand-800 hover:underline font-bold transition-colors"
+                        title="Connect with Waqas Gill on Facebook"
+                      >
+                        Waqas Gill
+                      </a>. Harnesses Microsoft neural speech synthesis delivering hyper-realistic human voiceovers across 320+ voices with up to 50,000 words capacity.
                     </p>
                   </div>
                 </div>
@@ -455,7 +474,26 @@ export default function Home() {
         {/* Studio Footer */}
         <footer className="border-t border-slate-200/80 py-6 px-4 text-center text-xs text-slate-400 bg-white">
           <p>
-            TTS bY Waqas Gill • An <strong className="text-brand-600 font-semibold">EmpireNexs</strong> Innovation • Developed with precision by Waqas Gill
+            TTS bY{' '}
+            <a
+              href="https://www.facebook.com/mwaqasgillcs/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-600 hover:text-brand-600 hover:underline font-medium"
+              title="Connect with Waqas Gill on Facebook"
+            >
+              Waqas Gill
+            </a>{' '}
+            • An <strong className="text-brand-600 font-semibold">EmpireNexs</strong> Innovation • Developed with precision by{' '}
+            <a
+              href="https://www.facebook.com/mwaqasgillcs/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand-600 hover:text-brand-700 hover:underline font-bold transition-colors"
+              title="Connect with Waqas Gill on Facebook"
+            >
+              Waqas Gill
+            </a>
           </p>
         </footer>
       </div>

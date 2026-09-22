@@ -30,7 +30,16 @@ export function AboutPage() {
           <span>About the Platform</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-          TTS bY Waqas Gill &amp; EmpireNexs
+          TTS bY{' '}
+          <a
+            href="https://www.facebook.com/mwaqasgillcs/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand-600 hover:text-brand-700 hover:underline transition-all"
+          >
+            Waqas Gill
+          </a>{' '}
+          &amp; EmpireNexs
         </h2>
         <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
           Pioneering high-fidelity artificial voice synthesis and audio engineering to empower creators, developers, and businesses worldwide.
@@ -44,9 +53,7 @@ export function AboutPage() {
             key={s.label}
             className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs flex flex-col items-center text-center gap-1"
           >
-            <span className="text-2xl sm:text-3xl font-extrabold text-brand-600 font-mono">
-              {s.value}
-            </span>
+            <span className="text-2xl font-black text-slate-900">{s.value}</span>
             <span className="text-xs text-slate-500 font-medium">{s.label}</span>
           </div>
         ))}
@@ -65,18 +72,44 @@ export function AboutPage() {
               <span className="text-xs font-bold uppercase tracking-wider text-brand-600">
                 Founder &amp; Lead Architect
               </span>
-              <h3 className="text-xl font-bold text-slate-900 mt-0.5">Waqas Gill</h3>
+              <div className="mt-0.5">
+                <a
+                  href="https://www.facebook.com/mwaqasgillcs/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xl font-bold text-slate-900 hover:text-brand-600 transition-colors inline-flex items-center gap-1.5 group"
+                >
+                  <span>Waqas Gill</span>
+                  <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-brand-600 transition-colors" />
+                </a>
+              </div>
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              <strong>Waqas Gill</strong> is an innovative technologist and software architect passionate about democratizing artificial intelligence. Recognizing the barriers that expensive voice platforms put on everyday creators, Waqas engineered this platform to provide unbounded 50,000-word neural speech and instant voice cloning free of charge.
+              <a
+                href="https://www.facebook.com/mwaqasgillcs/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-slate-900 hover:text-brand-600 hover:underline"
+              >
+                Waqas Gill
+              </a>{' '}
+              is an innovative technologist and software architect passionate about democratizing artificial intelligence. Recognizing the barriers that expensive voice platforms put on everyday creators, Waqas engineered this platform to provide unbounded 50,000-word neural speech and instant voice cloning free of charge.
             </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs text-slate-700 flex items-center gap-3">
-            <Award className="w-5 h-5 text-amber-500 shrink-0" />
-            <span>Dedicated to delivering studio-grade voiceover tools to global creators.</span>
-          </div>
+          <a
+            href="https://www.facebook.com/mwaqasgillcs/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-3 rounded-2xl bg-brand-50 hover:bg-brand-100 border border-brand-200 text-xs font-semibold text-brand-700 flex items-center justify-between transition-colors group"
+          >
+            <span className="flex items-center gap-2">
+              <User className="w-4 h-4 text-brand-600" />
+              Connect with Waqas Gill on Facebook
+            </span>
+            <ExternalLink className="w-4 h-4 text-brand-600 group-hover:translate-x-0.5 transition-transform" />
+          </a>
         </div>
 
         {/* Company Card */}
