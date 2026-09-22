@@ -166,6 +166,33 @@ function detectScriptLanguage(text: string): { locale: string; name: string } {
   return { locale: 'en-US', name: 'English (United States)' };
 }
 
+export function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+export function base64ToBlob(dataUrl: string): Blob {
+  try {
+    const parts = dataUrl.split(',');
+    const mimeMatch = parts[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'audio/wav';
+    const bstr = atob(parts[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  } catch (err) {
+    console.warn('Failed to parse base64 to blob:', err);
+    return new Blob([], { type: 'audio/wav' });
+  }
+}
+
 export function VoiceCloner({
   initialClone,
   onClearInitialClone,
@@ -249,10 +276,18 @@ export function VoiceCloner({
       if (initialClone.locale) setLocale(initialClone.locale);
       setSelectedCloneId(initialClone.id);
       setRecordedAudioUrl(initialClone.audioUrl);
-      fetch(initialClone.audioUrl)
-        .then((r) => r.blob())
-        .then((b) => setRecordedAudioBlob(b))
-        .catch(() => {});
+
+      if (initialClone.audioUrl.startsWith('data:')) {
+        const b = base64ToBlob(initialClone.audioUrl);
+        setRecordedAudioBlob(b);
+      } else {
+        fetch(initialClone.audioUrl)
+          .then((r) => r.blob())
+          .then((b) => setRecordedAudioBlob(b))
+          .catch((err) => {
+            console.warn('Dangling or expired blob URL:', err);
+          });
+      }
     }
   }, [initialClone]);
 
@@ -349,24 +384,34 @@ export function VoiceCloner({
     }
   };
 
-  // Save current clone to library
-  const handleSaveCloneToLibrary = () => {
+  // Save current clone to library (persisted as Base64 Data URI)
+  const handleSaveCloneToLibrary = async () => {
+    const activeBlob = recordedAudioBlob || uploadedFile;
     const activeUrl = recordedAudioUrl || uploadedAudioUrl;
-    if (!activeUrl) {
+    if (!activeBlob && !activeUrl) {
       setErrorMsg('Record or upload a voice sample first before saving.');
       return;
+    }
+
+    let persistentUrl = activeUrl || '';
+    if (activeBlob) {
+      try {
+        persistentUrl = await blobToBase64(activeBlob);
+      } catch (e) {
+        console.warn('Failed to convert to base64:', e);
+      }
     }
 
     const newClone: SavedClone = {
       id: Date.now().toString(),
       name: voiceName.trim() || 'My Voice Clone',
       date: new Date().toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }),
-      audioUrl: activeUrl,
+      audioUrl: persistentUrl,
       gender,
       locale,
     };
 
-    const updated = [newClone, ...savedClones];
+    const updated = [newClone, ...savedClones.filter((c) => c.id !== newClone.id)];
     setSavedClones(updated);
     try {
       localStorage.setItem('empirenexs_saved_clones', JSON.stringify(updated));
@@ -392,21 +437,42 @@ export function VoiceCloner({
   const handleUseSavedClone = (clone: SavedClone) => {
     setSelectedCloneId(clone.id);
     setVoiceName(clone.name);
-    setGender(clone.gender || 'Male');
-    setLocale(clone.locale || 'ur-PK');
+    if (clone.gender) setGender(clone.gender);
+    if (clone.locale) setLocale(clone.locale);
     setRecordedAudioUrl(clone.audioUrl);
-    fetch(clone.audioUrl)
-      .then((r) => r.blob())
-      .then((b) => setRecordedAudioBlob(b))
-      .catch(() => {});
+
+    if (clone.audioUrl.startsWith('data:')) {
+      const b = base64ToBlob(clone.audioUrl);
+      setRecordedAudioBlob(b);
+    } else {
+      fetch(clone.audioUrl)
+        .then((r) => r.blob())
+        .then((b) => setRecordedAudioBlob(b))
+        .catch(() => {});
+    }
   };
 
   // Trigger Voice Cloning Synthesis
   const handleCloneAndSpeak = async () => {
-    const audioBlobToUse = inputMode === 'record' ? recordedAudioBlob : uploadedFile;
+    let audioBlobToUse: Blob | null = recordedAudioBlob || uploadedFile;
 
-    if (!audioBlobToUse && !recordedAudioUrl) {
-      setErrorMsg('Please record your voice or upload an audio sample first.');
+    // If recordedAudioBlob is not in memory, recover from recordedAudioUrl
+    if (!audioBlobToUse && recordedAudioUrl) {
+      if (recordedAudioUrl.startsWith('data:')) {
+        audioBlobToUse = base64ToBlob(recordedAudioUrl);
+        setRecordedAudioBlob(audioBlobToUse);
+      } else {
+        try {
+          audioBlobToUse = await fetch(recordedAudioUrl).then((r) => r.blob());
+          if (audioBlobToUse) setRecordedAudioBlob(audioBlobToUse);
+        } catch (fetchErr) {
+          console.warn('Failed to fetch blob url:', fetchErr);
+        }
+      }
+    }
+
+    if (!audioBlobToUse || audioBlobToUse.size === 0) {
+      setErrorMsg('Audio sample is missing or expired. Please record or upload a fresh voice sample.');
       return;
     }
 
@@ -438,12 +504,7 @@ export function VoiceCloner({
 
     try {
       const formData = new FormData();
-      if (audioBlobToUse) {
-        formData.append('audio', audioBlobToUse, 'voice-sample.wav');
-      } else if (recordedAudioUrl) {
-        const fetchedBlob = await fetch(recordedAudioUrl).then((r) => r.blob());
-        formData.append('audio', fetchedBlob, 'voice-sample.wav');
-      }
+      formData.append('audio', audioBlobToUse, 'voice-sample.wav');
       formData.append('text', scriptText.trim());
       formData.append('voiceName', voiceName.trim() || 'My Voice Clone');
       formData.append('gender', gender);

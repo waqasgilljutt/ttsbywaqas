@@ -62,7 +62,10 @@ export function VoiceLibrary({ onUseVoice, onNavigateToCloner }: VoiceLibraryPro
     } else {
       if (audioRef.current) {
         audioRef.current.src = clone.audioUrl;
-        audioRef.current.play();
+        audioRef.current.play().catch((err) => {
+          console.warn('Audio play error:', err);
+          setActivePlayingId(null);
+        });
         setActivePlayingId(clone.id);
       }
     }
