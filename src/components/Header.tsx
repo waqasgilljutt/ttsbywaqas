@@ -29,7 +29,7 @@ export function Header({ totalVoices, selectedVoiceName }: HeaderProps) {
               </span>
             </div>
             <p className="text-xs text-studio-400 hidden sm:block">
-              Professional Text-to-Speech Platform by Waqas Gill
+              Professional Text-to-Speech Platform • EmpireNexs by Waqas Gill
             </p>
           </div>
         </div>

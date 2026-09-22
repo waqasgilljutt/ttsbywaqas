@@ -280,14 +280,23 @@ export default function Home() {
             />
 
             {/* Info / Engine details card */}
-            <div className="p-4 rounded-2xl bg-studio-900/30 border border-studio-800/60 text-xs text-studio-400 flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-studio-300 font-semibold">
-                <Info className="w-4 h-4 text-brand-400" />
-                <span>About Edge TTS Neural Engine</span>
+            <div className="p-5 rounded-2xl bg-gradient-to-b from-studio-900/60 to-studio-950/80 border border-brand-500/20 text-xs text-studio-400 flex flex-col gap-3 shadow-lg shadow-brand-500/5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-studio-200 font-semibold text-sm">
+                  <Sparkles className="w-4 h-4 text-brand-400" />
+                  <span>About TTS bY Waqas Gill</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-300 border border-brand-500/20 text-[10px] font-mono font-medium">
+                  EmpireNexs
+                </span>
               </div>
-              <p>
-                Powered by Microsoft Edge&apos;s online text-to-speech service with natural human-like inflections, accurate pronunciation, and multi-language support. Completely free without API rate limits or subscription keys.
+              <p className="leading-relaxed text-studio-300">
+                Crafted and powered by <strong className="text-white font-medium">EmpireNexs</strong> under the visionary direction of <strong className="text-brand-300 font-medium">Waqas Gill</strong>. This platform harnesses state-of-the-art neural speech synthesis to deliver hyper-realistic human voiceovers, authentic accents, and flawless pronunciation across 320+ global voices with up to 50,000 words capacity.
               </p>
+              <div className="pt-2 border-t border-studio-800/80 flex items-center justify-between text-[11px] text-studio-500">
+                <span>Free &amp; Unlimited Studio Edition</span>
+                <span className="text-brand-400 font-medium">© EmpireNexs • Waqas Gill</span>
+              </div>
             </div>
           </div>
 
@@ -355,9 +364,12 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-studio-900 py-6 mt-12 bg-studio-950/60 text-xs text-studio-500 text-center">
-        <p>
-          TTS bY Waqas Gill • Built with Next.js 15, Tailwind CSS &amp; Microsoft Edge Speech Engine
+      <footer className="border-t border-studio-900 py-6 mt-12 bg-studio-950/60 text-xs text-studio-500 text-center flex flex-col items-center gap-1">
+        <p className="text-studio-400">
+          <strong className="text-slate-200 font-medium">TTS bY Waqas Gill</strong> • An <span className="text-brand-400 font-medium">EmpireNexs</span> Innovation
+        </p>
+        <p className="text-[11px] text-studio-500">
+          Developed with precision by Waqas Gill • Powered by Next.js 15 &amp; Microsoft Neural Speech Engine
         </p>
       </footer>
     </div>

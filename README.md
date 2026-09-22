@@ -44,4 +44,4 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - **Language**: TypeScript
 
 ---
-Developed with ❤️ by Waqas Gill
+Developed with ❤️ by **Waqas Gill** • An **EmpireNexs** Innovation
