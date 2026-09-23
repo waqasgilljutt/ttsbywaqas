@@ -164,7 +164,7 @@ export async function synthesizeLargeScript(
 
     let chunkBlob: Blob | null = null;
     let lastErr: unknown = null;
-    const maxRetries = 3;
+    const maxRetries = 5;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -174,17 +174,33 @@ export async function synthesizeLargeScript(
         }
       } catch (err: unknown) {
         lastErr = err;
+        const errStr = String((err as Error)?.message || err);
         console.warn(`Part ${chunkNum} of ${totalChunks} (Attempt ${attempt}) error:`, err);
+
         if (attempt < maxRetries) {
+          // Check if this is a GPU quota cooldown or temporary traffic limit
+          const isQuotaCooldown =
+            errStr.includes('ZeroGPU quota') ||
+            errStr.includes('quota') ||
+            errStr.includes('cooldown') ||
+            errStr.includes('busy') ||
+            errStr.includes('high traffic') ||
+            errStr.includes('429');
+
+          const waitSeconds = isQuotaCooldown ? 12 : 2;
+
           onProgress?.({
             percent: initialPercent,
             currentChunk: chunkNum,
             totalChunks,
             completedChars,
             totalChars,
-            statusText: `Retrying Part ${chunkNum} of ${totalChunks} (Attempt ${attempt + 1}/${maxRetries})...`,
+            statusText: isQuotaCooldown
+              ? `GPU cluster cooling down for Part ${chunkNum} of ${totalChunks}. Auto-resuming in ${waitSeconds}s (Attempt ${attempt + 1}/${maxRetries})...`
+              : `Retrying Part ${chunkNum} of ${totalChunks} in ${waitSeconds}s (Attempt ${attempt + 1}/${maxRetries})...`,
           });
-          await new Promise((resolve) => setTimeout(resolve, 800));
+
+          await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1000));
         }
       }
     }

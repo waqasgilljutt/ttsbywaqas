@@ -26,7 +26,9 @@ async function getXTTSClient(): Promise<any> {
 
   xttsPromise = (async () => {
     try {
-      const client = await Client.connect('tonyassi/voice-clone');
+      const token = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN;
+      const options: any = token ? { token } : {};
+      const client = await Client.connect('tonyassi/voice-clone', options);
       cachedXTTSClient = client;
       xttsPromise = null;
       return client;
@@ -45,7 +47,9 @@ async function getF5Client(): Promise<any> {
 
   f5Promise = (async () => {
     try {
-      const client = await Client.connect('mrfakename/E2-F5-TTS');
+      const token = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN;
+      const options: any = token ? { token } : {};
+      const client = await Client.connect('mrfakename/E2-F5-TTS', options);
       cachedF5Client = client;
       f5Promise = null;
       return client;

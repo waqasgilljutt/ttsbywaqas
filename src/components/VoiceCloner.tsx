@@ -611,7 +611,8 @@ export function VoiceCloner({
           }
           setCloneProgress(progressInfo.percent);
           setCloneStatusText(progressInfo.statusText);
-        }
+        },
+        1200
       );
 
       const audioUrl = URL.createObjectURL(audioBlob);
