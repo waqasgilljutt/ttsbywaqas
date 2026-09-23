@@ -246,6 +246,9 @@ export function VoiceCloner({
     'Hello! This is a real AI cloned speech generated in my exact voice, powered by EmpireNexs and Waqas Gill.'
   );
 
+  // Optional Reference Text spoken in sample
+  const [referenceText, setReferenceText] = useState('');
+
   // Saved Clones Library
   const [savedClones, setSavedClones] = useState<SavedClone[]>([]);
   const [selectedCloneId, setSelectedCloneId] = useState<string | null>(null);
@@ -544,15 +547,15 @@ export function VoiceCloner({
     }
 
     setIsCloning(true);
-    setCloneProgress(12);
-    setCloneStatusText('Reading vocal waveform & acoustic spectrum from your audio sample...');
+    setCloneProgress(15);
+    setCloneStatusText('Connecting to ZeroGPU neural cluster & analyzing vocal sample...');
     setErrorMsg(null);
 
     const steps = [
-      { progress: 28, text: 'Extracting speaker pitch, vocal tract resonance & accent embedding...' },
-      { progress: 52, text: 'Deep neural model analyzing voice timbre and harmonics...' },
-      { progress: 74, text: 'Synthesizing script in your exact cloned voice...' },
-      { progress: 92, text: 'Mastering high-definition audio stream...' },
+      { progress: 32, text: 'Extracting speaker pitch, vocal tract resonance & timbre embeddings...' },
+      { progress: 58, text: 'F5-TTS neural flow matching model learning voice harmonics...' },
+      { progress: 80, text: 'Synthesizing script in your authentic cloned voice...' },
+      { progress: 94, text: 'Mastering high-definition audio stream...' },
     ];
     let stepIndex = 0;
 
@@ -571,6 +574,9 @@ export function VoiceCloner({
           const formData = new FormData();
           if (audioBlobToUse) {
             formData.append('audio', audioBlobToUse, 'voice-sample.wav');
+          }
+          if (referenceText.trim()) {
+            formData.append('refText', referenceText.trim());
           }
           formData.append('text', chunkText);
           formData.append('voiceName', voiceName.trim() || 'My Voice Clone');
@@ -741,13 +747,13 @@ export function VoiceCloner({
       <div className="flex flex-col gap-1.5">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-semibold w-fit">
           <Sparkles className="w-3.5 h-3.5 text-brand-600" />
-          <span>EmpireNexs Zero-Shot Neural Engine</span>
+          <span>F5-TTS Neural Flow-Matching Engine</span>
         </div>
         <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
           True AI Voice Cloning Studio
         </h2>
         <p className="text-sm text-slate-600">
-          Upload or record your audio sample. Our deep neural engine extracts your unique vocal timbre, pitch, resonance, and accent to synthesize any new script in your exact voice.
+          Upload or record a 5–15 second audio sample. Powered by free Hugging Face ZeroGPU AI, the model extracts your authentic vocal tract, pitch, timbre, and cadence to clone your real voice for any script.
         </p>
       </div>
 
@@ -986,6 +992,22 @@ export function VoiceCloner({
                   onChange={(e) => setVoiceName(e.target.value)}
                   placeholder="e.g. Waqas Gill Official, Host Voice"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-brand-600 focus:bg-white transition-all font-medium"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Reference Audio Transcript (Optional)
+                  </label>
+                  <span className="text-[10px] text-slate-400">Boosts clone clarity</span>
+                </div>
+                <input
+                  type="text"
+                  value={referenceText}
+                  onChange={(e) => setReferenceText(e.target.value)}
+                  placeholder="Words spoken in your sample audio (or leave blank)"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs text-slate-900 focus:outline-none focus:border-brand-600 focus:bg-white transition-all font-normal placeholder-slate-400"
                 />
               </div>
 

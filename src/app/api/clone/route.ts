@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { synthesizeSpeech } from '@/lib/edge-tts-service';
+import { synthesizeF5VoiceClone } from '@/lib/hf-voice-cloner';
 import { checkCreditBalance, deductCredits, MAX_PER_VOICE_CHARACTERS } from '@/lib/user-store';
 
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,7 @@ export async function POST(req: NextRequest) {
     const text = (formData.get('text') as string) || '';
     const voiceName = (formData.get('voiceName') as string) || 'Waqas Gill Cloned Voice';
     const audioFile = formData.get('audio') as Blob | null;
+    const refText = (formData.get('refText') as string) || '';
     const gender = ((formData.get('gender') as string) || 'Male').toLowerCase();
     const userEmail = (formData.get('userEmail') as string) || req.headers.get('x-user-email');
     const skipDeduct = formData.get('skipDeduct') === 'true';
@@ -42,7 +44,7 @@ export async function POST(req: NextRequest) {
       if (!quota.allowed) {
         return NextResponse.json(
           {
-            error: quota.error || 'Your 30,000 free credit limit has been reached. Please upgrade to a Paid Plan to continue generating voice.',
+            error: quota.error || 'Your credit limit has been reached. Please upgrade to a Paid Plan to continue generating voice.',
             creditExceeded: true,
             remainingCredits: quota.remainingCredits,
             creditsUsed: quota.creditsUsed,
@@ -63,36 +65,69 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Universal Multilingual Neural Voice Cloning Engine:
-    // Preserves the exact same speaker voice identity and tone across all languages
-    // (English, Urdu, Hindi, Arabic, Spanish, etc.) without switching voices!
-    const isMale = gender === 'male';
-    const selectedBaseVoice = isMale
-      ? 'en-US-BrianMultilingualNeural'
-      : 'en-US-AvaMultilingualNeural';
+    let buffer: Buffer;
+    let contentType: string;
+    let engineUsed = 'HuggingFace-F5-TTS';
 
-    // Keep natural 0Hz pitch so acoustic fidelity of the voice sample is preserved
-    const naturalPitch = '+0Hz';
+    if (hasAudio) {
+      try {
+        console.log(`[Voice Cloning] Synthesizing "${trimmedText.slice(0, 40)}..." via Hugging Face F5-TTS...`);
+        const hfResult = await synthesizeF5VoiceClone(audioFile, trimmedText, {
+          refText: refText.trim(),
+          removeSilence: true,
+          timeoutMs: 65000,
+        });
+        buffer = hfResult.buffer;
+        contentType = hfResult.contentType;
+      } catch (hfErr) {
+        console.warn('[Voice Cloning] Hugging Face F5-TTS error or queue timeout, falling back to Neural Edge TTS:', hfErr);
+        engineUsed = 'EdgeTTS-Multilingual-Fallback';
 
-    const { buffer, contentType } = await synthesizeSpeech(trimmedText, {
-      voice: selectedBaseVoice,
-      rate: '+0%',
-      pitch: naturalPitch,
-      volume: '+0%',
-    });
+        const isMale = gender === 'male';
+        const selectedBaseVoice = isMale
+          ? 'en-US-BrianMultilingualNeural'
+          : 'en-US-AvaMultilingualNeural';
+
+        const edgeResult = await synthesizeSpeech(trimmedText, {
+          voice: selectedBaseVoice,
+          rate: '+0%',
+          pitch: '+0Hz',
+          volume: '+0%',
+        });
+        buffer = edgeResult.buffer;
+        contentType = edgeResult.contentType;
+      }
+    } else {
+      engineUsed = 'EdgeTTS-Preset';
+      const isMale = gender === 'male';
+      const selectedBaseVoice = isMale
+        ? 'en-US-BrianMultilingualNeural'
+        : 'en-US-AvaMultilingualNeural';
+
+      const edgeResult = await synthesizeSpeech(trimmedText, {
+        voice: selectedBaseVoice,
+        rate: '+0%',
+        pitch: '+0Hz',
+        volume: '+0%',
+      });
+      buffer = edgeResult.buffer;
+      contentType = edgeResult.contentType;
+    }
 
     // Deduct credits on successful generation (1 char = 1 credit) unless skipped for client batch orchestrator
     if (userEmail && !skipDeduct) {
       deductCredits(userEmail, charCount);
     }
 
+    const fileExt = contentType.includes('wav') ? 'wav' : 'mp3';
+
     return new Response(new Uint8Array(buffer), {
       status: 200,
       headers: {
         'Content-Type': contentType,
         'Content-Length': buffer.length.toString(),
-        'Content-Disposition': `inline; filename="cloned-${encodeURIComponent(voiceName)}.mp3"`,
-        'X-Cloning-Engine': 'Acoustic-Calibrated-Neural',
+        'Content-Disposition': `inline; filename="cloned-${encodeURIComponent(voiceName)}.${fileExt}"`,
+        'X-Cloning-Engine': engineUsed,
         'Cache-Control': 'no-cache',
       },
     });

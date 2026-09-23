@@ -214,9 +214,61 @@ export async function synthesizeLargeScript(
     totalChunks,
     completedChars: totalChars,
     totalChars,
-    statusText: `Finalizing & stitching continuous master MP3 (${totalChars.toLocaleString()} chars)...`,
+    statusText: `Finalizing & stitching continuous master audio (${totalChars.toLocaleString()} chars)...`,
   });
 
-  // Merge all MP3 audio bitstreams seamlessly into one single master Blob
-  return new Blob(audioBlobs, { type: 'audio/mpeg' });
+  return await mergeAudioBlobs(audioBlobs);
+}
+
+/**
+ * Merges an array of audio blobs, automatically handling WAV RIFF headers or MP3 streams.
+ */
+export async function mergeAudioBlobs(blobs: Blob[]): Promise<Blob> {
+  if (blobs.length === 0) return new Blob([], { type: 'audio/mpeg' });
+  if (blobs.length === 1) return blobs[0];
+
+  const firstBlob = blobs[0];
+  const firstType = firstBlob.type || '';
+  const isWav = firstType.includes('wav') || firstType.includes('wave');
+
+  if (!isWav) {
+    return new Blob(blobs, { type: 'audio/mpeg' });
+  }
+
+  // Merge WAV blobs with updated RIFF length
+  const arrayBuffers = await Promise.all(blobs.map((b) => b.arrayBuffer()));
+  const pcmChunks: Uint8Array[] = [];
+  let totalPcmLength = 0;
+
+  for (const ab of arrayBuffers) {
+    const view = new DataView(ab);
+    let offset = 12;
+    while (offset < ab.byteLength - 8) {
+      const chunkId = String.fromCharCode(
+        view.getUint8(offset),
+        view.getUint8(offset + 1),
+        view.getUint8(offset + 2),
+        view.getUint8(offset + 3)
+      );
+      const chunkSize = view.getUint32(offset + 4, true);
+      if (chunkId === 'data') {
+        const pcm = new Uint8Array(ab, offset + 8, Math.min(chunkSize, ab.byteLength - (offset + 8)));
+        pcmChunks.push(pcm);
+        totalPcmLength += pcm.length;
+        break;
+      }
+      offset += 8 + chunkSize;
+    }
+  }
+
+  if (pcmChunks.length === 0) {
+    return new Blob(blobs, { type: 'audio/wav' });
+  }
+
+  const header = new Uint8Array(arrayBuffers[0].slice(0, 44));
+  const headerView = new DataView(header.buffer);
+  headerView.setUint32(4, 36 + totalPcmLength, true);
+  headerView.setUint32(40, totalPcmLength, true);
+
+  return new Blob([header as unknown as BlobPart, ...(pcmChunks as unknown as BlobPart[])], { type: 'audio/wav' });
 }
