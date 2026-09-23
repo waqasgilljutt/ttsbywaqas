@@ -548,14 +548,14 @@ export function VoiceCloner({
 
     setIsCloning(true);
     setCloneProgress(15);
-    setCloneStatusText('Connecting to ZeroGPU neural cluster & analyzing vocal sample...');
+    setCloneStatusText('Connecting to Coqui XTTS-v2 ZeroGPU cluster...');
     setErrorMsg(null);
 
     const steps = [
-      { progress: 32, text: 'Extracting speaker pitch, vocal tract resonance & timbre embeddings...' },
-      { progress: 58, text: 'F5-TTS neural flow matching model learning voice harmonics...' },
-      { progress: 80, text: 'Synthesizing script in your authentic cloned voice...' },
-      { progress: 94, text: 'Mastering high-definition audio stream...' },
+      { progress: 30, text: 'Extracting speaker pitch, vocal tract resonance & timbre embeddings...' },
+      { progress: 60, text: 'Coqui XTTS-v2 neural model synthesizing your authentic voice...' },
+      { progress: 82, text: 'Finalizing neural voice synthesis...' },
+      { progress: 95, text: 'Mastering high-definition audio stream...' },
     ];
     let stepIndex = 0;
 
@@ -747,13 +747,13 @@ export function VoiceCloner({
       <div className="flex flex-col gap-1.5">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-semibold w-fit">
           <Sparkles className="w-3.5 h-3.5 text-brand-600" />
-          <span>F5-TTS Neural Flow-Matching Engine</span>
+          <span>Coqui XTTS-v2 &amp; F5-TTS Zero-Shot Neural Engine</span>
         </div>
         <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
           True AI Voice Cloning Studio
         </h2>
         <p className="text-sm text-slate-600">
-          Upload or record a 5–15 second audio sample. Powered by free Hugging Face ZeroGPU AI, the model extracts your authentic vocal tract, pitch, timbre, and cadence to clone your real voice for any script.
+          Upload or record a 5–15 second audio sample. Powered by Coqui XTTS-v2 on Nvidia A10G GPU, the AI directly extracts your authentic vocal tract, pitch, timbre, and cadence without requiring any reference transcript.
         </p>
       </div>
 
@@ -866,6 +866,20 @@ export function VoiceCloner({
                     </p>
                   </div>
                 )}
+
+                {/* Suggested Sample Script Card */}
+                <div className="w-full p-3 rounded-xl bg-amber-50/90 border border-amber-200/90 text-left flex flex-col gap-1 text-xs">
+                  <div className="flex items-center justify-between font-bold text-amber-900 text-[11px]">
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                      Tip: Read This Sample Aloud While Recording
+                    </span>
+                    <span className="text-[10px] text-amber-700 font-normal">5–10s</span>
+                  </div>
+                  <p className="text-amber-900 text-xs italic bg-white/80 p-2.5 rounded-lg border border-amber-200/70 leading-relaxed">
+                    &quot;Hello, this is my real voice sample for AI voice cloning on EmpireNexs. Today is a great day and my voice is crystal clear.&quot;
+                  </p>
+                </div>
 
                 {recordedAudioUrl && !isRecording && (
                   <div className="w-full pt-3 border-t border-slate-200/80 flex items-center justify-between gap-2">

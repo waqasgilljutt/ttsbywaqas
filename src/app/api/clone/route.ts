@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { synthesizeSpeech } from '@/lib/edge-tts-service';
-import { synthesizeF5VoiceClone } from '@/lib/hf-voice-cloner';
+import { synthesizeNeuralVoiceClone } from '@/lib/hf-voice-cloner';
 import { checkCreditBalance, deductCredits, MAX_PER_VOICE_CHARACTERS } from '@/lib/user-store';
 
 export const dynamic = 'force-dynamic';
@@ -39,7 +39,6 @@ export async function POST(req: NextRequest) {
 
     // 2. Enforce Account Credits: 1 Character = 1 Credit
     if (userEmail) {
-      // If skipDeduct is active (multi-part batch chunk), verify that the account has not already exceeded limit
       const quota = checkCreditBalance(userEmail, skipDeduct ? 0 : charCount);
       if (!quota.allowed) {
         return NextResponse.json(
@@ -67,37 +66,33 @@ export async function POST(req: NextRequest) {
 
     let buffer: Buffer;
     let contentType: string;
-    let engineUsed = 'HuggingFace-F5-TTS';
+    let engineUsed = 'Coqui-XTTS-v2';
 
     if (hasAudio) {
+      // Execute true zero-shot neural voice cloning (Coqui XTTS-v2 + F5-TTS)
+      // NEVER silently swap user's voice for Brian/Ava!
       try {
-        console.log(`[Voice Cloning] Synthesizing "${trimmedText.slice(0, 40)}..." via Hugging Face F5-TTS...`);
-        const hfResult = await synthesizeF5VoiceClone(audioFile, trimmedText, {
+        console.log(`[Voice Cloning] Synthesizing "${trimmedText.slice(0, 40)}..." via Zero-Shot Neural Engine...`);
+        const result = await synthesizeNeuralVoiceClone(audioFile, trimmedText, {
           refText: refText.trim(),
           removeSilence: true,
-          timeoutMs: 65000,
+          timeoutMs: 55000,
         });
-        buffer = hfResult.buffer;
-        contentType = hfResult.contentType;
-      } catch (hfErr) {
-        console.warn('[Voice Cloning] Hugging Face F5-TTS error or queue timeout, falling back to Neural Edge TTS:', hfErr);
-        engineUsed = 'EdgeTTS-Multilingual-Fallback';
-
-        const isMale = gender === 'male';
-        const selectedBaseVoice = isMale
-          ? 'en-US-BrianMultilingualNeural'
-          : 'en-US-AvaMultilingualNeural';
-
-        const edgeResult = await synthesizeSpeech(trimmedText, {
-          voice: selectedBaseVoice,
-          rate: '+0%',
-          pitch: '+0Hz',
-          volume: '+0%',
-        });
-        buffer = edgeResult.buffer;
-        contentType = edgeResult.contentType;
+        buffer = result.buffer;
+        contentType = result.contentType;
+        engineUsed = result.engine;
+      } catch (cloneErr: unknown) {
+        console.error('[Voice Cloning] Neural engine error:', cloneErr);
+        const errMsg = (cloneErr as Error)?.message || 'Voice cloning GPU cluster is currently busy.';
+        return NextResponse.json(
+          {
+            error: `Voice cloning failed: ${errMsg}. Please try again with a clean 5-10 second voice recording.`,
+          },
+          { status: 503 }
+        );
       }
     } else {
+      // Pure preset voice profile (without audio sample)
       engineUsed = 'EdgeTTS-Preset';
       const isMale = gender === 'male';
       const selectedBaseVoice = isMale
