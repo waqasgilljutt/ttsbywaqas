@@ -573,7 +573,15 @@ export function VoiceCloner({
         async (chunkText, chunkIndex) => {
           const formData = new FormData();
           if (audioBlobToUse) {
-            formData.append('audio', audioBlobToUse, 'voice-sample.wav');
+            const rawType = audioBlobToUse.type || '';
+            const detectedExt = rawType.includes('mpeg') || rawType.includes('mp3')
+              ? 'mp3'
+              : rawType.includes('ogg')
+              ? 'ogg'
+              : rawType.includes('webm')
+              ? 'webm'
+              : 'wav';
+            formData.append('audio', audioBlobToUse, `voice-sample.${detectedExt}`);
           }
           if (referenceText.trim()) {
             formData.append('refText', referenceText.trim());

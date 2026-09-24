@@ -164,7 +164,7 @@ export async function synthesizeLargeScript(
 
     let chunkBlob: Blob | null = null;
     let lastErr: unknown = null;
-    const maxRetries = 5;
+    const maxRetries = 6;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -187,7 +187,8 @@ export async function synthesizeLargeScript(
             errStr.includes('high traffic') ||
             errStr.includes('429');
 
-          const waitSeconds = isQuotaCooldown ? 12 : 2;
+          // Progressive cooldown backoff: 15s, 20s, 25s, 30s so GPU quota bucket fully refills
+          const waitSeconds = isQuotaCooldown ? Math.min(30, 15 + (attempt - 1) * 5) : 3;
 
           onProgress?.({
             percent: initialPercent,

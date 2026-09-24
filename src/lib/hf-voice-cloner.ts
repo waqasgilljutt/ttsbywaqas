@@ -53,6 +53,40 @@ export interface HFVoiceCloneResult {
   engine: string;
 }
 
+// Helper to inspect audio buffer magic bytes and create a properly typed File
+async function ensureAudioFile(inputBlob: Blob | Buffer): Promise<File> {
+  let buffer: Buffer;
+  if (Buffer.isBuffer(inputBlob)) {
+    buffer = inputBlob;
+  } else {
+    buffer = Buffer.from(await inputBlob.arrayBuffer());
+  }
+
+  let ext = 'wav';
+  let mime = 'audio/wav';
+
+  if (buffer.length >= 4) {
+    if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46) {
+      ext = 'wav';
+      mime = 'audio/wav';
+    } else if (
+      (buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0) ||
+      (buffer[0] === 0x49 && buffer[1] === 0x44 && buffer[2] === 0x33)
+    ) {
+      ext = 'mp3';
+      mime = 'audio/mpeg';
+    } else if (buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3) {
+      ext = 'webm';
+      mime = 'audio/webm';
+    } else if (buffer[0] === 0x4f && buffer[1] === 0x67 && buffer[2] === 0x67 && buffer[3] === 0x53) {
+      ext = 'ogg';
+      mime = 'audio/ogg';
+    }
+  }
+
+  return new File([buffer as unknown as BlobPart], `voice_sample.${ext}`, { type: mime });
+}
+
 // 1. Synthesize with TonyAssi XTTS-v2
 async function tryTonyAssi(inputBlob: Blob, targetText: string, timeoutMs: number): Promise<HFVoiceCloneResult> {
   const client = await getTonyClient();
@@ -63,7 +97,8 @@ async function tryTonyAssi(inputBlob: Blob, targetText: string, timeoutMs: numbe
   });
 
   try {
-    const predictionPromise = client.predict('/clone', [targetText, inputBlob]);
+    const audioFile = await ensureAudioFile(inputBlob);
+    const predictionPromise = client.predict('/clone', [targetText, audioFile]);
     const result: any = await Promise.race([predictionPromise, timeoutPromise]);
     if (timeoutId) clearTimeout(timeoutId);
 
@@ -97,8 +132,9 @@ async function tryHasanBasbunar(inputBlob: Blob, targetText: string, timeoutMs: 
   });
 
   try {
-    // Upload audio blob first to get normalized file URL
-    const uploadRes = await client.upload_files('https://hasanbasbunar-voice-cloning-xtts-v2.hf.space', [inputBlob]);
+    // Upload audio file with exact extension (sample.mp3 / sample.wav) so ffmpeg decodes properly
+    const audioFile = await ensureAudioFile(inputBlob);
+    const uploadRes = await client.upload_files('https://hasanbasbunar-voice-cloning-xtts-v2.hf.space', [audioFile]);
     const uploadedFile = uploadRes?.files?.[0];
     if (!uploadedFile) throw new Error('Failed to upload reference audio to Hasan XTTS space');
 
@@ -159,8 +195,9 @@ async function tryF5TTS(inputBlob: Blob, targetText: string, refText: string, re
   });
 
   try {
+    const audioFile = await ensureAudioFile(inputBlob);
     const predictionPromise = client.predict('/predict', [
-      inputBlob,
+      audioFile,
       refText,
       targetText,
       removeSilence,
