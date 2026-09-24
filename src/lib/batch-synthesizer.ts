@@ -164,7 +164,7 @@ export async function synthesizeLargeScript(
 
     let chunkBlob: Blob | null = null;
     let lastErr: unknown = null;
-    const maxRetries = 6;
+    const maxRetries = 8;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -190,18 +190,20 @@ export async function synthesizeLargeScript(
           // Progressive cooldown backoff: 15s, 20s, 25s, 30s so GPU quota bucket fully refills
           const waitSeconds = isQuotaCooldown ? Math.min(30, 15 + (attempt - 1) * 5) : 3;
 
-          onProgress?.({
-            percent: initialPercent,
-            currentChunk: chunkNum,
-            totalChunks,
-            completedChars,
-            totalChars,
-            statusText: isQuotaCooldown
-              ? `GPU cluster cooling down for Part ${chunkNum} of ${totalChunks}. Auto-resuming in ${waitSeconds}s (Attempt ${attempt + 1}/${maxRetries})...`
-              : `Retrying Part ${chunkNum} of ${totalChunks} in ${waitSeconds}s (Attempt ${attempt + 1}/${maxRetries})...`,
-          });
-
-          await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1000));
+          // Second-by-second live countdown in user UI
+          for (let sec = waitSeconds; sec > 0; sec--) {
+            onProgress?.({
+              percent: initialPercent,
+              currentChunk: chunkNum,
+              totalChunks,
+              completedChars,
+              totalChars,
+              statusText: isQuotaCooldown
+                ? `Recharging AI Voice GPU cluster for Part ${chunkNum} of ${totalChunks}... Auto-resuming in ${sec}s (Attempt ${attempt}/${maxRetries})`
+                : `Retrying Part ${chunkNum} of ${totalChunks} in ${sec}s (Attempt ${attempt}/${maxRetries})...`,
+            });
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
         }
       }
     }

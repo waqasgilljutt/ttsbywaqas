@@ -26,6 +26,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { synthesizeLargeScript } from '@/lib/batch-synthesizer';
+import { transcodeAudioToStandardWav } from '@/lib/audio-transcoder';
 
 export interface SavedClone {
   id: string;
@@ -345,21 +346,23 @@ export function VoiceCloner({
         if (e.data.size > 0) chunks.push(e.data);
       };
 
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        setRecordedAudioBlob(blob);
-        blobToBase64(blob)
+      mediaRecorder.onstop = async () => {
+        const rawBlob = new Blob(chunks, { type: 'audio/webm' });
+        // Transcode WebM/Opus to genuine 24kHz Mono RIFF WAV immediately
+        const wavBlob = await transcodeAudioToStandardWav(rawBlob);
+        setRecordedAudioBlob(wavBlob);
+        blobToBase64(wavBlob)
           .then((dataUrl) => {
             setRecordedAudioUrl(dataUrl);
           })
           .catch(() => {
-            setRecordedAudioUrl(URL.createObjectURL(blob));
+            setRecordedAudioUrl(URL.createObjectURL(wavBlob));
           });
         stream.getTracks().forEach((track) => track.stop());
 
         // Automatically scan audio sample for gender, pitch, and timbre
         setIsAnalyzingAudio(true);
-        scanVoiceSampleAcoustics(blob).then((res) => {
+        scanVoiceSampleAcoustics(wavBlob).then((res) => {
           setGender(res.detectedGender);
           setTone(res.detectedTone);
           setAudioScanResult(res);
@@ -406,23 +409,41 @@ export function VoiceCloner({
         setErrorMsg('Audio file is too large. Please select a file under 20MB.');
         return;
       }
-      setUploadedFile(file);
-      blobToBase64(file)
-        .then((dataUrl) => {
-          setUploadedAudioUrl(dataUrl);
-        })
-        .catch(() => {
-          setUploadedAudioUrl(URL.createObjectURL(file));
-        });
-
-      // Automatically scan audio sample for gender, pitch, and timbre
       setIsAnalyzingAudio(true);
-      scanVoiceSampleAcoustics(file).then((res) => {
-        setGender(res.detectedGender);
-        setTone(res.detectedTone);
-        setAudioScanResult(res);
-        setIsAnalyzingAudio(false);
-      });
+      // Transcode any uploaded audio format (MP3, WebM, OGG, WAV) into standard 24kHz Mono WAV
+      transcodeAudioToStandardWav(file)
+        .then((wavBlob) => {
+          const baseName = file.name.replace(/\.[^/.]+$/, '');
+          const normalizedFile = new File([wavBlob], `${baseName}.wav`, { type: 'audio/wav' });
+          setUploadedFile(normalizedFile);
+          setRecordedAudioBlob(wavBlob);
+          blobToBase64(wavBlob)
+            .then((dataUrl) => {
+              setUploadedAudioUrl(dataUrl);
+            })
+            .catch(() => {
+              setUploadedAudioUrl(URL.createObjectURL(wavBlob));
+            });
+
+          scanVoiceSampleAcoustics(wavBlob).then((res) => {
+            setGender(res.detectedGender);
+            setTone(res.detectedTone);
+            setAudioScanResult(res);
+            setIsAnalyzingAudio(false);
+          });
+        })
+        .catch((err) => {
+          console.warn('Transcode error, using original file:', err);
+          setUploadedFile(file);
+          blobToBase64(file)
+            .then((dataUrl) => {
+              setUploadedAudioUrl(dataUrl);
+            })
+            .catch(() => {
+              setUploadedAudioUrl(URL.createObjectURL(file));
+            });
+          setIsAnalyzingAudio(false);
+        });
     }
   };
 
@@ -568,20 +589,13 @@ export function VoiceCloner({
     }, 1600);
 
     try {
+      const finalWavBlob = audioBlobToUse ? await transcodeAudioToStandardWav(audioBlobToUse) : null;
       const audioBlob = await synthesizeLargeScript(
         scriptText.trim(),
         async (chunkText, chunkIndex) => {
           const formData = new FormData();
-          if (audioBlobToUse) {
-            const rawType = audioBlobToUse.type || '';
-            const detectedExt = rawType.includes('mpeg') || rawType.includes('mp3')
-              ? 'mp3'
-              : rawType.includes('ogg')
-              ? 'ogg'
-              : rawType.includes('webm')
-              ? 'webm'
-              : 'wav';
-            formData.append('audio', audioBlobToUse, `voice-sample.${detectedExt}`);
+          if (finalWavBlob) {
+            formData.append('audio', finalWavBlob, 'voice-sample.wav');
           }
           if (referenceText.trim()) {
             formData.append('refText', referenceText.trim());

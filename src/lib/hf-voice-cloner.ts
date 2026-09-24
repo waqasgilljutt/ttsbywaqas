@@ -7,38 +7,57 @@ import { Client } from '@gradio/client';
  * Tier 2: Coqui XTTS-v2 on ZeroGPU (hasanbasbunar/Voice-Cloning-XTTS-v2)
  * Tier 3: F5-TTS Flow Matching on ZeroGPU (mrfakename/E2-F5-TTS)
  * 
- * Automatic Round-Robin load distribution with instant multi-cluster failover.
- * 100% Free & Open-Source.
+ * Features:
+ * - Dynamic Token Pool + Anonymous Fallback (bypasses ZeroGPU quota blocks)
+ * - Reference Audio Upload Cache (speeds up multi-chunk batch synthesis)
+ * - RIFF PCM WAV validation (guarantees 0 ffmpeg demuxing crashes)
+ * - Automatic Round-Robin load distribution with instant multi-cluster failover.
+ * - 100% Free & Open-Source.
  */
 
-let cachedTonyClient: any = null;
-let cachedHasanClient: any = null;
-let cachedF5Client: any = null;
-
 let requestCounter = 0;
+const clientCache = new Map<string, any>();
 
-async function getTonyClient(): Promise<any> {
-  if (cachedTonyClient) return cachedTonyClient;
-  const token = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN;
-  const options: any = token ? { token } : {};
-  cachedTonyClient = await Client.connect('tonyassi/voice-clone', options);
-  return cachedTonyClient;
+// In-memory cache for reference audio uploaded to Hasan's space
+interface CachedUpload {
+  hash: string;
+  url: string;
+  timestamp: number;
+}
+let cachedHasanUpload: CachedUpload | null = null;
+
+function getTokens(): (string | undefined)[] {
+  const raw = process.env.HF_TOKENS || process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN || '';
+  const tokens = raw
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  // Return list of user tokens followed by undefined (tokenless/anonymous fallback)
+  if (tokens.length > 0) {
+    return [...tokens, undefined];
+  }
+  return [undefined];
 }
 
-async function getHasanClient(): Promise<any> {
-  if (cachedHasanClient) return cachedHasanClient;
-  const token = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN;
-  const options: any = token ? { token } : {};
-  cachedHasanClient = await Client.connect('hasanbasbunar/Voice-Cloning-XTTS-v2', options);
-  return cachedHasanClient;
-}
+async function getClientForSpace(spaceName: string, token?: string): Promise<any> {
+  const cacheKey = `${spaceName}_${token || 'anonymous'}`;
+  const cached = clientCache.get(cacheKey);
+  if (cached) return cached;
 
-async function getF5Client(): Promise<any> {
-  if (cachedF5Client) return cachedF5Client;
-  const token = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN;
-  const options: any = token ? { token } : {};
-  cachedF5Client = await Client.connect('mrfakename/E2-F5-TTS', options);
-  return cachedF5Client;
+  const options: Record<string, unknown> = {};
+  if (token) {
+    options.token = token;
+  }
+
+  try {
+    const client = await Client.connect(spaceName, options);
+    clientCache.set(cacheKey, client);
+    return client;
+  } catch (err) {
+    clientCache.delete(cacheKey);
+    throw err;
+  }
 }
 
 export interface HFVoiceCloneOptions {
@@ -53,7 +72,19 @@ export interface HFVoiceCloneResult {
   engine: string;
 }
 
-// Helper to inspect audio buffer magic bytes and create a properly typed File
+function isQuotaExceededError(err: unknown): boolean {
+  const msg = String((err as Error)?.message || err).toLowerCase();
+  return (
+    msg.includes('zerogpu quota') ||
+    msg.includes('quota') ||
+    msg.includes('runs limit') ||
+    msg.includes('cooldown') ||
+    msg.includes('rate limit') ||
+    msg.includes('429')
+  );
+}
+
+// Inspect audio buffer magic bytes and create a properly typed File
 async function ensureAudioFile(inputBlob: Blob | Buffer): Promise<File> {
   let buffer: Buffer;
   if (Buffer.isBuffer(inputBlob)) {
@@ -89,141 +120,211 @@ async function ensureAudioFile(inputBlob: Blob | Buffer): Promise<File> {
 
 // 1. Synthesize with TonyAssi XTTS-v2
 async function tryTonyAssi(inputBlob: Blob, targetText: string, timeoutMs: number): Promise<HFVoiceCloneResult> {
-  const client = await getTonyClient();
+  const tokens = getTokens();
+  let lastErr: unknown = null;
 
-  let timeoutId: NodeJS.Timeout | null = null;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error('TonyAssi XTTS-v2 request timed out')), timeoutMs);
-  });
+  for (const token of tokens) {
+    let timeoutId: NodeJS.Timeout | null = null;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('TonyAssi XTTS-v2 request timed out')), timeoutMs);
+    });
 
-  try {
-    const audioFile = await ensureAudioFile(inputBlob);
-    const predictionPromise = client.predict('/clone', [targetText, audioFile]);
-    const result: any = await Promise.race([predictionPromise, timeoutPromise]);
-    if (timeoutId) clearTimeout(timeoutId);
+    try {
+      const client = await getClientForSpace('tonyassi/voice-clone', token);
+      const audioFile = await ensureAudioFile(inputBlob);
+      const predictionPromise = client.predict('/clone', [targetText, audioFile]);
+      const result: any = await Promise.race([predictionPromise, timeoutPromise]);
+      if (timeoutId) clearTimeout(timeoutId);
 
-    const outputData = result?.data?.[0];
-    const audioUrl = typeof outputData === 'string' ? outputData : outputData?.url;
-    if (!audioUrl) throw new Error('No audio URL returned from TonyAssi XTTS');
+      const outputData = result?.data?.[0];
+      const audioUrl = typeof outputData === 'string' ? outputData : outputData?.url;
+      if (!audioUrl) throw new Error('No audio URL returned from TonyAssi XTTS');
 
-    const res = await fetch(audioUrl);
-    if (!res.ok) throw new Error(`HTTP ${res.status} downloading audio from TonyAssi XTTS`);
-    const arrayBuffer = await res.arrayBuffer();
+      const res = await fetch(audioUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status} downloading audio from TonyAssi XTTS`);
+      const arrayBuffer = await res.arrayBuffer();
 
-    return {
-      buffer: Buffer.from(arrayBuffer),
-      contentType: res.headers.get('content-type') || 'audio/wav',
-      engine: 'Coqui-XTTS-v2 (TonyAssi-A10G)',
-    };
-  } catch (err) {
-    if (timeoutId) clearTimeout(timeoutId);
-    cachedTonyClient = null;
-    throw err;
+      return {
+        buffer: Buffer.from(arrayBuffer),
+        contentType: res.headers.get('content-type') || 'audio/wav',
+        engine: 'Coqui-XTTS-v2 (TonyAssi-A10G)',
+      };
+    } catch (err) {
+      if (timeoutId) clearTimeout(timeoutId);
+      clientCache.delete(`tonyassi/voice-clone_${token || 'anonymous'}`);
+      lastErr = err;
+
+      // If token quota exhausted, try next token or anonymous client immediately
+      if (isQuotaExceededError(err) && token !== undefined) {
+        console.warn(`[TonyAssi] Token quota exhausted, failing over to anonymous/backup pool...`);
+        continue;
+      }
+      throw err;
+    }
   }
+
+  throw lastErr;
 }
 
 // 2. Synthesize with HasanBasbunar XTTS-v2
 async function tryHasanBasbunar(inputBlob: Blob, targetText: string, timeoutMs: number): Promise<HFVoiceCloneResult> {
-  const client = await getHasanClient();
+  // Validate that audio is genuine RIFF WAV to prevent Hasan's remote suffix=".wav" ffmpeg crash
+  const buffer = Buffer.isBuffer(inputBlob)
+    ? inputBlob
+    : Buffer.from(await inputBlob.arrayBuffer());
 
-  let timeoutId: NodeJS.Timeout | null = null;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error('Hasan XTTS-v2 request timed out')), timeoutMs);
-  });
+  const isRiffWav =
+    buffer.length >= 12 &&
+    buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+    buffer[8] === 0x57 && buffer[9] === 0x41 && buffer[10] === 0x56 && buffer[11] === 0x45;
 
-  try {
-    // Upload audio file with exact extension (sample.mp3 / sample.wav) so ffmpeg decodes properly
-    const audioFile = await ensureAudioFile(inputBlob);
-    const uploadRes = await client.upload_files('https://hasanbasbunar-voice-cloning-xtts-v2.hf.space', [audioFile]);
-    const uploadedFile = uploadRes?.files?.[0];
-    if (!uploadedFile) throw new Error('Failed to upload reference audio to Hasan XTTS space');
-
-    const fileUrl = 'https://hasanbasbunar-voice-cloning-xtts-v2.hf.space/gradio_api/file=' + uploadedFile;
-
-    const predictionPromise = client.predict('/voice_clone_synthesis', [
-      targetText,
-      fileUrl,
-      null, // example_audio_name
-      'English',
-      0.75, // temperature
-      1, // speed
-      true, // do_sample
-      5, // repetition_penalty
-      1, // length_penalty
-      30, // gpt_cond_len
-      50, // top_k
-      0.85, // top_p
-      true, // remove_silence_enabled
-      -45, // silence_threshold
-      300, // min_silence_len
-      100, // keep_silence
-      'Native XTTS splitting',
-      250, // max_chars_per_segment
-      false, // enable_preprocessing
-    ]);
-
-    const result: any = await Promise.race([predictionPromise, timeoutPromise]);
-    if (timeoutId) clearTimeout(timeoutId);
-
-    const outputData = result?.data?.[0];
-    const audioUrl = typeof outputData === 'string' ? outputData : outputData?.url;
-    if (!audioUrl) throw new Error('No audio URL returned from Hasan XTTS');
-
-    const res = await fetch(audioUrl);
-    if (!res.ok) throw new Error(`HTTP ${res.status} downloading audio from Hasan XTTS`);
-    const arrayBuffer = await res.arrayBuffer();
-
-    return {
-      buffer: Buffer.from(arrayBuffer),
-      contentType: res.headers.get('content-type') || 'audio/mpeg',
-      engine: 'Coqui-XTTS-v2 (Hasan-A10G)',
-    };
-  } catch (err) {
-    if (timeoutId) clearTimeout(timeoutId);
-    cachedHasanClient = null;
-    throw err;
+  if (!isRiffWav) {
+    throw new Error('Hasan XTTS-v2 requires genuine RIFF PCM WAV audio. Bypassing to other pool engines.');
   }
+
+  const tokens = getTokens();
+  let lastErr: unknown = null;
+
+  for (const token of tokens) {
+    let timeoutId: NodeJS.Timeout | null = null;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('Hasan XTTS-v2 request timed out')), timeoutMs);
+    });
+
+    try {
+      const client = await getClientForSpace('hasanbasbunar/Voice-Cloning-XTTS-v2', token);
+
+      // Re-use cached uploaded reference audio URL if available
+      const audioHash = `${buffer.length}_${buffer.slice(0, 32).toString('hex')}`;
+      let fileUrl = '';
+
+      if (
+        cachedHasanUpload &&
+        cachedHasanUpload.hash === audioHash &&
+        Date.now() - cachedHasanUpload.timestamp < 3600000
+      ) {
+        fileUrl = cachedHasanUpload.url;
+      } else {
+        const audioFile = new File([buffer as unknown as BlobPart], 'voice_sample.wav', { type: 'audio/wav' });
+        const uploadRes = await client.upload_files('https://hasanbasbunar-voice-cloning-xtts-v2.hf.space', [audioFile]);
+        const uploadedFile = uploadRes?.files?.[0];
+        if (!uploadedFile) throw new Error('Failed to upload reference audio to Hasan XTTS space');
+
+        fileUrl = 'https://hasanbasbunar-voice-cloning-xtts-v2.hf.space/gradio_api/file=' + uploadedFile;
+        cachedHasanUpload = { hash: audioHash, url: fileUrl, timestamp: Date.now() };
+      }
+
+      const predictionPromise = client.predict('/voice_clone_synthesis', [
+        targetText,
+        fileUrl,
+        null, // example_audio_name
+        'English',
+        0.75, // temperature
+        1, // speed
+        true, // do_sample
+        5, // repetition_penalty
+        1, // length_penalty
+        30, // gpt_cond_len
+        50, // top_k
+        0.85, // top_p
+        true, // remove_silence_enabled
+        -45, // silence_threshold
+        300, // min_silence_len
+        100, // keep_silence
+        'Native XTTS splitting',
+        250, // max_chars_per_segment
+        false, // enable_preprocessing
+      ]);
+
+      const result: any = await Promise.race([predictionPromise, timeoutPromise]);
+      if (timeoutId) clearTimeout(timeoutId);
+
+      const outputData = result?.data?.[0];
+      const audioUrl = typeof outputData === 'string' ? outputData : outputData?.url;
+      if (!audioUrl) throw new Error('No audio URL returned from Hasan XTTS');
+
+      const res = await fetch(audioUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status} downloading audio from Hasan XTTS`);
+      const arrayBuffer = await res.arrayBuffer();
+
+      return {
+        buffer: Buffer.from(arrayBuffer),
+        contentType: res.headers.get('content-type') || 'audio/mpeg',
+        engine: 'Coqui-XTTS-v2 (Hasan-A10G)',
+      };
+    } catch (err) {
+      if (timeoutId) clearTimeout(timeoutId);
+      clientCache.delete(`hasanbasbunar/Voice-Cloning-XTTS-v2_${token || 'anonymous'}`);
+      lastErr = err;
+
+      if (isQuotaExceededError(err) && token !== undefined) {
+        console.warn(`[HasanBasbunar] Token quota exhausted, failing over to anonymous/backup pool...`);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw lastErr;
 }
 
 // 3. Synthesize with F5-TTS Flow Matching
-async function tryF5TTS(inputBlob: Blob, targetText: string, refText: string, removeSilence: boolean, timeoutMs: number): Promise<HFVoiceCloneResult> {
-  const client = await getF5Client();
+async function tryF5TTS(
+  inputBlob: Blob,
+  targetText: string,
+  refText: string,
+  removeSilence: boolean,
+  timeoutMs: number
+): Promise<HFVoiceCloneResult> {
+  const tokens = getTokens();
+  let lastErr: unknown = null;
 
-  let timeoutId: NodeJS.Timeout | null = null;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error('F5-TTS request timed out')), timeoutMs);
-  });
+  for (const token of tokens) {
+    let timeoutId: NodeJS.Timeout | null = null;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('F5-TTS request timed out')), timeoutMs);
+    });
 
-  try {
-    const audioFile = await ensureAudioFile(inputBlob);
-    const predictionPromise = client.predict('/predict', [
-      audioFile,
-      refText,
-      targetText,
-      removeSilence,
-    ]);
+    try {
+      const client = await getClientForSpace('mrfakename/E2-F5-TTS', token);
+      const audioFile = await ensureAudioFile(inputBlob);
+      const predictionPromise = client.predict('/predict', [
+        audioFile,
+        refText,
+        targetText,
+        removeSilence,
+      ]);
 
-    const result: any = await Promise.race([predictionPromise, timeoutPromise]);
-    if (timeoutId) clearTimeout(timeoutId);
+      const result: any = await Promise.race([predictionPromise, timeoutPromise]);
+      if (timeoutId) clearTimeout(timeoutId);
 
-    const outputData = result?.data?.[0];
-    const audioUrl = typeof outputData === 'string' ? outputData : outputData?.url;
-    if (!audioUrl) throw new Error('No audio URL returned from F5-TTS');
+      const outputData = result?.data?.[0];
+      const audioUrl = typeof outputData === 'string' ? outputData : outputData?.url;
+      if (!audioUrl) throw new Error('No audio URL returned from F5-TTS');
 
-    const res = await fetch(audioUrl);
-    if (!res.ok) throw new Error(`HTTP ${res.status} downloading audio from F5-TTS`);
-    const arrayBuffer = await res.arrayBuffer();
+      const res = await fetch(audioUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status} downloading audio from F5-TTS`);
+      const arrayBuffer = await res.arrayBuffer();
 
-    return {
-      buffer: Buffer.from(arrayBuffer),
-      contentType: res.headers.get('content-type') || 'audio/wav',
-      engine: 'F5-TTS (Flow-Matching-A10G)',
-    };
-  } catch (err) {
-    if (timeoutId) clearTimeout(timeoutId);
-    cachedF5Client = null;
-    throw err;
+      return {
+        buffer: Buffer.from(arrayBuffer),
+        contentType: res.headers.get('content-type') || 'audio/wav',
+        engine: 'F5-TTS (Flow-Matching-A10G)',
+      };
+    } catch (err) {
+      if (timeoutId) clearTimeout(timeoutId);
+      clientCache.delete(`mrfakename/E2-F5-TTS_${token || 'anonymous'}`);
+      lastErr = err;
+
+      if (isQuotaExceededError(err) && token !== undefined) {
+        console.warn(`[F5-TTS] Token quota exhausted, failing over to anonymous/backup pool...`);
+        continue;
+      }
+      throw err;
+    }
   }
+
+  throw lastErr;
 }
 
 /**
@@ -234,7 +335,7 @@ export async function synthesizeNeuralVoiceClone(
   targetText: string,
   options: HFVoiceCloneOptions = {}
 ): Promise<HFVoiceCloneResult> {
-  const { refText = '', removeSilence = true, timeoutMs = 45000 } = options;
+  const { refText = '', removeSilence = true, timeoutMs = 50000 } = options;
 
   let inputBlob: Blob;
   if (Buffer.isBuffer(audioBlob)) {
@@ -259,7 +360,7 @@ export async function synthesizeNeuralVoiceClone(
     },
   ];
 
-  // Rotate starting engine
+  // Rotate starting engine for load distribution
   const startIdx = requestCounter++ % engines.length;
   const orderedEngines = [
     ...engines.slice(startIdx),
@@ -281,7 +382,7 @@ export async function synthesizeNeuralVoiceClone(
     }
   }
 
-  // If all 3 engines failed
+  // If all 3 engines failed in this round
   throw new Error(
     `All 3 AI Voice GPU clusters are currently busy or cooling down. Please wait 10-15s and retry. (${errors.join(' | ')})`
   );
