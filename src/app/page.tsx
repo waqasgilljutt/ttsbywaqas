@@ -1,39 +1,28 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Sidebar, TabType } from '@/components/Sidebar';
-import { TopNavbar } from '@/components/TopNavbar';
-import { AuthModal } from '@/components/AuthModal';
+import { useRouter } from 'next/navigation';
+import { useApp } from '@/context/AppContext';
 import { VoiceSelector } from '@/components/VoiceSelector';
 import { TextEditor } from '@/components/TextEditor';
 import { ProsodyControls } from '@/components/ProsodyControls';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { HistoryPanel, HistoryItem } from '@/components/HistoryPanel';
-import { VoiceCloner, SavedClone } from '@/components/VoiceCloner';
-import { VoiceLibrary } from '@/components/VoiceLibrary';
-import { PricingPage } from '@/components/PricingPage';
-import { AboutPage } from '@/components/AboutPage';
-import { AdminPanel } from '@/components/AdminPanel';
 import { Voice } from '@/lib/edge-tts-service';
 import { synthesizeLargeScript } from '@/lib/batch-synthesizer';
-import { Sparkles, Loader2, AlertCircle, Info, Zap } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, Zap } from 'lucide-react';
 
 const INITIAL_TEXT =
   "Welcome to TTS bY Waqas Gill by EmpireNexs! You can customize voice speed, pitch, and choose from over 320 high-fidelity neural voices across dozens of languages. Supports up to 50,000 characters per script!";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<TabType>('text-to-voice');
-  const [activeLoadedClone, setActiveLoadedClone] = useState<SavedClone | null>(null);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
-  const [userCredits, setUserCredits] = useState<{
-    isUnlimited: boolean;
-    creditsUsed: number;
-    creditLimit: number;
-    remainingCredits: number;
-    planName: string;
-  } | null>(null);
+  const router = useRouter();
+  const {
+    currentUser,
+    userCredits,
+    setUserCredits,
+    setIsAuthModalOpen,
+  } = useApp();
 
   const currentUserRef = useRef<{ name: string; email: string } | null>(null);
   const userCreditsRef = useRef<{
@@ -75,64 +64,6 @@ export default function Home() {
   const [previewingVoiceShortName, setPreviewingVoiceShortName] = useState<string | null>(null);
   const [previewAudioObj, setPreviewAudioObj] = useState<HTMLAudioElement | null>(null);
 
-  const refreshUserCredits = useCallback(async (email?: string) => {
-    const targetEmail = email || currentUserRef.current?.email;
-    if (!targetEmail) return;
-
-    const emailKey = targetEmail.toLowerCase();
-    const isOwner = emailKey === 'muhammadwaqasmwg@gmail.com';
-
-    // Load instantly from localStorage so user never sees stale credits
-    let cachedCreditsUsed = 0;
-    try {
-      const stored = localStorage.getItem(`empirenexs_credits_${emailKey}`);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        cachedCreditsUsed = parsed.creditsUsed || 0;
-        setUserCredits(parsed);
-        userCreditsRef.current = parsed;
-      }
-    } catch {}
-
-    try {
-      const res = await fetch('/api/admin/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'get-credits',
-          email: targetEmail,
-          clientCreditsUsed: cachedCreditsUsed,
-        }),
-      });
-      const data = await res.json();
-      if (data.success && data.balance) {
-        const higherUsed = Math.max(data.balance.creditsUsed || 0, cachedCreditsUsed);
-        const isUnlimited = isOwner || data.balance.isUnlimited || data.balance.creditLimit === -1;
-        const currentLimit = data.balance.creditLimit || 30000;
-        const mergedBalance = {
-          ...data.balance,
-          isUnlimited,
-          creditLimit: currentLimit,
-          creditsUsed: higherUsed,
-          remainingCredits: isUnlimited
-            ? Infinity
-            : Math.max(0, currentLimit - higherUsed),
-          planName: data.balance.planName || (isUnlimited ? 'Unlimited VIP Lifetime' : 'Free Starter (30k)'),
-        };
-        setUserCredits(mergedBalance);
-        userCreditsRef.current = mergedBalance;
-        try {
-          localStorage.setItem(
-            `empirenexs_credits_${emailKey}`,
-            JSON.stringify(mergedBalance)
-          );
-        } catch {}
-      }
-    } catch (e) {
-      console.warn('Failed to load user credits:', e);
-    }
-  }, []);
-
   // Load voices and cached state on mount
   useEffect(() => {
     async function loadVoices() {
@@ -157,86 +88,10 @@ export default function Home() {
       if (savedFavs) setFavorites(JSON.parse(savedFavs));
       const savedHist = localStorage.getItem('edge_tts_history');
       if (savedHist) setHistory(JSON.parse(savedHist));
-      const savedUser = localStorage.getItem('empirenexs_user');
-      if (savedUser) {
-        try {
-          const parsed = JSON.parse(savedUser);
-          if (parsed?.email && /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(parsed.email.trim())) {
-            setCurrentUser(parsed);
-            currentUserRef.current = parsed;
-
-            // Immediately load cached credits so UI shows exact remaining credits without waiting
-            const cachedCredits = localStorage.getItem(`empirenexs_credits_${parsed.email.toLowerCase()}`);
-            if (cachedCredits) {
-              try {
-                const creds = JSON.parse(cachedCredits);
-                setUserCredits(creds);
-                userCreditsRef.current = creds;
-              } catch {}
-            }
-
-            refreshUserCredits(parsed.email);
-          } else {
-            // Immediately purge any old temp mail or invalid account session
-            localStorage.removeItem('empirenexs_user');
-            setCurrentUser(null);
-            currentUserRef.current = null;
-            setIsAuthModalOpen(true);
-          }
-        } catch {
-          localStorage.removeItem('empirenexs_user');
-          setIsAuthModalOpen(true);
-        }
-      } else {
-        // Automatically prompt sign in/sign up for guests
-        setIsAuthModalOpen(true);
-      }
     } catch (e) {
       console.warn('LocalStorage error:', e);
     }
-  }, [refreshUserCredits]);
-
-  const handleLoginSuccess = (user: { name: string; email: string }) => {
-    if (!user.email || !/^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(user.email.trim())) {
-      console.warn('Blocked non-Gmail session:', user.email);
-      return;
-    }
-    setCurrentUser(user);
-    currentUserRef.current = user;
-
-    // Load cached credits if available
-    const cachedCredits = localStorage.getItem(`empirenexs_credits_${user.email.toLowerCase()}`);
-    if (cachedCredits) {
-      try {
-        const creds = JSON.parse(cachedCredits);
-        setUserCredits(creds);
-        userCreditsRef.current = creds;
-      } catch {}
-    }
-
-    refreshUserCredits(user.email);
-    try {
-      localStorage.setItem('empirenexs_user', JSON.stringify(user));
-    } catch (e) {
-      console.warn('LocalStorage error:', e);
-    }
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    currentUserRef.current = null;
-    setUserCredits(null);
-    userCreditsRef.current = null;
-    try {
-      localStorage.removeItem('empirenexs_user');
-    } catch (e) {
-      console.warn('LocalStorage error:', e);
-    }
-    if (activeTab === 'admin') {
-      setActiveTab('text-to-voice');
-    }
-    setIsAuthModalOpen(true);
-  };
+  }, []);
 
   const toggleFavorite = (shortName: string) => {
     setFavorites((prev) => {
@@ -348,7 +203,7 @@ export default function Home() {
       setSynthesisProgress(100);
       setSynthesisStatusText('Speech synthesized successfully!');
 
-      // IMMEDIATELY DEDUCT CREDITS IN CLIENT STATE & LOCALSTORAGE
+      // Deduct credits in client state and localStorage
       const charsDeducted = text.trim().length;
       if (activeUser?.email) {
         const targetEmail = activeUser.email.toLowerCase();
@@ -419,7 +274,7 @@ export default function Home() {
       setErrorMessage((err as Error)?.message || 'Failed to synthesize speech. Please try again.');
       setIsSynthesizing(false);
     }
-  }, [text, isSynthesizing, selectedVoice, rate, pitch, volume, currentUser, userCredits]);
+  }, [text, isSynthesizing, selectedVoice, rate, pitch, volume, currentUser, userCredits, setIsAuthModalOpen, setUserCredits]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -493,295 +348,179 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900">
-      {/* Left Sidebar */}
-      <Sidebar
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
-        isOpenMobile={isMobileSidebarOpen}
-        onCloseMobile={() => setIsMobileSidebarOpen(false)}
-        currentUser={currentUser}
-      />
+    <div className="flex flex-col gap-8 animate-in fade-in duration-200">
+      {errorMessage && (
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span className="leading-relaxed">{errorMessage}</span>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+            {errorMessage.toLowerCase().includes('credit') && (
+              <button
+                type="button"
+                onClick={() => {
+                  router.push('/pricing');
+                  setErrorMessage(null);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                <Zap className="w-3.5 h-3.5 fill-white" />
+                <span>Buy Credits</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setErrorMessage(null)}
+              className="px-2.5 py-1 text-slate-500 hover:text-slate-800 font-semibold transition-colors cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <TopNavbar
-          activeTab={activeTab}
-          onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
-          onOpenAuthModal={() => setIsAuthModalOpen(true)}
-          currentUser={currentUser}
-          onLogout={handleLogout}
-          userCredits={userCredits}
-          onOpenPricing={() => setActiveTab('pricing')}
-        />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Voice Selector & Prosody Controls (5 cols) */}
+        <div className="lg:col-span-5 flex flex-col gap-6">
+          <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs">
+            <VoiceSelector
+              voices={voices}
+              locales={locales}
+              selectedVoice={selectedVoice}
+              onSelectVoice={setSelectedVoice}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+              onPreviewVoice={handlePreviewVoice}
+              previewingVoiceShortName={previewingVoiceShortName}
+            />
+          </div>
 
-        <main className="flex-1 px-4 sm:px-8 py-8 max-w-7xl w-full mx-auto">
-          {/* VIEW 1: TEXT TO VOICE STUDIO */}
-          {activeTab === 'text-to-voice' && (
-            <div className="flex flex-col gap-8">
-              {errorMessage && (
-                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in shadow-xs">
-                  <div className="flex items-center gap-2.5">
-                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span className="leading-relaxed">{errorMessage}</span>
-                  </div>
-                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                    {errorMessage.toLowerCase().includes('credit') && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveTab('pricing');
-                          setErrorMessage(null);
-                        }}
-                        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                      >
-                        <Zap className="w-3.5 h-3.5 fill-white" />
-                        <span>Buy Credits</span>
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setErrorMessage(null)}
-                      className="px-2.5 py-1 text-slate-500 hover:text-slate-800 font-semibold transition-colors cursor-pointer"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                </div>
-              )}
+          <ProsodyControls
+            rate={rate}
+            onChangeRate={setRate}
+            pitch={pitch}
+            onChangePitch={setPitch}
+            volume={volume}
+            onChangeVolume={setVolume}
+            onReset={handleResetProsody}
+          />
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                {/* Left Column: Voice Selector & Prosody Controls (5 cols) */}
-                <div className="lg:col-span-5 flex flex-col gap-6">
-                  <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs">
-                    <VoiceSelector
-                      voices={voices}
-                      locales={locales}
-                      selectedVoice={selectedVoice}
-                      onSelectVoice={setSelectedVoice}
-                      favorites={favorites}
-                      onToggleFavorite={toggleFavorite}
-                      onPreviewVoice={handlePreviewVoice}
-                      previewingVoiceShortName={previewingVoiceShortName}
-                    />
-                  </div>
-
-                  <ProsodyControls
-                    rate={rate}
-                    onChangeRate={setRate}
-                    pitch={pitch}
-                    onChangePitch={setPitch}
-                    volume={volume}
-                    onChangeVolume={setVolume}
-                    onReset={handleResetProsody}
-                  />
-
-                  {/* Info / Engine details card */}
-                  <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs text-xs text-slate-600 flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
-                        <Sparkles className="w-4 h-4 text-brand-600" />
-                        <span>
-                          About TTS{' '}
-                          <a
-                            href="https://www.facebook.com/mwaqasgillcs/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-brand-600 hover:underline"
-                          >
-                            bY Waqas Gill
-                          </a>
-                        </span>
-                      </div>
-                      <span className="px-2.5 py-0.5 rounded-full bg-brand-50 text-brand-700 font-mono text-[10px] font-bold border border-brand-200">
-                        EmpireNexs
-                      </span>
-                    </div>
-                    <p className="leading-relaxed">
-                      Crafted and powered by <strong className="text-slate-900">EmpireNexs</strong> under the direction of{' '}
-                      <a
-                        href="https://www.facebook.com/mwaqasgillcs/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-brand-700 hover:text-brand-800 hover:underline font-bold transition-colors"
-                        title="Connect with Waqas Gill on Facebook"
-                      >
-                        Waqas Gill
-                      </a>. Harnesses Microsoft neural speech synthesis delivering hyper-realistic human voiceovers across 320+ voices with up to 50,000 characters per voice.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Right Column: Script Editor, Generation CTA, Audio Player & History (7 cols) */}
-                <div className="lg:col-span-7 flex flex-col gap-6">
-                  <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs">
-                    <TextEditor
-                      text={text}
-                      onChangeText={setText}
-                      disabled={isSynthesizing}
-                    />
-
-                    {/* Progress bar with percentage for Simple Text to Speech */}
-                    {isSynthesizing && (
-                      <div className="mt-4 p-4 rounded-2xl bg-brand-50/70 border border-brand-200 flex flex-col gap-2.5 animate-in fade-in">
-                        <div className="flex items-center justify-between text-xs font-bold text-brand-900">
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="w-4 h-4 animate-spin text-brand-600" />
-                            <span>{synthesisStatusText}</span>
-                          </div>
-                          <span className="font-mono text-brand-700 font-extrabold text-sm">
-                            {synthesisProgress}%
-                          </span>
-                        </div>
-
-                        <div className="w-full h-3 bg-brand-100 rounded-full overflow-hidden p-0.5">
-                          <div
-                            style={{ width: `${synthesisProgress}%` }}
-                            className="h-full bg-gradient-to-r from-brand-600 to-indigo-600 rounded-full transition-all duration-300 shadow-sm"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-100">
-                      <div className="text-xs text-slate-400 flex items-center gap-1.5">
-                        <span className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-600 font-mono text-[10px] font-bold">
-                          Ctrl + Enter
-                        </span>
-                        <span>to generate</span>
-                      </div>
-
-                      <button
-                        type="button"
-                        disabled={isSynthesizing || !text.trim()}
-                        onClick={handleSynthesize}
-                        className="w-full sm:w-auto px-7 py-3 rounded-2xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-sm shadow-md shadow-brand-500/25 disabled:opacity-50 transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
-                      >
-                        {isSynthesizing ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>Synthesizing Speech...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-4 h-4" />
-                            <span>Generate Speech</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <AudioPlayer
-                    audioUrl={audioUrl}
-                    voiceName={selectedVoice?.ShortName}
-                    isLoading={isSynthesizing}
-                  />
-
-                  <HistoryPanel
-                    history={history}
-                    onSelectHistory={(item) => {
-                      setAudioUrl(item.audioUrl);
-                      setText(item.text);
-                      setRate(item.rate);
-                      setPitch(item.pitch);
-                    }}
-                    onDeleteHistoryItem={handleDeleteHistoryItem}
-                    onClearHistory={handleClearHistory}
-                  />
-                </div>
+          {/* Info / Engine details card */}
+          <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs text-xs text-slate-600 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
+                <Sparkles className="w-4 h-4 text-brand-600" />
+                <span>
+                  About TTS{' '}
+                  <a
+                    href="https://www.facebook.com/mwaqasgillcs/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-brand-600 hover:underline"
+                  >
+                    bY Waqas Gill
+                  </a>
+                </span>
               </div>
+              <span className="px-2.5 py-0.5 rounded-full bg-brand-50 text-brand-700 font-mono text-[10px] font-bold border border-brand-200">
+                EmpireNexs
+              </span>
             </div>
-          )}
+            <p className="leading-relaxed">
+              Crafted and powered by <strong className="text-slate-900">EmpireNexs</strong> under the direction of{' '}
+              <a
+                href="https://www.facebook.com/mwaqasgillcs/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-700 hover:text-brand-800 hover:underline font-bold transition-colors"
+                title="Connect with Waqas Gill on Facebook"
+              >
+                Waqas Gill
+              </a>. Harnesses Microsoft neural speech synthesis delivering hyper-realistic human voiceovers across 320+ voices with up to 50,000 characters per voice.
+            </p>
+          </div>
+        </div>
 
-          {/* VIEW 2: VOICE CLONING */}
-          {activeTab === 'voice-cloning' && (
-            <VoiceCloner
-              initialClone={activeLoadedClone}
-              onClearInitialClone={() => setActiveLoadedClone(null)}
-              onNavigateToLibrary={() => setActiveTab('voice-library')}
-              currentUser={currentUser}
-              onRequireAuth={() => setIsAuthModalOpen(true)}
-              userCredits={userCredits}
-              onRefreshCredits={() => currentUser?.email && refreshUserCredits(currentUser.email)}
-              onOpenPricing={() => setActiveTab('pricing')}
+        {/* Right Column: Script Editor, Generation CTA, Audio Player & History (7 cols) */}
+        <div className="lg:col-span-7 flex flex-col gap-6">
+          <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs">
+            <TextEditor
+              text={text}
+              onChangeText={setText}
+              disabled={isSynthesizing}
             />
-          )}
 
-          {/* VIEW 3: VOICE LIBRARY */}
-          {activeTab === 'voice-library' && (
-            <VoiceLibrary
-              onUseVoice={(clone) => {
-                if (!currentUser) {
-                  setIsAuthModalOpen(true);
-                  return;
-                }
-                setActiveLoadedClone(clone);
-                setActiveTab('voice-cloning');
-              }}
-              onNavigateToCloner={() => {
-                if (!currentUser) {
-                  setIsAuthModalOpen(true);
-                  return;
-                }
-                setActiveTab('voice-cloning');
-              }}
-              currentUser={currentUser}
-              onRequireAuth={() => setIsAuthModalOpen(true)}
-            />
-          )}
+            {/* Progress bar with percentage for Simple Text to Speech */}
+            {isSynthesizing && (
+              <div className="mt-4 p-4 rounded-2xl bg-brand-50/70 border border-brand-200 flex flex-col gap-2.5 animate-in fade-in">
+                <div className="flex items-center justify-between text-xs font-bold text-brand-900">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-brand-600" />
+                    <span>{synthesisStatusText}</span>
+                  </div>
+                  <span className="font-mono text-brand-700 font-extrabold text-sm">
+                    {synthesisProgress}%
+                  </span>
+                </div>
 
-          {/* VIEW 4: PRICING */}
-          {activeTab === 'pricing' && <PricingPage />}
-
-          {/* VIEW 5: ABOUT US */}
-          {activeTab === 'about' && <AboutPage />}
-
-          {/* VIEW 6: OWNER ADMIN PANEL (Protected) */}
-          {activeTab === 'admin' && (
-            currentUser?.email?.toLowerCase() === 'muhammadwaqasmwg@gmail.com' ? (
-              <AdminPanel currentUser={currentUser} />
-            ) : (
-              <div className="p-12 text-center bg-white rounded-3xl border border-rose-200 text-rose-700 text-sm font-bold">
-                Access Denied: Owner credentials required.
+                <div className="w-full h-3 bg-brand-100 rounded-full overflow-hidden p-0.5">
+                  <div
+                    style={{ width: `${synthesisProgress}%` }}
+                    className="h-full bg-gradient-to-r from-brand-600 to-indigo-600 rounded-full transition-all duration-300 shadow-sm"
+                  />
+                </div>
               </div>
-            )
-          )}
-        </main>
+            )}
 
-        {/* Studio Footer */}
-        <footer className="border-t border-slate-200/80 py-6 px-4 text-center text-xs text-slate-400 bg-white">
-          <p>
-            TTS bY{' '}
-            <a
-              href="https://www.facebook.com/mwaqasgillcs/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-slate-600 hover:text-brand-600 hover:underline font-medium"
-              title="Connect with Waqas Gill on Facebook"
-            >
-              Waqas Gill
-            </a>{' '}
-            • An <strong className="text-brand-600 font-semibold">EmpireNexs</strong> Innovation • Developed with precision by{' '}
-            <a
-              href="https://www.facebook.com/mwaqasgillcs/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-brand-600 hover:text-brand-700 hover:underline font-bold transition-colors"
-            >
-              Waqas Gill
-            </a>
-          </p>
-        </footer>
+            <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-100">
+              <div className="text-xs text-slate-400 flex items-center gap-1.5">
+                <span className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-600 font-mono text-[10px] font-bold">
+                  Ctrl + Enter
+                </span>
+                <span>to generate</span>
+              </div>
+
+              <button
+                type="button"
+                disabled={isSynthesizing || !text.trim()}
+                onClick={handleSynthesize}
+                className="w-full sm:w-auto px-7 py-3 rounded-2xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-sm shadow-md shadow-brand-500/25 disabled:opacity-50 transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                {isSynthesizing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Synthesizing Speech...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Generate Speech</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          <AudioPlayer
+            audioUrl={audioUrl}
+            voiceName={selectedVoice?.ShortName}
+            isLoading={isSynthesizing}
+          />
+
+          <HistoryPanel
+            history={history}
+            onSelectHistory={(item) => {
+              setAudioUrl(item.audioUrl);
+              setText(item.text);
+              setRate(item.rate);
+              setPitch(item.pitch);
+            }}
+            onDeleteHistoryItem={handleDeleteHistoryItem}
+            onClearHistory={handleClearHistory}
+          />
+        </div>
       </div>
-
-      {/* Auth Modal (Sign In / Sign Up) */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onSuccessLogin={handleLoginSuccess}
-        isRequired={!currentUser}
-      />
     </div>
   );
 }

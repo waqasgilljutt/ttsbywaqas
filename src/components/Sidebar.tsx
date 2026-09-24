@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   Mic2,
   Dna,
@@ -15,8 +17,8 @@ import {
 export type TabType = 'text-to-voice' | 'voice-cloning' | 'voice-library' | 'pricing' | 'about' | 'admin';
 
 interface SidebarProps {
-  activeTab: TabType;
-  onSelectTab: (tab: TabType) => void;
+  activeTab?: TabType;
+  onSelectTab?: (tab: TabType) => void;
   isOpenMobile?: boolean;
   onCloseMobile?: () => void;
   currentUser?: { name: string; email: string } | null;
@@ -29,11 +31,13 @@ export function Sidebar({
   onCloseMobile,
   currentUser,
 }: SidebarProps) {
+  const pathname = usePathname();
   const isOwner = currentUser?.email?.toLowerCase() === 'muhammadwaqasmwg@gmail.com';
 
   const navItems = [
     {
       id: 'text-to-voice' as TabType,
+      href: '/',
       label: 'Text to Voice',
       description: '320+ Neural Voices & 50k Chars',
       icon: Mic2,
@@ -41,6 +45,7 @@ export function Sidebar({
     },
     {
       id: 'voice-cloning' as TabType,
+      href: '/voice-cloning',
       label: 'Voice Cloning',
       description: 'Zero-Shot Mic & Audio Cloner',
       icon: Dna,
@@ -48,6 +53,7 @@ export function Sidebar({
     },
     {
       id: 'voice-library' as TabType,
+      href: '/voice-library',
       label: 'Voice Library',
       description: 'Saved custom voice profiles',
       icon: FolderHeart,
@@ -55,6 +61,7 @@ export function Sidebar({
     },
     {
       id: 'pricing' as TabType,
+      href: '/pricing',
       label: 'Pricing Plans',
       description: 'Free, Pro & Enterprise',
       icon: CreditCard,
@@ -62,6 +69,7 @@ export function Sidebar({
     },
     {
       id: 'about' as TabType,
+      href: '/about',
       label: 'About EmpireNexs',
       description: 'Vision & Waqas Gill story',
       icon: Building2,
@@ -73,6 +81,7 @@ export function Sidebar({
   if (isOwner) {
     navItems.push({
       id: 'admin' as TabType,
+      href: '/admin',
       label: 'Owner Command',
       description: 'Registered users & stats',
       icon: ShieldCheck,
@@ -97,32 +106,23 @@ export function Sidebar({
       >
         {/* Brand Header */}
         <div className="flex flex-col gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-500 p-[1px] shadow-md shadow-brand-500/20 shrink-0">
+          <Link href="/" onClick={onCloseMobile} className="flex items-center gap-3 group">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-500 p-[1px] shadow-md shadow-brand-500/20 shrink-0 group-hover:scale-105 transition-transform">
               <div className="w-full h-full bg-white rounded-[15px] flex items-center justify-center">
                 <Mic2 className="w-5 h-5 text-brand-600" />
               </div>
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h1 className="text-base font-bold text-slate-900 tracking-tight">
-                  TTS{' '}
-                  <a
-                    href="https://www.facebook.com/mwaqasgillcs/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-brand-600 hover:text-brand-700 hover:underline transition-all"
-                    title="Connect with Waqas Gill on Facebook"
-                  >
-                    bY Waqas Gill
-                  </a>
+                <h1 className="text-base font-bold text-slate-900 tracking-tight group-hover:text-brand-600 transition-colors">
+                  TTS bY Waqas Gill
                 </h1>
               </div>
               <p className="text-[11px] font-semibold text-brand-700 uppercase tracking-wider mt-0.5">
                 EmpireNexs AI
               </p>
             </div>
-          </div>
+          </Link>
 
           {/* Navigation Links */}
           <nav className="flex flex-col gap-1.5">
@@ -130,15 +130,19 @@ export function Sidebar({
               Studio Navigation
             </span>
             {navItems.map((item) => {
-              const isActive = activeTab === item.id;
+              const isActive = activeTab
+                ? activeTab === item.id
+                : item.href === '/'
+                ? pathname === '/'
+                : pathname.startsWith(item.href);
               const Icon = item.icon;
 
               return (
-                <button
+                <Link
                   key={item.id}
-                  type="button"
+                  href={item.href}
                   onClick={() => {
-                    onSelectTab(item.id);
+                    if (onSelectTab) onSelectTab(item.id);
                     if (onCloseMobile) onCloseMobile();
                   }}
                   className={`w-full flex items-center justify-between p-3 rounded-2xl text-left transition-all ${
@@ -151,7 +155,7 @@ export function Sidebar({
                     <div
                       className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
                         isActive
-                          ? 'bg-brand-600 text-white'
+                          ? 'bg-brand-600 text-white shadow-xs'
                           : 'bg-slate-100 text-slate-500'
                       }`}
                     >
@@ -170,7 +174,7 @@ export function Sidebar({
                       <span
                         className={`text-[9px] px-1.5 py-0.5 rounded-md font-mono ${
                           isActive
-                            ? 'bg-brand-100 text-brand-700'
+                            ? 'bg-brand-100 text-brand-700 font-bold'
                             : 'bg-slate-100 text-slate-500'
                         }`}
                       >
@@ -183,7 +187,7 @@ export function Sidebar({
                       }`}
                     />
                   </div>
-                </button>
+                </Link>
               );
             })}
           </nav>
@@ -201,17 +205,12 @@ export function Sidebar({
             </p>
           </div>
 
-          <div className="text-center text-[11px] text-slate-400">
-            © EmpireNexs •{' '}
-            <a
-              href="https://www.facebook.com/mwaqasgillcs/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-slate-600 hover:text-brand-600 hover:underline font-medium transition-colors"
-              title="Connect with Waqas Gill on Facebook"
-            >
-              Waqas Gill
-            </a>
+          <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+            <span>v2.5 High-Capacity</span>
+            <div className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-slate-600 font-medium">Ready</span>
+            </div>
           </div>
         </div>
       </aside>

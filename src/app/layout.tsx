@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AppShell } from "@/components/AppShell";
 
 export const metadata: Metadata = {
   title: "TTS bY Waqas Gill | EmpireNexs AI Voice Platform",
@@ -21,7 +22,9 @@ export default function RootLayout({
         <meta name="google-site-verification" content="0BQ6AxuSCNPHJ-nugq23MddBI6RUBp-JTIhwGHOXrTA" />
       </head>
       <body className="bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans">
-        {children}
+        <AppShell>
+          {children}
+        </AppShell>
       </body>
     </html>
   );
