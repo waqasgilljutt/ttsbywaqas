@@ -569,13 +569,13 @@ export function VoiceCloner({
 
     setIsCloning(true);
     setCloneProgress(15);
-    setCloneStatusText('Connecting to Coqui XTTS-v2 ZeroGPU cluster...');
+    setCloneStatusText('Connecting to Neural Voice Engine...');
     setErrorMsg(null);
 
     const steps = [
       { progress: 30, text: 'Extracting speaker pitch, vocal tract resonance & timbre embeddings...' },
-      { progress: 60, text: 'Coqui XTTS-v2 neural model synthesizing your authentic voice...' },
-      { progress: 82, text: 'Finalizing neural voice synthesis...' },
+      { progress: 60, text: 'Neural AI engine synthesizing your authentic voice...' },
+      { progress: 85, text: 'Finalizing neural voice synthesis...' },
       { progress: 95, text: 'Mastering high-definition audio stream...' },
     ];
     let stepIndex = 0;
