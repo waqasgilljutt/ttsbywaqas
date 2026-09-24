@@ -84,9 +84,13 @@ export async function POST(req: NextRequest) {
       } catch (cloneErr: unknown) {
         console.error('[Voice Cloning] Neural engine error:', cloneErr);
         const errMsg = (cloneErr as Error)?.message || 'Voice cloning GPU cluster is currently busy.';
+        const isQuotaErr = errMsg.toLowerCase().includes('quota') || errMsg.toLowerCase().includes('limit') || errMsg.toLowerCase().includes('busy');
+        const advice = isQuotaErr
+          ? 'Daily free ZeroGPU limit (5 mins) reached on this token. Add additional free HF tokens to your HF_TOKENS pool or upgrade to Hugging Face PRO for 40 mins/day.'
+          : 'Please try again in a few moments.';
         return NextResponse.json(
           {
-            error: `Voice cloning failed: ${errMsg}. Please try again with a clean 5-10 second voice recording.`,
+            error: `${errMsg} (${advice})`,
           },
           { status: 503 }
         );

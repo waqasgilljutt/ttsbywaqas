@@ -26,6 +26,15 @@ interface CachedUpload {
 }
 let cachedHasanUpload: CachedUpload | null = null;
 
+// Track tokens that hit daily limits so we don't repeatedly stall on them
+const exhaustedTokens = new Map<string, number>();
+
+export function markTokenExhausted(token?: string) {
+  if (token) {
+    exhaustedTokens.set(token, Date.now());
+  }
+}
+
 function getTokens(): (string | undefined)[] {
   const raw = process.env.HF_TOKENS || process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN || '';
   const tokens = raw
@@ -33,9 +42,17 @@ function getTokens(): (string | undefined)[] {
     .map((t) => t.trim())
     .filter(Boolean);
 
-  // Return list of user tokens followed by undefined (tokenless/anonymous fallback)
-  if (tokens.length > 0) {
-    return [...tokens, undefined];
+  const now = Date.now();
+  // Active tokens (not exhausted within the last 20 minutes)
+  const activeTokens = tokens.filter((t) => {
+    const exhaustedAt = exhaustedTokens.get(t);
+    return !exhaustedAt || now - exhaustedAt > 20 * 60 * 1000;
+  });
+
+  const cooledTokens = tokens.filter((t) => !activeTokens.includes(t));
+
+  if (activeTokens.length > 0 || cooledTokens.length > 0) {
+    return [...activeTokens, ...cooledTokens, undefined];
   }
   return [undefined];
 }
@@ -157,6 +174,7 @@ async function tryTonyAssi(inputBlob: Blob, targetText: string, timeoutMs: numbe
       // If token quota exhausted, try next token or anonymous client immediately
       if (isQuotaExceededError(err) && token !== undefined) {
         console.warn(`[TonyAssi] Token quota exhausted, failing over to anonymous/backup pool...`);
+        markTokenExhausted(token);
         continue;
       }
       throw err;
@@ -259,6 +277,7 @@ async function tryHasanBasbunar(inputBlob: Blob, targetText: string, timeoutMs: 
 
       if (isQuotaExceededError(err) && token !== undefined) {
         console.warn(`[HasanBasbunar] Token quota exhausted, failing over to anonymous/backup pool...`);
+        markTokenExhausted(token);
         continue;
       }
       throw err;
@@ -318,6 +337,7 @@ async function tryF5TTS(
 
       if (isQuotaExceededError(err) && token !== undefined) {
         console.warn(`[F5-TTS] Token quota exhausted, failing over to anonymous/backup pool...`);
+        markTokenExhausted(token);
         continue;
       }
       throw err;
