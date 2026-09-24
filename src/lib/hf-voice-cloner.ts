@@ -1,65 +1,44 @@
 import { Client } from '@gradio/client';
 
 /**
- * Real Zero-Shot Neural Voice Cloning Service
+ * 3-Tier Multi-Space Neural Voice Cloning Pool
  * 
- * Primary Engine: Coqui XTTS-v2 on Hugging Face ZeroGPU (Nvidia A10G)
- * - Needs NO reference text / transcript.
- * - Extracts vocal timbre, pitch, resonance, and cadence directly from raw audio.
- * - Ultra-fast (~8-12 seconds).
+ * Tier 1: Coqui XTTS-v2 on ZeroGPU (tonyassi/voice-clone)
+ * Tier 2: Coqui XTTS-v2 on ZeroGPU (hasanbasbunar/Voice-Cloning-XTTS-v2)
+ * Tier 3: F5-TTS Flow Matching on ZeroGPU (mrfakename/E2-F5-TTS)
  * 
- * Secondary Engine: F5-TTS Non-Autoregressive Flow Matching Model
- * - Serves as high-fidelity automatic backup if primary space is in queue.
- * 
+ * Automatic Round-Robin load distribution with instant multi-cluster failover.
  * 100% Free & Open-Source.
  */
 
-let cachedXTTSClient: any = null;
-let xttsPromise: Promise<any> | null = null;
-
+let cachedTonyClient: any = null;
+let cachedHasanClient: any = null;
 let cachedF5Client: any = null;
-let f5Promise: Promise<any> | null = null;
 
-async function getXTTSClient(): Promise<any> {
-  if (cachedXTTSClient) return cachedXTTSClient;
-  if (xttsPromise) return xttsPromise;
+let requestCounter = 0;
 
-  xttsPromise = (async () => {
-    try {
-      const token = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN;
-      const options: any = token ? { token } : {};
-      const client = await Client.connect('tonyassi/voice-clone', options);
-      cachedXTTSClient = client;
-      xttsPromise = null;
-      return client;
-    } catch (err) {
-      xttsPromise = null;
-      throw new Error(`Failed to connect to Coqui XTTS space: ${(err as Error)?.message || err}`);
-    }
-  })();
+async function getTonyClient(): Promise<any> {
+  if (cachedTonyClient) return cachedTonyClient;
+  const token = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN;
+  const options: any = token ? { token } : {};
+  cachedTonyClient = await Client.connect('tonyassi/voice-clone', options);
+  return cachedTonyClient;
+}
 
-  return xttsPromise;
+async function getHasanClient(): Promise<any> {
+  if (cachedHasanClient) return cachedHasanClient;
+  const token = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN;
+  const options: any = token ? { token } : {};
+  cachedHasanClient = await Client.connect('hasanbasbunar/Voice-Cloning-XTTS-v2', options);
+  return cachedHasanClient;
 }
 
 async function getF5Client(): Promise<any> {
   if (cachedF5Client) return cachedF5Client;
-  if (f5Promise) return f5Promise;
-
-  f5Promise = (async () => {
-    try {
-      const token = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN;
-      const options: any = token ? { token } : {};
-      const client = await Client.connect('mrfakename/E2-F5-TTS', options);
-      cachedF5Client = client;
-      f5Promise = null;
-      return client;
-    } catch (err) {
-      f5Promise = null;
-      throw new Error(`Failed to connect to F5-TTS space: ${(err as Error)?.message || err}`);
-    }
-  })();
-
-  return f5Promise;
+  const token = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN;
+  const options: any = token ? { token } : {};
+  cachedF5Client = await Client.connect('mrfakename/E2-F5-TTS', options);
+  return cachedF5Client;
 }
 
 export interface HFVoiceCloneOptions {
@@ -74,41 +53,77 @@ export interface HFVoiceCloneResult {
   engine: string;
 }
 
-/**
- * Synthesizes speech using the user's authentic cloned voice.
- * Tries Coqui XTTS-v2 first (zero transcript needed), then F5-TTS fallback.
- */
-export async function synthesizeNeuralVoiceClone(
-  audioBlob: Blob | Buffer,
-  targetText: string,
-  options: HFVoiceCloneOptions = {}
-): Promise<HFVoiceCloneResult> {
-  const { refText = '', removeSilence = true, timeoutMs = 60000 } = options;
+// 1. Synthesize with TonyAssi XTTS-v2
+async function tryTonyAssi(inputBlob: Blob, targetText: string, timeoutMs: number): Promise<HFVoiceCloneResult> {
+  const client = await getTonyClient();
 
-  let inputBlob: Blob;
-  if (Buffer.isBuffer(audioBlob)) {
-    inputBlob = new Blob([audioBlob as unknown as BlobPart], { type: 'audio/wav' });
-  } else {
-    inputBlob = audioBlob;
-  }
+  let timeoutId: NodeJS.Timeout | null = null;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('TonyAssi XTTS-v2 request timed out')), timeoutMs);
+  });
 
-  let lastError: unknown = null;
-
-  // 1. PRIMARY ENGINE: Coqui XTTS-v2 (Zero-shot, no transcript needed)
   try {
-    console.log('[Neural Voice Clone] Attempting Primary Engine: Coqui XTTS-v2...');
-    const client = await getXTTSClient();
+    const predictionPromise = client.predict('/clone', [targetText, inputBlob]);
+    const result: any = await Promise.race([predictionPromise, timeoutPromise]);
+    if (timeoutId) clearTimeout(timeoutId);
 
-    let timeoutId: NodeJS.Timeout | null = null;
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutId = setTimeout(() => {
-        reject(new Error('Coqui XTTS-v2 request timed out after 45s.'));
-      }, 45000);
-    });
+    const outputData = result?.data?.[0];
+    const audioUrl = typeof outputData === 'string' ? outputData : outputData?.url;
+    if (!audioUrl) throw new Error('No audio URL returned from TonyAssi XTTS');
 
-    const predictionPromise = client.predict('/clone', [
+    const res = await fetch(audioUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status} downloading audio from TonyAssi XTTS`);
+    const arrayBuffer = await res.arrayBuffer();
+
+    return {
+      buffer: Buffer.from(arrayBuffer),
+      contentType: res.headers.get('content-type') || 'audio/wav',
+      engine: 'Coqui-XTTS-v2 (TonyAssi-A10G)',
+    };
+  } catch (err) {
+    if (timeoutId) clearTimeout(timeoutId);
+    cachedTonyClient = null;
+    throw err;
+  }
+}
+
+// 2. Synthesize with HasanBasbunar XTTS-v2
+async function tryHasanBasbunar(inputBlob: Blob, targetText: string, timeoutMs: number): Promise<HFVoiceCloneResult> {
+  const client = await getHasanClient();
+
+  let timeoutId: NodeJS.Timeout | null = null;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('Hasan XTTS-v2 request timed out')), timeoutMs);
+  });
+
+  try {
+    // Upload audio blob first to get normalized file URL
+    const uploadRes = await client.upload_files('https://hasanbasbunar-voice-cloning-xtts-v2.hf.space', [inputBlob]);
+    const uploadedFile = uploadRes?.files?.[0];
+    if (!uploadedFile) throw new Error('Failed to upload reference audio to Hasan XTTS space');
+
+    const fileUrl = 'https://hasanbasbunar-voice-cloning-xtts-v2.hf.space/gradio_api/file=' + uploadedFile;
+
+    const predictionPromise = client.predict('/voice_clone_synthesis', [
       targetText,
-      inputBlob,
+      fileUrl,
+      null, // example_audio_name
+      'English',
+      0.75, // temperature
+      1, // speed
+      true, // do_sample
+      5, // repetition_penalty
+      1, // length_penalty
+      30, // gpt_cond_len
+      50, // top_k
+      0.85, // top_p
+      true, // remove_silence_enabled
+      -45, // silence_threshold
+      300, // min_silence_len
+      100, // keep_silence
+      'Native XTTS splitting',
+      250, // max_chars_per_segment
+      false, // enable_preprocessing
     ]);
 
     const result: any = await Promise.race([predictionPromise, timeoutPromise]);
@@ -116,45 +131,35 @@ export async function synthesizeNeuralVoiceClone(
 
     const outputData = result?.data?.[0];
     const audioUrl = typeof outputData === 'string' ? outputData : outputData?.url;
+    if (!audioUrl) throw new Error('No audio URL returned from Hasan XTTS');
 
-    if (!audioUrl) {
-      throw new Error('XTTS-v2 finished without returning an audio stream.');
-    }
+    const res = await fetch(audioUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status} downloading audio from Hasan XTTS`);
+    const arrayBuffer = await res.arrayBuffer();
 
-    const audioResponse = await fetch(audioUrl);
-    if (!audioResponse.ok) {
-      throw new Error(`Failed to download audio from XTTS-v2: HTTP ${audioResponse.status}`);
-    }
-
-    const arrayBuffer = await audioResponse.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const contentType = audioResponse.headers.get('content-type') || 'audio/wav';
-
-    console.log('[Neural Voice Clone] Primary Engine (Coqui XTTS-v2) succeeded!');
     return {
-      buffer,
-      contentType,
-      engine: 'Coqui-XTTS-v2',
+      buffer: Buffer.from(arrayBuffer),
+      contentType: res.headers.get('content-type') || 'audio/mpeg',
+      engine: 'Coqui-XTTS-v2 (Hasan-A10G)',
     };
-  } catch (xttsErr) {
-    console.warn('[Neural Voice Clone] Primary Engine (XTTS-v2) failed or timed out:', xttsErr);
-    cachedXTTSClient = null;
-    lastError = xttsErr;
+  } catch (err) {
+    if (timeoutId) clearTimeout(timeoutId);
+    cachedHasanClient = null;
+    throw err;
   }
+}
 
-  // 2. SECONDARY ENGINE: F5-TTS Flow Matching
+// 3. Synthesize with F5-TTS Flow Matching
+async function tryF5TTS(inputBlob: Blob, targetText: string, refText: string, removeSilence: boolean, timeoutMs: number): Promise<HFVoiceCloneResult> {
+  const client = await getF5Client();
+
+  let timeoutId: NodeJS.Timeout | null = null;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('F5-TTS request timed out')), timeoutMs);
+  });
+
   try {
-    console.log('[Neural Voice Clone] Attempting Secondary Engine: F5-TTS...');
-    const f5Client = await getF5Client();
-
-    let timeoutId: NodeJS.Timeout | null = null;
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutId = setTimeout(() => {
-        reject(new Error('F5-TTS request timed out after 45s.'));
-      }, 45000);
-    });
-
-    const predictionPromise = f5Client.predict('/predict', [
+    const predictionPromise = client.predict('/predict', [
       inputBlob,
       refText,
       targetText,
@@ -166,35 +171,82 @@ export async function synthesizeNeuralVoiceClone(
 
     const outputData = result?.data?.[0];
     const audioUrl = typeof outputData === 'string' ? outputData : outputData?.url;
+    if (!audioUrl) throw new Error('No audio URL returned from F5-TTS');
 
-    if (!audioUrl) {
-      throw new Error('F5-TTS finished without returning an audio stream.');
-    }
+    const res = await fetch(audioUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status} downloading audio from F5-TTS`);
+    const arrayBuffer = await res.arrayBuffer();
 
-    const audioResponse = await fetch(audioUrl);
-    if (!audioResponse.ok) {
-      throw new Error(`Failed to download audio from F5-TTS: HTTP ${audioResponse.status}`);
-    }
-
-    const arrayBuffer = await audioResponse.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const contentType = audioResponse.headers.get('content-type') || 'audio/wav';
-
-    console.log('[Neural Voice Clone] Secondary Engine (F5-TTS) succeeded!');
     return {
-      buffer,
-      contentType,
-      engine: 'HuggingFace-F5-TTS',
+      buffer: Buffer.from(arrayBuffer),
+      contentType: res.headers.get('content-type') || 'audio/wav',
+      engine: 'F5-TTS (Flow-Matching-A10G)',
     };
-  } catch (f5Err) {
-    console.warn('[Neural Voice Clone] Secondary Engine (F5-TTS) failed:', f5Err);
+  } catch (err) {
+    if (timeoutId) clearTimeout(timeoutId);
     cachedF5Client = null;
-    lastError = f5Err;
+    throw err;
+  }
+}
+
+/**
+ * Main Multi-Space Load Balancer & Failover Dispatcher
+ */
+export async function synthesizeNeuralVoiceClone(
+  audioBlob: Blob | Buffer,
+  targetText: string,
+  options: HFVoiceCloneOptions = {}
+): Promise<HFVoiceCloneResult> {
+  const { refText = '', removeSilence = true, timeoutMs = 45000 } = options;
+
+  let inputBlob: Blob;
+  if (Buffer.isBuffer(audioBlob)) {
+    inputBlob = new Blob([audioBlob as unknown as BlobPart], { type: 'audio/wav' });
+  } else {
+    inputBlob = audioBlob;
   }
 
-  // If both engines failed, throw clear error (DO NOT silently replace with Brian/Ava!)
+  // Create an ordered execution list based on round-robin
+  const engines = [
+    {
+      name: 'Coqui XTTS-v2 (TonyAssi-A10G)',
+      fn: () => tryTonyAssi(inputBlob, targetText, timeoutMs),
+    },
+    {
+      name: 'Coqui XTTS-v2 (Hasan-A10G)',
+      fn: () => tryHasanBasbunar(inputBlob, targetText, timeoutMs),
+    },
+    {
+      name: 'F5-TTS (FlowMatching-A10G)',
+      fn: () => tryF5TTS(inputBlob, targetText, refText, removeSilence, timeoutMs),
+    },
+  ];
+
+  // Rotate starting engine
+  const startIdx = requestCounter++ % engines.length;
+  const orderedEngines = [
+    ...engines.slice(startIdx),
+    ...engines.slice(0, startIdx),
+  ];
+
+  const errors: string[] = [];
+
+  for (const engine of orderedEngines) {
+    try {
+      console.log(`[Neural Voice Pool] Dispatching request to ${engine.name}...`);
+      const result = await engine.fn();
+      console.log(`[Neural Voice Pool] ${engine.name} succeeded!`);
+      return result;
+    } catch (err) {
+      const errMsg = (err as Error)?.message || String(err);
+      console.warn(`[Neural Voice Pool] ${engine.name} failed: ${errMsg}. Trying next in pool...`);
+      errors.push(`${engine.name}: ${errMsg}`);
+    }
+  }
+
+  // If all 3 engines failed
   throw new Error(
-    `AI Voice Cloning GPU cluster is currently busy or experiencing high traffic. Please wait 10-15 seconds and try again. (${(lastError as Error)?.message || lastError})`
+    `All 3 AI Voice GPU clusters are currently busy or cooling down. Please wait 10-15s and retry. (${errors.join(' | ')})`
   );
 }
 
