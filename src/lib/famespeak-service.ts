@@ -297,7 +297,7 @@ export async function synthesizeFameSpeakVoiceClone(
   rawAudioBuffer: Buffer,
   text: string,
   options?: { voiceName?: string; mimeType?: string; timeoutMs?: number }
-): Promise<{ buffer: Buffer; contentType: string; engine: string }> {
+): Promise<{ buffer: Buffer; contentType: string; engine: string; voiceId: string }> {
   const voiceName = options?.voiceName || 'EmpireNexs Cloned Voice';
   const mimeType = options?.mimeType || 'audio/mp3';
   const timeoutMs = options?.timeoutMs || 55000;
@@ -309,6 +309,7 @@ export async function synthesizeFameSpeakVoiceClone(
     buffer: result.buffer,
     contentType: result.contentType,
     engine: 'FameSpeak-Neural-Pro',
+    voiceId,
   };
 }
 

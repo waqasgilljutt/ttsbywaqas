@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
     let buffer: Buffer = Buffer.alloc(0);
     let contentType = 'audio/mpeg';
     let engineUsed = 'FameSpeak-Neural-Pro';
+    let activeVoiceId = famespeakVoiceId || '';
 
     // A) Direct synthesis with a saved FameSpeak voice ID
     if (famespeakVoiceId && isFameSpeakConfigured()) {
@@ -113,6 +114,7 @@ export async function POST(req: NextRequest) {
           buffer = fameResult.buffer;
           contentType = fameResult.contentType;
           engineUsed = fameResult.engine;
+          activeVoiceId = fameResult.voiceId || activeVoiceId;
           cloneSuccess = true;
           console.log(`[Voice Cloning] FameSpeak Neural Pro synthesis successful (${buffer.length} bytes).`);
         } catch (fameErr: unknown) {
@@ -176,6 +178,7 @@ export async function POST(req: NextRequest) {
         'Content-Length': buffer.length.toString(),
         'Content-Disposition': `inline; filename="cloned-${encodeURIComponent(voiceName)}.${fileExt}"`,
         'X-Cloning-Engine': engineUsed,
+        ...(activeVoiceId ? { 'X-FameSpeak-Voice-Id': activeVoiceId } : {}),
         'Cache-Control': 'no-cache',
       },
     });

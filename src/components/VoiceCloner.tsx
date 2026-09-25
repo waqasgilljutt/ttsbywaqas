@@ -590,11 +590,14 @@ export function VoiceCloner({
 
     try {
       const finalWavBlob = audioBlobToUse ? await transcodeAudioToStandardWav(audioBlobToUse) : null;
+      let registeredVoiceId: string | null = null;
       const audioBlob = await synthesizeLargeScript(
         scriptText.trim(),
         async (chunkText, chunkIndex) => {
           const formData = new FormData();
-          if (finalWavBlob) {
+          if (registeredVoiceId) {
+            formData.append('famespeakVoiceId', registeredVoiceId);
+          } else if (finalWavBlob) {
             formData.append('audio', finalWavBlob, 'voice-sample.wav');
           }
           if (referenceText.trim()) {
@@ -625,6 +628,11 @@ export function VoiceCloner({
             throw new Error(parsedErr || `Voice cloning failed (HTTP ${response.status}).`);
           }
 
+          const fsVoiceId = response.headers.get('x-famespeak-voice-id');
+          if (fsVoiceId && !registeredVoiceId) {
+            registeredVoiceId = fsVoiceId;
+          }
+
           return await response.blob();
         },
         (progressInfo) => {
@@ -634,7 +642,7 @@ export function VoiceCloner({
           setCloneProgress(progressInfo.percent);
           setCloneStatusText(progressInfo.statusText);
         },
-        1200
+        2400
       );
 
       const audioUrl = URL.createObjectURL(audioBlob);
