@@ -5,11 +5,46 @@ import {
   isFameSpeakConfigured,
   synthesizeFameSpeakVoiceClone,
   generateSpeechFromVoiceId,
+  startFameSpeakVoiceCloneJob,
+  checkFameSpeakJobStatus,
+  downloadFameSpeakJobAudio,
 } from '@/lib/famespeak-service';
 import { checkCreditBalance, deductCredits, MAX_PER_VOICE_CHARACTERS } from '@/lib/user-store';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
+
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const jobId = searchParams.get('jobId');
+    const audioJobId = searchParams.get('audioJobId') || searchParams.get('audioUrl');
+
+    if (audioJobId) {
+      const audioResult = await downloadFameSpeakJobAudio(audioJobId);
+      return new Response(new Uint8Array(audioResult.buffer), {
+        status: 200,
+        headers: {
+          'Content-Type': audioResult.contentType,
+          'Content-Length': audioResult.buffer.length.toString(),
+          'Cache-Control': 'no-cache',
+        },
+      });
+    }
+
+    if (jobId) {
+      const statusResult = await checkFameSpeakJobStatus(jobId);
+      return NextResponse.json(statusResult);
+    }
+
+    return NextResponse.json({ error: 'Missing jobId or audioJobId query parameter' }, { status: 400 });
+  } catch (err: unknown) {
+    return NextResponse.json(
+      { error: (err as Error)?.message || 'Status query failed' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -74,6 +109,42 @@ export async function POST(req: NextRequest) {
     let contentType = 'audio/mpeg';
     let engineUsed = 'FameSpeak-Neural-Pro';
     let activeVoiceId = famespeakVoiceId || '';
+
+    const isAsync = req.headers.get('x-async-clone') === 'true' || formData.get('async') === 'true';
+
+    // Fast-path: Async non-blocking generation for FameSpeak (immune to 10s Vercel timeouts!)
+    if (isAsync && isFameSpeakConfigured() && (hasAudio || famespeakVoiceId)) {
+      try {
+        let rawAudioBuffer: Buffer | null = null;
+        let mimeType = 'audio/wav';
+        if (hasAudio) {
+          const arrayBuffer = await audioFile.arrayBuffer();
+          rawAudioBuffer = Buffer.from(arrayBuffer);
+          mimeType = audioFile.type || 'audio/wav';
+        }
+
+        const job = await startFameSpeakVoiceCloneJob(
+          rawAudioBuffer,
+          famespeakVoiceId,
+          trimmedText,
+          { voiceName, mimeType }
+        );
+
+        if (userEmail && !skipDeduct) {
+          deductCredits(userEmail, charCount);
+        }
+
+        return NextResponse.json({
+          status: 'IN_PROGRESS',
+          jobId: job.jobId,
+          voiceId: job.voiceId,
+          statusUrl: job.statusUrl,
+          engine: 'FameSpeak-Neural-Pro',
+        }, { status: 202 });
+      } catch (err: unknown) {
+        console.warn('[Voice Cloning Async] FameSpeak job start failed, falling back to sync:', err);
+      }
+    }
 
     // A) Direct synthesis with a saved FameSpeak voice ID
     if (famespeakVoiceId && isFameSpeakConfigured()) {

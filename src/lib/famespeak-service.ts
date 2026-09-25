@@ -332,3 +332,109 @@ export async function listFameSpeakSavedVoices(): Promise<Array<{ id: string; na
     return [];
   }
 }
+
+/**
+ * 1. Submit an asynchronous generation job (finishes in <1 second)
+ */
+export async function startFameSpeakVoiceCloneJob(
+  rawAudioBuffer: Buffer | null,
+  existingVoiceId: string | null,
+  text: string,
+  options?: { voiceName?: string; mimeType?: string }
+): Promise<{ jobId: string; voiceId: string; statusUrl: string }> {
+  const key = getFameSpeakApiKey();
+  if (!key) throw new Error('FAMESPEAK_API_KEY is not configured');
+
+  let targetVoiceId = existingVoiceId;
+  if (!targetVoiceId && rawAudioBuffer) {
+    const voiceName = options?.voiceName || 'EmpireNexs Cloned Voice';
+    const mimeType = options?.mimeType || 'audio/mp3';
+    targetVoiceId = await registerFameSpeakVoice(rawAudioBuffer, voiceName, mimeType);
+  }
+
+  if (!targetVoiceId) {
+    throw new Error('Either voice sample audio or an existing voiceId is required.');
+  }
+
+  const idempotencyKey = `gen-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const submitRes = await fetch(`${FAMESPEAK_API_BASE}/voice-clone/voices/${targetVoiceId}/generations`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      'Idempotency-Key': idempotencyKey,
+    },
+    body: JSON.stringify({ text }),
+  });
+
+  const submitData = await submitRes.json();
+  if (!submitRes.ok || !submitData.id) {
+    throw new Error(`FameSpeak generation start failed: ${submitData.error || JSON.stringify(submitData)}`);
+  }
+
+  return {
+    jobId: submitData.id,
+    voiceId: targetVoiceId,
+    statusUrl: submitData.statusUrl,
+  };
+}
+
+/**
+ * 2. Check the status of an asynchronous generation (finishes in ~100ms)
+ */
+export async function checkFameSpeakJobStatus(jobId: string): Promise<{
+  status: 'COMPLETED' | 'IN_PROGRESS' | 'FAILED' | 'UNKNOWN';
+  audioUrl?: string;
+  progress?: any;
+  error?: string | null;
+}> {
+  const key = getFameSpeakApiKey();
+  if (!key) throw new Error('FAMESPEAK_API_KEY is not configured');
+
+  const res = await fetch(`${FAMESPEAK_API_BASE}/voice-clone/generations/${jobId}`, {
+    headers: { Authorization: `Bearer ${key}` },
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`FameSpeak status check failed (HTTP ${res.status}): ${errText}`);
+  }
+
+  const data = await res.json();
+  const rawStatus = String(data.status || '').toUpperCase();
+
+  return {
+    status: rawStatus === 'COMPLETED' ? 'COMPLETED' : (rawStatus === 'FAILED' ? 'FAILED' : 'IN_PROGRESS'),
+    audioUrl: data.audioUrl,
+    progress: data.progress,
+    error: data.error,
+  };
+}
+
+/**
+ * 3. Download the completed audio buffer (finishes in ~500ms)
+ */
+export async function downloadFameSpeakJobAudio(audioUrlOrJobId: string): Promise<{ buffer: Buffer; contentType: string }> {
+  const key = getFameSpeakApiKey();
+  if (!key) throw new Error('FAMESPEAK_API_KEY is not configured');
+
+  const url = audioUrlOrJobId.startsWith('http')
+    ? audioUrlOrJobId
+    : (audioUrlOrJobId.startsWith('/')
+      ? `https://famespeak.online${audioUrlOrJobId}`
+      : `${FAMESPEAK_API_BASE}/voice-clone/generations/${audioUrlOrJobId}/audio`);
+
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${key}` },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to download audio from FameSpeak (HTTP ${res.status})`);
+  }
+
+  const arrayBuf = await res.arrayBuffer();
+  return {
+    buffer: Buffer.from(arrayBuf),
+    contentType: 'audio/mpeg',
+  };
+}

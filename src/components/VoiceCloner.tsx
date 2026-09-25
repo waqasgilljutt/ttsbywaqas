@@ -613,6 +613,7 @@ export function VoiceCloner({
 
           const response = await fetch('/api/clone', {
             method: 'POST',
+            headers: { 'x-async-clone': 'true' },
             body: formData,
           });
 
@@ -626,6 +627,32 @@ export function VoiceCloner({
               parsedErr = errText.slice(0, 120);
             }
             throw new Error(parsedErr || `Voice cloning failed (HTTP ${response.status}).`);
+          }
+
+          // Async non-blocking generation (HTTP 202 Accepted)
+          if (response.status === 202) {
+            const jobData = await response.json();
+            const jobId = jobData.jobId;
+            if (jobData.voiceId && !registeredVoiceId) {
+              registeredVoiceId = jobData.voiceId;
+            }
+
+            const pollStartTime = Date.now();
+            while (Date.now() - pollStartTime < 90000) {
+              await new Promise((r) => setTimeout(r, 1500));
+              const pollRes = await fetch(`/api/clone?jobId=${jobId}`);
+              if (!pollRes.ok) continue;
+              const pollData = await pollRes.json();
+              if (pollData.status === 'COMPLETED' || pollData.status === 'completed') {
+                const audioRes = await fetch(`/api/clone?audioJobId=${encodeURIComponent(pollData.audioUrl || jobId)}`);
+                if (!audioRes.ok) throw new Error('Failed to retrieve synthesized voice stream.');
+                return await audioRes.blob();
+              }
+              if (pollData.status === 'FAILED' || pollData.status === 'failed') {
+                throw new Error(pollData.error || 'Voice generation failed on neural engine.');
+              }
+            }
+            throw new Error('Voice generation timed out on neural engine.');
           }
 
           const fsVoiceId = response.headers.get('x-famespeak-voice-id');
