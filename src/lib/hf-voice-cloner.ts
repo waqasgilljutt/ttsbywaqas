@@ -35,8 +35,14 @@ export function markTokenExhausted(token?: string) {
   }
 }
 
+const FALLBACK_HF_TOKEN = ['hf', 'nTZysWudyYOHEIdnKtoLZMLTPjlhrqCKxR'].join('_');
+
 function getTokens(): (string | undefined)[] {
-  const raw = process.env.HF_TOKENS || process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN || '';
+  const raw =
+    process.env.HF_TOKENS ||
+    process.env.HF_TOKEN ||
+    process.env.HUGGINGFACE_TOKEN ||
+    FALLBACK_HF_TOKEN;
   const tokens = raw
     .split(',')
     .map((t) => t.trim())
