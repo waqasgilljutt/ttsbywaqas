@@ -25,7 +25,6 @@ import {
   Share2,
   Zap,
 } from 'lucide-react';
-import { synthesizeLargeScript } from '@/lib/batch-synthesizer';
 import { transcodeAudioToStandardWav } from '@/lib/audio-transcoder';
 
 export interface SavedClone {
@@ -590,88 +589,99 @@ export function VoiceCloner({
 
     try {
       const finalWavBlob = audioBlobToUse ? await transcodeAudioToStandardWav(audioBlobToUse) : null;
-      let registeredVoiceId: string | null = null;
-      const audioBlob = await synthesizeLargeScript(
-        scriptText.trim(),
-        async (chunkText, chunkIndex) => {
-          const formData = new FormData();
-          if (registeredVoiceId) {
-            formData.append('neuralVoiceId', registeredVoiceId);
-          } else if (finalWavBlob) {
-            formData.append('audio', finalWavBlob, 'voice-sample.wav');
-          }
-          if (referenceText.trim()) {
-            formData.append('refText', referenceText.trim());
-          }
-          formData.append('text', chunkText);
-          formData.append('voiceName', voiceName.trim() || 'My Voice Clone');
-          formData.append('gender', gender);
-          formData.append('locale', locale);
-          formData.append('tone', tone);
-          formData.append('userEmail', currentUser.email);
-          formData.append('skipDeduct', 'true');
-          formData.append('async', 'true');
+      
+      const formData = new FormData();
+      if (finalWavBlob) {
+        formData.append('audio', finalWavBlob, 'voice-sample.wav');
+      }
+      formData.append('text', scriptText.trim());
+      formData.append('voiceName', voiceName.trim() || 'My Voice Clone');
+      formData.append('gender', gender);
+      formData.append('locale', locale);
+      formData.append('tone', tone);
+      formData.append('userEmail', currentUser.email);
+      formData.append('skipDeduct', 'true');
+      formData.append('async', 'true');
 
-          const response = await fetch('/api/clone', {
-            method: 'POST',
-            headers: { 'x-async-clone': 'true' },
-            body: formData,
-          });
+      const response = await fetch('/api/clone', {
+        method: 'POST',
+        headers: { 'x-async-clone': 'true' },
+        body: formData,
+      });
 
-          if (!response.ok) {
-            const errText = await response.text().catch(() => '');
-            let parsedErr = '';
-            try {
-              const data = JSON.parse(errText);
-              parsedErr = data.error;
-            } catch {
-              parsedErr = errText.slice(0, 120);
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        let parsedErr = '';
+        try {
+          const data = JSON.parse(errText);
+          parsedErr = data.error;
+        } catch {
+          parsedErr = errText.slice(0, 120);
+        }
+        throw new Error(parsedErr || `Voice cloning failed (HTTP ${response.status}).`);
+      }
+
+      let audioBlob: Blob | null = null;
+
+      // Async non-blocking generation (HTTP 202 Accepted)
+      if (response.status === 202) {
+        const jobData = await response.json();
+        const jobId = jobData.jobId;
+        const totalChars = scriptText.trim().length;
+
+        if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+
+        const pollStartTime = Date.now();
+        // Allow up to 6 minutes for massive scripts up to 50,000 characters
+        const maxPollMs = 360000;
+        let lastReportedProgress = 25;
+
+        while (Date.now() - pollStartTime < maxPollMs) {
+          await new Promise((r) => setTimeout(r, 1500));
+          const pollRes = await fetch(`/api/clone?jobId=${jobId}`);
+          if (!pollRes.ok) continue;
+          const pollData = await pollRes.json();
+
+          if (pollData.progress && pollData.progress.totalSegments > 0) {
+            const segRatio = pollData.progress.completedSegments / pollData.progress.totalSegments;
+            const dynamicPercent = Math.min(95, Math.max(25, Math.round(segRatio * 90)));
+            if (dynamicPercent > lastReportedProgress) {
+              lastReportedProgress = dynamicPercent;
             }
-            throw new Error(parsedErr || `Voice cloning failed (HTTP ${response.status}).`);
-          }
-
-          // Async non-blocking generation (HTTP 202 Accepted)
-          if (response.status === 202) {
-            const jobData = await response.json();
-            const jobId = jobData.jobId;
-            if (jobData.voiceId && !registeredVoiceId) {
-              registeredVoiceId = jobData.voiceId;
+            setCloneProgress(lastReportedProgress);
+            setCloneStatusText(
+              `Synthesizing neural speech (${pollData.progress.completedSegments}/${pollData.progress.totalSegments} segments complete)...`
+            );
+          } else {
+            const elapsedSec = (Date.now() - pollStartTime) / 1000;
+            const smoothPercent = Math.min(92, Math.round(25 + elapsedSec * 1.5));
+            if (smoothPercent > lastReportedProgress) {
+              lastReportedProgress = smoothPercent;
             }
-
-            const pollStartTime = Date.now();
-            while (Date.now() - pollStartTime < 90000) {
-              await new Promise((r) => setTimeout(r, 1500));
-              const pollRes = await fetch(`/api/clone?jobId=${jobId}`);
-              if (!pollRes.ok) continue;
-              const pollData = await pollRes.json();
-              if (pollData.status === 'COMPLETED' || pollData.status === 'completed') {
-                const audioRes = await fetch(`/api/clone?audioJobId=${encodeURIComponent(pollData.audioUrl || jobId)}`);
-                if (!audioRes.ok) throw new Error('Failed to retrieve synthesized voice stream.');
-                return await audioRes.blob();
-              }
-              if (pollData.status === 'FAILED' || pollData.status === 'failed') {
-                throw new Error(pollData.error || 'Voice generation failed on neural engine.');
-              }
-            }
-            throw new Error('Voice generation timed out on neural engine.');
+            setCloneProgress(lastReportedProgress);
+            setCloneStatusText(`Synthesizing neural voice for ${totalChars.toLocaleString()} characters...`);
           }
 
-          const fsVoiceId = response.headers.get('x-neural-voice-id') || response.headers.get('x-cloned-voice-id');
-          if (fsVoiceId && !registeredVoiceId) {
-            registeredVoiceId = fsVoiceId;
+          if (pollData.status === 'COMPLETED' || pollData.status === 'completed') {
+            setCloneProgress(96);
+            setCloneStatusText('Mastering & downloading synthesized voice audio...');
+            const audioRes = await fetch(`/api/clone?audioJobId=${encodeURIComponent(pollData.audioUrl || jobId)}`);
+            if (!audioRes.ok) throw new Error('Failed to retrieve synthesized voice stream.');
+            audioBlob = await audioRes.blob();
+            break;
           }
 
-          return await response.blob();
-        },
-        (progressInfo) => {
-          if (progressTimerRef.current && progressInfo.totalChunks > 1) {
-            clearInterval(progressTimerRef.current);
+          if (pollData.status === 'FAILED' || pollData.status === 'failed') {
+            throw new Error(pollData.error || 'Voice generation failed on neural engine.');
           }
-          setCloneProgress(progressInfo.percent);
-          setCloneStatusText(progressInfo.statusText);
-        },
-        2400
-      );
+        }
+
+        if (!audioBlob) {
+          throw new Error('Voice generation timed out on neural engine. Please try again.');
+        }
+      } else {
+        audioBlob = await response.blob();
+      }
 
       const audioUrl = URL.createObjectURL(audioBlob);
 
@@ -1222,7 +1232,7 @@ export function VoiceCloner({
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>
-                      <strong>Long-Form Batch Engine Active:</strong> Your {scriptText.length.toLocaleString()} character script will be synthesized across smooth chapters into one continuous MP3 with zero timeouts.
+                      <strong>High-Capacity Neural Studio:</strong> Your {scriptText.length.toLocaleString()} character script will be synthesized directly in studio high fidelity in a single fast pass.
                     </span>
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full shrink-0">
