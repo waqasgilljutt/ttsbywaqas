@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Menu, Radio, Sparkles, User as UserIcon, LogOut, Zap } from 'lucide-react';
+import { Menu, Radio, Sparkles, User as UserIcon, LogOut, Zap, Clock, AlertTriangle } from 'lucide-react';
 import { TabType } from './Sidebar';
+import { UserCredits } from '@/context/AppContext';
 
 interface TopNavbarProps {
   activeTab: TabType;
@@ -10,7 +11,7 @@ interface TopNavbarProps {
   onOpenAuthModal: () => void;
   currentUser: { name: string; email: string } | null;
   onLogout: () => void;
-  userCredits?: { isUnlimited: boolean; creditsUsed: number; creditLimit: number; remainingCredits: number; planName: string } | null;
+  userCredits?: UserCredits | null;
   onOpenPricing?: () => void;
 }
 
@@ -109,31 +110,57 @@ export function TopNavbar({
         {/* User Account / Sign In */}
         {currentUser ? (
           <div className="flex items-center gap-2 pl-2">
-            {/* Live Credits Badge */}
+            {/* Live Credits / Expiration Badge */}
             <button
               type="button"
               onClick={onOpenPricing}
-              title="Click to recharge credits"
+              title={
+                userCredits?.isExpired
+                  ? 'Your monthly plan has expired. Click to renew.'
+                  : userCredits?.isExpiringSoon
+                  ? `Your plan expires in ${userCredits.daysRemaining} days. Click to recharge.`
+                  : 'Click to view plans and recharge credits'
+              }
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all hover:scale-105 active:scale-95 shadow-xs ${
-                isOwner || userCredits?.isUnlimited
+                userCredits?.isExpired
+                  ? 'bg-rose-100 border-rose-300 text-rose-800 animate-pulse'
+                  : userCredits?.isExpiringSoon
+                  ? 'bg-amber-100 border-amber-300 text-amber-900 shadow-amber-500/10'
+                  : isOwner || userCredits?.isUnlimited
                   ? 'bg-gradient-to-r from-amber-100 to-yellow-100 border-amber-300 text-amber-900 shadow-amber-500/10'
                   : userCredits && userCredits.remainingCredits <= 2000
                   ? 'bg-rose-50 border-rose-300 text-rose-700 animate-pulse'
                   : 'bg-emerald-50 border-emerald-300 text-emerald-800'
               }`}
             >
-              <Zap
-                className={`w-3.5 h-3.5 ${
-                  isOwner || userCredits?.isUnlimited
-                    ? 'text-amber-600 fill-amber-500'
-                    : 'text-emerald-600'
-                }`}
-              />
-              <span>
-                {isOwner || userCredits?.isUnlimited
-                  ? 'Unlimited VIP'
-                  : `${(userCredits ? userCredits.remainingCredits : 30000).toLocaleString()} Credits`}
-              </span>
+              {userCredits?.isExpired ? (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Plan Expired (Renew)</span>
+                </>
+              ) : userCredits?.isExpiringSoon ? (
+                <>
+                  <Clock className="w-3.5 h-3.5 text-amber-700 animate-spin" />
+                  <span>
+                    Expiring in {userCredits.daysRemaining}d ({userCredits.isUnlimited ? 'VIP' : `${(userCredits.remainingCredits || 0).toLocaleString()} cr`})
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Zap
+                    className={`w-3.5 h-3.5 ${
+                      isOwner || userCredits?.isUnlimited
+                        ? 'text-amber-600 fill-amber-500'
+                        : 'text-emerald-600'
+                    }`}
+                  />
+                  <span>
+                    {isOwner || userCredits?.isUnlimited
+                      ? 'Unlimited VIP'
+                      : `${(userCredits ? userCredits.remainingCredits : 30000).toLocaleString()} Credits`}
+                  </span>
+                </>
+              )}
             </button>
 
             <div

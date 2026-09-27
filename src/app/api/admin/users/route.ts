@@ -9,6 +9,7 @@ import {
   checkCreditBalance,
   deductCredits,
   setUserPlan,
+  extendUserPlanDays,
   adjustUserCreditLimit,
   PLANS_CONFIG,
   UserPlanType,
@@ -20,6 +21,38 @@ import {
 import { getActiveOTPs } from '@/lib/email-service';
 
 export const dynamic = 'force-dynamic';
+
+function getEnrichedUsers(): StoredUser[] {
+  const rawUsers = getAllUsers();
+  const now = Date.now();
+  return rawUsers.map((u) => {
+    let daysRemaining: number | null = null;
+    let planStatus: 'active' | 'expiring_soon' | 'expired' = u.planStatus || 'active';
+
+    if (u.role !== 'owner' && u.planExpiresAt) {
+      const diffMs = new Date(u.planExpiresAt).getTime() - now;
+      if (diffMs <= 0) {
+        daysRemaining = 0;
+        planStatus = 'expired';
+        u.planStatus = 'expired';
+      } else {
+        daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        if (daysRemaining <= 3) {
+          planStatus = 'expiring_soon';
+          u.planStatus = 'expiring_soon';
+        } else {
+          planStatus = 'active';
+          u.planStatus = 'active';
+        }
+      }
+    }
+    return {
+      ...u,
+      daysRemaining,
+      planStatus,
+    };
+  });
+}
 
 export async function GET(req: NextRequest) {
   const pin = req.headers.get('x-admin-pin');
@@ -35,7 +68,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const users = getAllUsers();
+  const users = getEnrichedUsers();
   const otps = getActiveOTPs();
   return NextResponse.json({ success: true, users, otps });
 }
@@ -140,7 +173,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Get live credit balance for a user
+    // Get live credit balance and monthly expiry status for a user
     if (action === 'get-credits') {
       const { email, clientCreditsUsed } = body;
       if (!email) {
@@ -176,7 +209,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, balance });
     }
 
-    // Protected Admin Actions: Toggle Block, Delete, Plan & Credit Management
+    // Protected Admin Actions: Toggle Block, Delete, Plan & Expiry Management
     const pin = body.pin || req.headers.get('x-admin-pin');
     const userEmail = req.headers.get('x-user-email');
     const isOwner = userEmail && userEmail.toLowerCase() === OWNER_EMAIL.toLowerCase();
@@ -189,24 +222,39 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Admin: Set a predefined plan (Free, 1M, 3M, 10M, Unlimited)
+    // Admin: Set a predefined monthly plan (Free, 1M, 3M, 10M, Unlimited)
     if (action === 'set-plan') {
-      const { userId, planKey } = body;
-      const result = setUserPlan(userId, planKey as UserPlanType);
+      const { userId, planKey, durationDays } = body;
+      const result = setUserPlan(userId, planKey as UserPlanType, durationDays ? Number(durationDays) : 30);
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 400 });
       }
-      return NextResponse.json({ success: true, user: result.user, users: getAllUsers() });
+      return NextResponse.json({ success: true, user: result.user, users: getEnrichedUsers() });
     }
 
-    // Admin: Dynamically adjust / set custom credit limit
-    if (action === 'adjust-credits') {
-      const { userId, newCreditLimit, customPlanName } = body;
-      const result = adjustUserCreditLimit(userId, Number(newCreditLimit), customPlanName);
+    // Admin: Extend existing plan by X days (+30 days, etc.)
+    if (action === 'extend-plan') {
+      const { userId, extraDays } = body;
+      const result = extendUserPlanDays(userId, extraDays ? Number(extraDays) : 30);
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 400 });
       }
-      return NextResponse.json({ success: true, user: result.user, users: getAllUsers() });
+      return NextResponse.json({ success: true, user: result.user, users: getEnrichedUsers() });
+    }
+
+    // Admin: Dynamically adjust / set custom credit limit with validity duration
+    if (action === 'adjust-credits') {
+      const { userId, newCreditLimit, customPlanName, durationDays } = body;
+      const result = adjustUserCreditLimit(
+        userId,
+        Number(newCreditLimit),
+        customPlanName,
+        durationDays ? Number(durationDays) : 30
+      );
+      if (!result.success) {
+        return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+      }
+      return NextResponse.json({ success: true, user: result.user, users: getEnrichedUsers() });
     }
 
     if (action === 'toggle-block') {
@@ -215,7 +263,7 @@ export async function POST(req: NextRequest) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 400 });
       }
-      return NextResponse.json({ success: true, user: result.user, users: getAllUsers() });
+      return NextResponse.json({ success: true, user: result.user, users: getEnrichedUsers() });
     }
 
     if (action === 'delete') {
@@ -224,7 +272,7 @@ export async function POST(req: NextRequest) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 400 });
       }
-      return NextResponse.json({ success: true, users: getAllUsers() });
+      return NextResponse.json({ success: true, users: getEnrichedUsers() });
     }
 
     return NextResponse.json({ success: false, error: 'Invalid action specified.' }, { status: 400 });

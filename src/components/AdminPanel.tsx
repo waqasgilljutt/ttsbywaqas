@@ -25,6 +25,7 @@ import {
   Check,
   Crown,
   Coins,
+  Calendar,
 } from 'lucide-react';
 import { StoredUser, OWNER_EMAIL } from '@/lib/user-store';
 
@@ -49,6 +50,7 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
   const [selectedUserForPlan, setSelectedUserForPlan] = useState<StoredUser | null>(null);
   const [customCreditInput, setCustomCreditInput] = useState<string>('');
   const [customPlanNameInput, setCustomPlanNameInput] = useState<string>('');
+  const [planDurationDays, setPlanDurationDays] = useState<number>(30);
   const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
 
   // Check if session PIN was already verified in this session
@@ -277,8 +279,12 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
     }
   };
 
-  // Plan Assignment by Waqas Gill
-  const handleAssignPlan = async (user: StoredUser, planKey: 'free' | '1m' | '3m' | '10m' | 'unlimited') => {
+  // Plan Assignment by Waqas Gill with customizable monthly validity duration
+  const handleAssignPlan = async (
+    user: StoredUser,
+    planKey: 'free' | '1m' | '3m' | '10m' | 'unlimited',
+    durationDays = planDurationDays
+  ) => {
     setIsUpdatingPlan(true);
     try {
       const activePin = pin || sessionStorage.getItem('empirenexs_admin_pin') || '';
@@ -289,6 +295,7 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
           action: 'set-plan',
           userId: user.id,
           planKey,
+          durationDays,
           pin: activePin,
         }),
       });
@@ -302,18 +309,53 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
           parsed.plan = planKey;
           parsed.planName = data.user?.planName || planKey;
           parsed.creditLimit = data.user?.creditLimit;
+          parsed.creditsUsed = 0;
           parsed.isUnlimited = planKey === 'unlimited';
-          parsed.remainingCredits = planKey === 'unlimited' ? Infinity : Math.max(0, (data.user?.creditLimit || 30000) - (parsed.creditsUsed || 0));
+          parsed.remainingCredits = planKey === 'unlimited' ? Infinity : (data.user?.creditLimit || 30000);
+          parsed.planExpiresAt = data.user?.planExpiresAt;
+          parsed.daysRemaining = durationDays;
+          parsed.isExpired = false;
+          parsed.isExpiringSoon = false;
           localStorage.setItem(targetKey, JSON.stringify(parsed));
         } catch {}
 
-        showNotice(`Plan for ${user.name} successfully updated to ${planKey.toUpperCase()}!`);
+        showNotice(`Plan for ${user.name} updated to ${planKey.toUpperCase()} for ${durationDays} days!`);
         setSelectedUserForPlan(null);
       } else {
         showNotice(data.error || 'Failed to update plan.', 'error');
       }
     } catch {
       showNotice('Network error while updating plan.', 'error');
+    } finally {
+      setIsUpdatingPlan(false);
+    }
+  };
+
+  // Quick Plan Extension Action (+30 Days)
+  const handleExtendPlan = async (user: StoredUser, extraDays = 30) => {
+    setIsUpdatingPlan(true);
+    try {
+      const activePin = pin || sessionStorage.getItem('empirenexs_admin_pin') || '';
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'extend-plan',
+          userId: user.id,
+          extraDays,
+          pin: activePin,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.users) {
+        setUsers(data.users);
+        showNotice(`Plan for ${user.name} extended by +${extraDays} days!`);
+        setSelectedUserForPlan(null);
+      } else {
+        showNotice(data.error || 'Failed to extend plan.', 'error');
+      }
+    } catch {
+      showNotice('Network error while extending plan.', 'error');
     } finally {
       setIsUpdatingPlan(false);
     }
@@ -337,6 +379,7 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
           userId: user.id,
           newCreditLimit: limitNum,
           customPlanName: customPlanNameInput.trim() || undefined,
+          durationDays: planDurationDays,
           pin: activePin,
         }),
       });
@@ -351,10 +394,14 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
           if (customPlanNameInput.trim()) parsed.planName = customPlanNameInput.trim();
           parsed.isUnlimited = limitNum === -1;
           parsed.remainingCredits = limitNum === -1 ? Infinity : Math.max(0, limitNum - (parsed.creditsUsed || 0));
+          parsed.planExpiresAt = data.user?.planExpiresAt;
+          parsed.daysRemaining = planDurationDays;
+          parsed.isExpired = false;
+          parsed.isExpiringSoon = false;
           localStorage.setItem(targetKey, JSON.stringify(parsed));
         } catch {}
 
-        showNotice(`Custom limit of ${limitNum === -1 ? 'Unlimited' : limitNum.toLocaleString()} credits set for ${user.name}!`);
+        showNotice(`Custom limit set for ${user.name} with ${planDurationDays} days validity!`);
         setSelectedUserForPlan(null);
       } else {
         showNotice(data.error || 'Failed to adjust credit limit.', 'error');
@@ -375,6 +422,9 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
       'Name',
       'Email',
       'Plan Name',
+      'Plan Expiration Date',
+      'Days Left',
+      'Plan Status',
       'Credits Used',
       'Credit Limit',
       'Role',
@@ -387,7 +437,10 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
       `"${u.id}"`,
       `"${u.name.replace(/"/g, '""')}"`,
       `"${u.email}"`,
-      `"${u.planName || 'Free Starter (30K)'}"`,
+      `"${u.planName || 'Free Starter (Monthly)'}"`,
+      `"${u.planExpiresAt ? new Date(u.planExpiresAt).toLocaleDateString() : 'Never (Owner)'}"`,
+      u.role === 'owner' ? 'Permanent' : (u.daysRemaining ?? 30),
+      `"${u.planStatus || 'active'}"`,
       u.creditsUsed || 0,
       u.creditLimit === -1 ? 'Unlimited' : (u.creditLimit || 30000),
       `"${u.role}"`,
@@ -790,32 +843,65 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
                         </a>
                       </td>
 
-                      {/* Plan & Credits Quota */}
+                      {/* Plan & Credits Quota & Expiry */}
                       <td className="py-4 px-6">
-                        <div className="flex flex-col gap-1.5 min-w-[150px]">
+                        <div className="flex flex-col gap-1.5 min-w-[170px]">
                           <div>
                             {isOwner || user.plan === 'unlimited' ? (
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/15 to-orange-500/15 text-amber-900 border border-amber-300 text-[10px] font-extrabold">
                                 <Crown className="w-3 h-3 text-amber-600 shrink-0" />
-                                <span>Unlimited VIP (4,000 PKR)</span>
+                                <span>Unlimited VIP (Monthly)</span>
                               </span>
                             ) : user.plan === '10m' ? (
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-800 border border-purple-200 text-[10px] font-bold">
-                                <span>💎 10M Studio (2,500 PKR)</span>
+                                <span>💎 10M Studio (2,500 PKR / mo)</span>
                               </span>
                             ) : user.plan === '3m' ? (
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-bold">
-                                <span>🚀 3M Creator (900 PKR)</span>
+                                <span>🚀 3M Creator (900 PKR / mo)</span>
                               </span>
                             ) : user.plan === '1m' ? (
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-50 text-cyan-800 border border-cyan-200 text-[10px] font-bold">
-                                <span>⚡ 1M Starter (300 PKR)</span>
+                                <span>⚡ 1M Starter (300 PKR / mo)</span>
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-medium">
-                                <span>🌱 {user.planName || 'Free Starter (30K)'}</span>
+                                <span>🌱 {user.planName || 'Free Starter (Monthly)'}</span>
                               </span>
                             )}
+                          </div>
+
+                          {/* Live Expiration Date Display for Owner */}
+                          <div className="pt-0.5">
+                            {isOwner ? (
+                              <span className="text-[10px] font-bold text-amber-700 flex items-center gap-1">
+                                <Crown className="w-3 h-3 text-amber-500" /> Never Expires (Owner)
+                              </span>
+                            ) : user.planStatus === 'expired' || (user.daysRemaining !== null && user.daysRemaining !== undefined && user.daysRemaining <= 0) ? (
+                              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-bold">
+                                <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
+                                <span>
+                                  Expired {user.planExpiresAt ? new Date(user.planExpiresAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                                </span>
+                              </div>
+                            ) : user.planStatus === 'expiring_soon' || (user.daysRemaining !== null && user.daysRemaining !== undefined && user.daysRemaining <= 3) ? (
+                              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-300 text-amber-800 text-[10px] font-bold animate-pulse">
+                                <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                                <span>
+                                  Expiring in {user.daysRemaining}d ({user.planExpiresAt ? new Date(user.planExpiresAt).toLocaleDateString([], { month: 'short', day: 'numeric' }) : ''})
+                                </span>
+                              </div>
+                            ) : user.planExpiresAt ? (
+                              <div className="inline-flex items-center gap-1 text-[10px] text-slate-600 font-medium">
+                                <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span>
+                                  Ends {new Date(user.planExpiresAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                                <span className="text-emerald-700 font-bold ml-1">
+                                  ({user.daysRemaining ?? 30}d left)
+                                </span>
+                              </div>
+                            ) : null}
                           </div>
 
                           <div className="text-[11px] font-mono text-slate-600 flex items-center justify-between">
@@ -967,27 +1053,90 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
             </div>
 
             {/* Current Status Pill */}
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Current Plan</span>
-                <span className="font-bold text-slate-800 text-sm">
-                  {selectedUserForPlan.planName || 'Free Starter (30K)'}
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col gap-2 text-xs">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Current Plan</span>
+                  <span className="font-bold text-slate-800 text-sm">
+                    {selectedUserForPlan.planName || 'Free Starter (Monthly)'}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Usage / Quota</span>
+                  <span className="font-mono font-bold text-slate-800 text-sm">
+                    {(selectedUserForPlan.creditsUsed || 0).toLocaleString()} /{' '}
+                    {selectedUserForPlan.creditLimit === -1 ? 'Unlimited' : (selectedUserForPlan.creditLimit || 30000).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200/70 flex items-center justify-between text-[11px]">
+                <span className="text-slate-500 flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Current Expiry:</span>
+                </span>
+                <span className="font-bold text-slate-800">
+                  {selectedUserForPlan.role === 'owner'
+                    ? 'Permanent (Owner)'
+                    : selectedUserForPlan.planExpiresAt
+                    ? `${new Date(selectedUserForPlan.planExpiresAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} (${selectedUserForPlan.daysRemaining ?? 0} days remaining)`
+                    : 'Not set (30 days default)'}
                 </span>
               </div>
-              <div className="text-right">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Usage / Quota</span>
-                <span className="font-mono font-bold text-slate-800 text-sm">
-                  {(selectedUserForPlan.creditsUsed || 0).toLocaleString()} /{' '}
-                  {selectedUserForPlan.creditLimit === -1 ? 'Unlimited' : (selectedUserForPlan.creditLimit || 30000).toLocaleString()}
-                </span>
+            </div>
+
+            {/* Quick Action: Extend Plan by +30 Days */}
+            {selectedUserForPlan.role !== 'owner' && (
+              <button
+                type="button"
+                disabled={isUpdatingPlan}
+                onClick={() => handleExtendPlan(selectedUserForPlan, 30)}
+                className="w-full py-2.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs"
+              >
+                <Clock className="w-4 h-4 text-emerald-600" />
+                <span>Quick Action: Add +30 Days Extension to Existing Plan</span>
+              </button>
+            )}
+
+            {/* Validity Duration Selector for New Assignment */}
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-brand-600" />
+                <span>Select New Plan Validity Period</span>
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[30, 60, 90].map((days) => (
+                  <button
+                    key={days}
+                    type="button"
+                    onClick={() => setPlanDurationDays(days)}
+                    className={`py-2 rounded-xl text-xs font-bold border transition-all ${
+                      planDurationDays === days
+                        ? 'bg-brand-600 text-white border-brand-600 shadow-sm'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    {days === 30 ? '30 Days (1 Mo)' : days === 60 ? '60 Days (2 Mo)' : '90 Days (3 Mo)'}
+                  </button>
+                ))}
               </div>
+              <p className="text-[11px] text-slate-500">
+                New Expiry Date will be:{' '}
+                <strong className="text-slate-800">
+                  {new Date(Date.now() + planDurationDays * 24 * 60 * 60 * 1000).toLocaleDateString([], {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </strong>
+              </p>
             </div>
 
             {/* Section 1: Quick 1-Click Plan Assignment */}
             <div className="flex flex-col gap-2.5">
               <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                 <Zap className="w-3.5 h-3.5 text-amber-500" />
-                <span>1-Click Plan Assignment (PKR)</span>
+                <span>Assign Monthly Plan (PKR)</span>
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1000,10 +1149,10 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-extrabold text-cyan-950">⚡ Starter Pack</span>
-                    <span className="text-[10px] font-extrabold bg-cyan-200/80 text-cyan-900 px-2 py-0.5 rounded-full">300 PKR</span>
+                    <span className="text-[10px] font-extrabold bg-cyan-200/80 text-cyan-900 px-2 py-0.5 rounded-full">300 PKR / mo</span>
                   </div>
                   <span className="text-[11px] text-cyan-700 font-mono font-bold">1,000,000 Credits</span>
-                  <span className="text-[9px] text-cyan-600">1 Char = 1 Credit</span>
+                  <span className="text-[9px] text-cyan-600">Valid for {planDurationDays} days</span>
                 </button>
 
                 {/* 3M Creator - 900 PKR */}
@@ -1015,10 +1164,10 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-extrabold text-blue-950">🚀 Creator Pack</span>
-                    <span className="text-[10px] font-extrabold bg-blue-200/80 text-blue-900 px-2 py-0.5 rounded-full">900 PKR</span>
+                    <span className="text-[10px] font-extrabold bg-blue-200/80 text-blue-900 px-2 py-0.5 rounded-full">900 PKR / mo</span>
                   </div>
                   <span className="text-[11px] text-blue-700 font-mono font-bold">3,000,000 Credits</span>
-                  <span className="text-[9px] text-blue-600">Popular Creator Tier</span>
+                  <span className="text-[9px] text-blue-600">Valid for {planDurationDays} days</span>
                 </button>
 
                 {/* 10M Studio - 2,500 PKR */}
@@ -1030,10 +1179,10 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-extrabold text-purple-950">💎 Pro Studio Pack</span>
-                    <span className="text-[10px] font-extrabold bg-purple-200/80 text-purple-900 px-2 py-0.5 rounded-full">2,500 PKR</span>
+                    <span className="text-[10px] font-extrabold bg-purple-200/80 text-purple-900 px-2 py-0.5 rounded-full">2,500 PKR / mo</span>
                   </div>
                   <span className="text-[11px] text-purple-700 font-mono font-bold">10,000,000 Credits</span>
-                  <span className="text-[9px] text-purple-600">For Production Studios</span>
+                  <span className="text-[9px] text-purple-600">Valid for {planDurationDays} days</span>
                 </button>
 
                 {/* Unlimited VIP - 4,000 PKR */}
@@ -1048,10 +1197,10 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
                       <Crown className="w-3.5 h-3.5 text-amber-600" />
                       Unlimited VIP
                     </span>
-                    <span className="text-[10px] font-extrabold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">4,000 PKR</span>
+                    <span className="text-[10px] font-extrabold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">4,000 PKR / mo</span>
                   </div>
-                  <span className="text-[11px] text-amber-800 font-mono font-bold">∞ Lifetime Unlimited</span>
-                  <span className="text-[9px] text-amber-700">Zero Limits Forever</span>
+                  <span className="text-[11px] text-amber-800 font-mono font-bold">∞ Monthly Unlimited</span>
+                  <span className="text-[9px] text-amber-700">Valid for {planDurationDays} days</span>
                 </button>
               </div>
 
@@ -1062,7 +1211,7 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
                 onClick={() => handleAssignPlan(selectedUserForPlan, 'free')}
                 className="w-full mt-1 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-dashed border-slate-200 transition-all text-center"
               >
-                Reset User to Free Starter (30,000 Credits)
+                Reset User to Free Starter (30,000 Credits / 30 Days)
               </button>
             </div>
 

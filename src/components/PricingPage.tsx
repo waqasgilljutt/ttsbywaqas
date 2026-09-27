@@ -1,26 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Check, Sparkles, Zap, Shield, PhoneCall, ExternalLink, HelpCircle } from 'lucide-react';
+import React from 'react';
+import { Check, Sparkles, Zap, Shield, PhoneCall, ExternalLink, HelpCircle, Clock, Calendar } from 'lucide-react';
 
 export function PricingPage() {
-  const [activeTab, setActiveTab] = useState<'all' | 'popular'>('all');
-
   const plans = [
     {
       id: 'free',
       name: 'Free Starter',
-      badge: 'Free on Signup',
+      badge: 'Monthly Free Plan',
       price: 'Rs. 0',
-      period: 'lifetime free',
-      credits: '30,000 Credits',
-      description: 'Automatically credited to every new Gmail account on registration.',
+      period: '/ month (30 Days)',
+      credits: '30,000 Credits / Month',
+      description: 'Automatically credited to every verified Gmail account on a monthly cycle.',
       features: [
-        '30,000 Free Characters / Credits',
+        '30,000 Free Credits / Month',
         '1 Character = 1 Credit',
+        '30 Days validity cycle',
         'Up to 50,000 characters per single voice generation',
         'Access to all 322+ Neural Voices',
-        'Standard high-speed MP3 download',
         'Voice Cloning Studio preview',
       ],
       cta: 'Free on Signup',
@@ -32,18 +30,19 @@ export function PricingPage() {
       name: 'Starter Pack (1M)',
       badge: 'Budget Friendly',
       price: 'Rs. 300',
-      period: 'one-time payment',
-      credits: '1,000,000 Credits',
+      period: '/ month (30 Days)',
+      credits: '1,000,000 Credits / Month',
       description: 'Ideal for short video creators, TikTokers, and presentation voiceovers.',
       features: [
-        '1,000,000 (1M) Credits / Characters',
+        '1,000,000 (1M) Credits / Month',
         '1 Character = 1 Credit',
+        'Full 30 Days monthly validity',
         '~1.5 to 2 hours of continuous audio',
         'Up to 50,000 characters per script',
-        'Full commercial YouTube monetization rights',
+        'Commercial YouTube monetization rights',
         'Instant EasyPaisa / JazzCash activation',
       ],
-      cta: 'Buy 1M for Rs. 300',
+      cta: 'Get 1M for Rs. 300 / mo',
       popular: false,
       buttonVariant: 'secondary',
     },
@@ -52,18 +51,19 @@ export function PricingPage() {
       name: 'Creator Pack (3M)',
       badge: 'Most Popular',
       price: 'Rs. 900',
-      period: 'one-time payment',
-      credits: '3,000,000 Credits',
+      period: '/ month (30 Days)',
+      credits: '3,000,000 Credits / Month',
       description: 'The sweet spot for active YouTubers, faceless channels, and podcasters.',
       features: [
-        '3,000,000 (3M) Credits / Characters',
+        '3,000,000 (3M) Credits / Month',
         '1 Character = 1 Credit',
+        'Full 30 Days monthly validity',
         '~5 to 6 hours of high-definition speech',
         'Batch Engine enabled for long scripts',
         'Priority generation queue',
         'Commercial monetization rights',
       ],
-      cta: 'Buy 3M for Rs. 900',
+      cta: 'Get 3M for Rs. 900 / mo',
       popular: true,
       buttonVariant: 'primary',
     },
@@ -72,38 +72,40 @@ export function PricingPage() {
       name: 'Pro Studio (10M)',
       badge: 'Best Value',
       price: 'Rs. 2,500',
-      period: 'one-time payment',
-      credits: '10,000,000 Credits',
+      period: '/ month (30 Days)',
+      credits: '10,000,000 Credits / Month',
       description: 'Designed for audiobook publishers, course creators, and video production teams.',
       features: [
-        '10,000,000 (10M) Credits / Characters',
+        '10,000,000 (10M) Credits / Month',
         '1 Character = 1 Credit',
+        'Full 30 Days monthly validity',
         '~16 to 20 hours of continuous speech',
-        'Full Audiobook Batch Engine with continuous stitching',
+        'Audiobook Batch Engine with continuous stitching',
         'VIP WhatsApp support from Waqas Gill',
         'Commercial rights for unlimited projects',
       ],
-      cta: 'Buy 10M for Rs. 2,500',
+      cta: 'Get 10M for Rs. 2,500 / mo',
       popular: false,
       buttonVariant: 'dark',
     },
     {
       id: 'unlimited',
-      name: 'Unlimited VIP Lifetime',
-      badge: 'VIP Lifetime',
+      name: 'Unlimited VIP Monthly',
+      badge: 'VIP Monthly Access',
       price: 'Rs. 4,000',
-      period: 'lifetime unlimited',
-      credits: 'Unlimited Forever',
-      description: 'Zero restrictions. Never worry about running out of credits again.',
+      period: '/ month (30 Days)',
+      credits: 'Unlimited for 1 Month',
+      description: 'Zero restrictions for 30 full days. Generate as many audios and clones as you need.',
       features: [
-        'Unlimited Credits Forever (Never Expire)',
+        'Unlimited Voice Generations for 1 Month (30 Days)',
         'Unlimited character voice synthesis',
         'Up to 50,000 characters per single script',
-        'All 322+ voices across 80+ languages',
+        'All 322+ voices across 140+ languages',
         'Full Voice Cloning & Studio access',
         'Direct 1-on-1 priority support from Waqas Gill',
+        'Renew or extend anytime',
       ],
-      cta: 'Get Unlimited for Rs. 4,000',
+      cta: 'Get Unlimited for Rs. 4,000 / mo',
       popular: true,
       buttonVariant: 'vip',
     },
@@ -111,7 +113,7 @@ export function PricingPage() {
 
   const handleBuyClick = (planName: string, price: string) => {
     const text = encodeURIComponent(
-      `Hello Waqas Gill! I want to activate the ${planName} (${price} PKR) for my TTS account on "TTS bY Waqas Gill". Please share payment details.`
+      `Hello Waqas Gill! I want to activate/renew the monthly ${planName} (${price}) for my account on "TTS bY Waqas Gill". Please share payment details.`
     );
     window.open(`https://www.facebook.com/mwaqasgillcs/`, '_blank');
   };
@@ -120,29 +122,30 @@ export function PricingPage() {
     <div className="max-w-6xl mx-auto flex flex-col gap-12 pb-16">
       {/* Header */}
       <div className="text-center flex flex-col items-center gap-3 max-w-2xl mx-auto">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-semibold">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>EmpireNexs Official Pricing</span>
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-bold uppercase tracking-wider shadow-xs">
+          <Calendar className="w-3.5 h-3.5 text-brand-600" />
+          <span>Transparent Monthly PKR Plans</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-          Transparent PKR Credit Plans
+          Flexible 30-Day Monthly Subscriptions
         </h2>
-        <p className="text-sm sm:text-base text-slate-600">
-          <strong>1 Character = 1 Credit.</strong> Every new account starts with <strong>30,000 free credits</strong>. Recharge easily via EasyPaisa, JazzCash, or Bank Transfer.
+        <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
+          <strong>1 Character = 1 Credit.</strong> All plans are valid for a full <strong>30-day monthly cycle</strong>. You will receive an alert 3 days prior to expiration so you can recharge seamlessly.
         </p>
       </div>
 
       {/* Payment Methods Notice Banner */}
-      <div className="p-6 rounded-3xl bg-gradient-to-r from-brand-900 to-slate-900 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 border border-indigo-500/20">
         <div className="flex flex-col gap-2 text-center md:text-left">
-          <span className="text-xs font-bold uppercase tracking-wider text-brand-400">
-            Instant Pakistani Payment Methods
+          <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5 justify-center md:justify-start">
+            <Clock className="w-3.5 h-3.5 text-amber-400" />
+            <span>Monthly EasyPaisa &amp; JazzCash Activation</span>
           </span>
           <h3 className="text-xl font-bold">
-            Pay with EasyPaisa, JazzCash, or Raast Bank Transfer
+            Easy Activation via EasyPaisa, JazzCash, or Bank Transfer
           </h3>
-          <p className="text-xs text-slate-300 max-w-xl">
-            Send payment to Waqas Gill, share the transaction screenshot on WhatsApp or Facebook, and your account credits will be activated immediately!
+          <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+            Send payment to Waqas Gill, share the transaction screenshot on WhatsApp or Facebook, and your monthly plan will be activated within 5 minutes with a fresh 30-day validity!
           </p>
         </div>
 
@@ -171,7 +174,7 @@ export function PricingPage() {
               key={plan.id}
               className={`rounded-3xl p-7 flex flex-col justify-between transition-all relative ${
                 isVip
-                  ? 'bg-gradient-to-b from-indigo-950 via-slate-900 to-black text-white border-2 border-indigo-500 shadow-2xl shadow-indigo-500/20'
+                  ? 'bg-gradient-to-b from-indigo-950 via-slate-900 to-black text-white border-2 border-amber-500/70 shadow-2xl shadow-indigo-500/20'
                   : isCreator
                   ? 'bg-white border-2 border-brand-600 shadow-xl shadow-brand-500/10'
                   : 'bg-white border border-slate-200/90 shadow-xs hover:border-slate-300'
@@ -229,7 +232,7 @@ export function PricingPage() {
                 <div
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 ${
                     isVip
-                      ? 'bg-indigo-900/60 text-indigo-300 border border-indigo-700/50'
+                      ? 'bg-amber-400/15 text-amber-300 border border-amber-500/30'
                       : 'bg-brand-50 text-brand-700 border border-brand-200'
                   }`}
                 >
@@ -283,44 +286,44 @@ export function PricingPage() {
         <div className="flex items-center gap-2">
           <HelpCircle className="w-5 h-5 text-brand-600" />
           <h3 className="text-base font-bold text-slate-900">
-            Frequently Asked Questions about Credits
+            Frequently Asked Questions about Monthly Plans &amp; Expiration
           </h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-600 leading-relaxed">
           <div className="flex flex-col gap-1">
             <h4 className="font-bold text-slate-900 text-sm">
-              How does the 1 Character = 1 Credit formula work?
+              Are plans monthly or lifetime?
             </h4>
             <p>
-              Whenever you generate speech or cloned voice, each character in your text uses 1 credit. For example, a 1,000 character script uses 1,000 credits.
+              All plans on EmpireNexs operate on a <strong>30-day monthly validity cycle</strong>. Each plan gives you high-capacity credits valid for 30 full days from activation.
             </p>
           </div>
 
           <div className="flex flex-col gap-1">
             <h4 className="font-bold text-slate-900 text-sm">
-              What happens when my 30,000 free credits run out?
+              Will I be notified before my monthly plan expires?
             </h4>
             <p>
-              Once your 30,000 credits are used, you can easily top up with any credit pack starting from just Rs. 300 PKR for 1,000,000 credits!
+              Yes! Exactly <strong>3 days prior to expiration</strong>, you will see an <em>&ldquo;Expiring Soon&rdquo;</em> reminder badge in your studio header with the exact days remaining, allowing you to renew without losing continuous generation access.
             </p>
           </div>
 
           <div className="flex flex-col gap-1">
             <h4 className="font-bold text-slate-900 text-sm">
-              How do I pay in Pakistan?
+              What happens when my plan expires after 1 month?
             </h4>
             <p>
-              You can transfer payment via EasyPaisa, JazzCash, or any Bank Transfer. Just contact Waqas Gill with the screenshot and your account will be recharged instantly.
+              When your 30-day period concludes, your plan expires. You can renew your subscription anytime to immediately unlock a fresh 30-day monthly cycle with full credits.
             </p>
           </div>
 
           <div className="flex flex-col gap-1">
             <h4 className="font-bold text-slate-900 text-sm">
-              Do purchased credits expire?
+              How do I pay and renew in Pakistan?
             </h4>
             <p>
-              No, your credits never expire. You can use them whenever you need, at your own pace.
+              You can transfer payment via EasyPaisa, JazzCash, or any Pakistani Bank Transfer. Send the screenshot to Waqas Gill on Facebook or WhatsApp for instant renewal.
             </p>
           </div>
         </div>

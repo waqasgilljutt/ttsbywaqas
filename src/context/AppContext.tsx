@@ -9,6 +9,10 @@ export interface UserCredits {
   creditLimit: number;
   remainingCredits: number;
   planName: string;
+  planExpiresAt?: string | null;
+  daysRemaining?: number | null;
+  isExpiringSoon?: boolean;
+  isExpired?: boolean;
 }
 
 export interface AuthUser {
@@ -82,7 +86,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           remainingCredits: isUnlimited
             ? Infinity
             : Math.max(0, currentLimit - higherUsed),
-          planName: data.balance.planName || (isUnlimited ? 'Unlimited VIP Lifetime' : 'Free Starter (30k)'),
+          planName: data.balance.planName || (isUnlimited ? 'Unlimited VIP (Owner)' : 'Free Starter (Monthly)'),
+          planExpiresAt: isOwner ? null : (data.balance.planExpiresAt || null),
+          daysRemaining: isOwner ? null : data.balance.daysRemaining,
+          isExpiringSoon: isOwner ? false : Boolean(data.balance.isExpiringSoon),
+          isExpired: isOwner ? false : Boolean(data.balance.isExpired),
         };
         setUserCredits(mergedBalance);
         try {
