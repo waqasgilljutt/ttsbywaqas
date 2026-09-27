@@ -24,7 +24,10 @@ export function AboutPage() {
   return (
     <div className="max-w-5xl mx-auto flex flex-col gap-10 pb-16">
       {/* Hero Banner */}
-      <div className="text-center flex flex-col items-center gap-3 max-w-2xl mx-auto">
+      <div className="text-center flex flex-col items-center gap-4 max-w-2xl mx-auto">
+        <div className="w-20 h-20 rounded-3xl bg-slate-950 p-3 shadow-xl shadow-amber-500/15 flex items-center justify-center border border-amber-500/30">
+          <img src="/logo.png" alt="EmpireNexs Official 3D Logo" className="w-full h-full object-contain" />
+        </div>
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-semibold">
           <Building2 className="w-3.5 h-3.5" />
           <span>About the Platform</span>
@@ -149,7 +152,7 @@ export function AboutPage() {
           <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col gap-2">
             <span className="font-bold text-slate-900 text-sm">1. Neural Synthesis</span>
             <p className="text-slate-600 leading-relaxed">
-              Direct connection to Microsoft Edge&apos;s Read Aloud WebSocket service delivers genuine human vocal cadence without synthetic robotic artifacts.
+              Proprietary EmpireNexs Neural Acoustic Engine delivers genuine human vocal cadence with expressive inflection and zero robotic artifacts.
             </p>
           </div>
 

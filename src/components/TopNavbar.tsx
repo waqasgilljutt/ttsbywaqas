@@ -65,6 +65,10 @@ export function TopNavbar({
           <Menu className="w-5 h-5" />
         </button>
 
+        <div className="w-8 h-8 rounded-xl bg-slate-950 p-1 flex items-center justify-center border border-amber-500/25 lg:hidden shrink-0">
+          <img src="/logo.png" alt="EmpireNexs" className="w-full h-full object-contain" />
+        </div>
+
         <div>
           <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
             {currentInfo.title}
@@ -93,10 +97,13 @@ export function TopNavbar({
       {/* Right: Engine status and Auth Profile/Button */}
       <div className="flex items-center gap-3">
         {/* Active Engine Badge */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200/90 text-xs text-slate-600 font-medium">
-          <Radio className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-amber-500/30 text-xs text-slate-200 font-medium shadow-xs">
+          <div className="w-4 h-4 rounded-full overflow-hidden shrink-0 flex items-center justify-center">
+            <img src="/logo.png" alt="EmpireNexs" className="w-full h-full object-contain" />
+          </div>
           <span>Engine:</span>
-          <span className="text-slate-900 font-semibold">EmpireNexs Neural</span>
+          <span className="text-amber-400 font-bold">EmpireNexs Neural</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5"></span>
         </div>
 
         {/* User Account / Sign In */}

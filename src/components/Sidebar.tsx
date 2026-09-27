@@ -107,19 +107,18 @@ export function Sidebar({
         {/* Brand Header */}
         <div className="flex flex-col gap-6">
           <Link href="/" onClick={onCloseMobile} className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-500 p-[1px] shadow-md shadow-brand-500/20 shrink-0 group-hover:scale-105 transition-transform">
-              <div className="w-full h-full bg-white rounded-[15px] flex items-center justify-center">
-                <Mic2 className="w-5 h-5 text-brand-600" />
-              </div>
+            <div className="w-11 h-11 rounded-2xl bg-slate-950 p-1.5 shadow-md shadow-amber-500/15 shrink-0 group-hover:scale-105 transition-transform flex items-center justify-center border border-amber-500/25">
+              <img src="/logo.png" alt="EmpireNexs Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h1 className="text-base font-bold text-slate-900 tracking-tight group-hover:text-brand-600 transition-colors">
-                  TTS bY Waqas Gill
+                <h1 className="text-base font-extrabold text-slate-900 tracking-tight group-hover:text-brand-600 transition-colors">
+                  EmpireNexs
                 </h1>
               </div>
-              <p className="text-[11px] font-semibold text-brand-700 uppercase tracking-wider mt-0.5">
-                EmpireNexs AI
+              <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wider mt-0.5 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                TTS By Waqas Gill
               </p>
             </div>
           </Link>
