@@ -806,13 +806,13 @@ export function VoiceCloner({
       <div className="flex flex-col gap-1.5">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-semibold w-fit">
           <Sparkles className="w-3.5 h-3.5 text-brand-600" />
-          <span>Coqui XTTS-v2 &amp; F5-TTS Zero-Shot Neural Engine</span>
+          <span>FameSpeak Pro Neural Voice Cloning Engine</span>
         </div>
         <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
           True AI Voice Cloning Studio
         </h2>
         <p className="text-sm text-slate-600">
-          Upload or record a 5–15 second audio sample. Powered by Coqui XTTS-v2 on Nvidia A10G GPU, the AI directly extracts your authentic vocal tract, pitch, timbre, and cadence without requiring any reference transcript.
+          Upload or record a 5–15 second audio sample. Powered by FameSpeak Neural AI, the engine instantly clones your authentic vocal tract, pitch, timbre, and cadence in studio fidelity without quota limits.
         </p>
       </div>
 

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { synthesizeSpeech } from '@/lib/edge-tts-service';
-import { synthesizeNeuralVoiceClone } from '@/lib/hf-voice-cloner';
 import {
   isFameSpeakConfigured,
   synthesizeFameSpeakVoiceClone,
@@ -53,7 +52,6 @@ export async function POST(req: NextRequest) {
     const voiceName = (formData.get('voiceName') as string) || 'Waqas Gill Cloned Voice';
     const audioFile = formData.get('audio') as Blob | null;
     const famespeakVoiceId = formData.get('famespeakVoiceId') as string | null;
-    const refText = (formData.get('refText') as string) || '';
     const gender = ((formData.get('gender') as string) || 'Male').toLowerCase();
     const userEmail = (formData.get('userEmail') as string) || req.headers.get('x-user-email');
     const skipDeduct = formData.get('skipDeduct') === 'true';
@@ -167,55 +165,36 @@ export async function POST(req: NextRequest) {
       const rawAudioBuffer = Buffer.from(arrayBuffer);
       const mimeType = audioFile.type || 'audio/wav';
 
-      let cloneSuccess = false;
-
-      // Tier 1: FameSpeak Neural Pro (Fast ~4s, 63M credits, 0 ZeroGPU limits)
-      if (isFameSpeakConfigured()) {
-        try {
-          console.log(`[Voice Cloning] Synthesizing "${trimmedText.slice(0, 40)}..." via FameSpeak Neural Pro Engine...`);
-          const fameResult = await synthesizeFameSpeakVoiceClone(
-            rawAudioBuffer,
-            trimmedText,
-            {
-              voiceName,
-              mimeType,
-              timeoutMs: 55000,
-            }
-          );
-          buffer = fameResult.buffer;
-          contentType = fameResult.contentType;
-          engineUsed = fameResult.engine;
-          activeVoiceId = fameResult.voiceId || activeVoiceId;
-          cloneSuccess = true;
-          console.log(`[Voice Cloning] FameSpeak Neural Pro synthesis successful (${buffer.length} bytes).`);
-        } catch (fameErr: unknown) {
-          console.warn('[Voice Cloning] FameSpeak error, smoothly falling back to HuggingFace pool:', (fameErr as Error)?.message);
-        }
+      if (!isFameSpeakConfigured()) {
+        return NextResponse.json(
+          { error: 'FameSpeak Voice Engine is not configured. Please check your API settings.' },
+          { status: 500 }
+        );
       }
 
-      // Tier 2: Hugging Face 3-Tier Multi-Space Failover Pool (XTTS-v2 Hasan, TonyAssi, F5-TTS)
-      if (!cloneSuccess) {
-        try {
-          console.log(`[Voice Cloning] Synthesizing "${trimmedText.slice(0, 40)}..." via Zero-Shot Neural Engine (HF Pool)...`);
-          const result = await synthesizeNeuralVoiceClone(audioFile, trimmedText, {
-            refText: refText.trim(),
-            removeSilence: true,
+      try {
+        console.log(`[Voice Cloning] Synthesizing "${trimmedText.slice(0, 40)}..." via FameSpeak Neural Pro Engine...`);
+        const fameResult = await synthesizeFameSpeakVoiceClone(
+          rawAudioBuffer,
+          trimmedText,
+          {
+            voiceName,
+            mimeType,
             timeoutMs: 55000,
-          });
-          buffer = result.buffer;
-          contentType = result.contentType;
-          engineUsed = result.engine;
-          cloneSuccess = true;
-        } catch (cloneErr: unknown) {
-          console.error('[Voice Cloning] HF Neural engine error:', cloneErr);
-          const errMsg = (cloneErr as Error)?.message || 'Voice cloning GPU cluster is currently busy.';
-          return NextResponse.json(
-            {
-              error: `Voice cloning failed: ${errMsg}. Please wait a moment and retry.`,
-            },
-            { status: 503 }
-          );
-        }
+          }
+        );
+        buffer = fameResult.buffer;
+        contentType = fameResult.contentType;
+        engineUsed = fameResult.engine;
+        activeVoiceId = fameResult.voiceId || activeVoiceId;
+        console.log(`[Voice Cloning] FameSpeak Neural Pro synthesis successful (${buffer.length} bytes).`);
+      } catch (fameErr: unknown) {
+        console.error('[Voice Cloning] FameSpeak engine error:', fameErr);
+        const errMsg = (fameErr as Error)?.message || 'Voice cloning failed';
+        return NextResponse.json(
+          { error: `Voice cloning failed: ${errMsg}. Please try again.` },
+          { status: 500 }
+        );
       }
     } else {
       // Pure preset voice profile (without audio sample)

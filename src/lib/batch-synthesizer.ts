@@ -178,17 +178,8 @@ export async function synthesizeLargeScript(
         console.warn(`Part ${chunkNum} of ${totalChunks} (Attempt ${attempt}) error:`, err);
 
         if (attempt < maxRetries) {
-          // Check if this is a GPU quota cooldown or temporary traffic limit
-          const isQuotaCooldown =
-            errStr.includes('ZeroGPU quota') ||
-            errStr.includes('quota') ||
-            errStr.includes('cooldown') ||
-            errStr.includes('busy') ||
-            errStr.includes('high traffic') ||
-            errStr.includes('429');
-
-          // Progressive cooldown backoff: 15s, 20s, 25s, 30s so GPU quota bucket fully refills
-          const waitSeconds = isQuotaCooldown ? Math.min(30, 15 + (attempt - 1) * 5) : 3;
+          // Temporary network retry backoff (2-4 seconds)
+          const waitSeconds = attempt <= 2 ? 2 : 4;
 
           // Second-by-second live countdown in user UI
           for (let sec = waitSeconds; sec > 0; sec--) {
@@ -198,9 +189,7 @@ export async function synthesizeLargeScript(
               totalChunks,
               completedChars,
               totalChars,
-              statusText: isQuotaCooldown
-                ? `Recharging AI Voice GPU cluster for Part ${chunkNum} of ${totalChunks}... Auto-resuming in ${sec}s (Attempt ${attempt}/${maxRetries})`
-                : `Retrying Part ${chunkNum} of ${totalChunks} in ${sec}s (Attempt ${attempt}/${maxRetries})...`,
+              statusText: `Connecting to Neural Voice Studio for Part ${chunkNum} of ${totalChunks}... Retrying in ${sec}s (Attempt ${attempt}/${maxRetries})`,
             });
             await new Promise((resolve) => setTimeout(resolve, 1000));
           }
