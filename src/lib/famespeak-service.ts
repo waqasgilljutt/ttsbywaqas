@@ -165,6 +165,24 @@ export async function registerFameSpeakVoice(
     return cached.voiceId;
   }
 
+  // Check if a voice with this exact name already exists on FameSpeak to avoid duplicates and save quota
+  try {
+    const existing = await listFameSpeakSavedVoices();
+    const matched = existing.find((v) => v.name && v.name.toLowerCase() === voiceName.trim().toLowerCase());
+    if (matched) {
+      console.log(`[FameSpeak] Found existing voice matching "${voiceName}" -> Reusing ID: ${matched.id}`);
+      registeredVoiceCache.set(audioHash, { voiceId: matched.id, voiceName, createdAt: Date.now() });
+      return matched.id;
+    }
+
+    // If account has 15 or more saved voices, prune the oldest one before creating a new one
+    if (existing.length >= 15) {
+      await pruneOldestSavedVoice();
+    }
+  } catch (err) {
+    console.warn('[FameSpeak] Voice check warning:', err);
+  }
+
   const prepared = prepareAudioForFameSpeak(rawAudioBuffer, mimeType);
   const formData = new FormData();
   formData.append('name', voiceName.slice(0, 50));
@@ -213,13 +231,13 @@ async function pruneOldestSavedVoice(): Promise<void> {
     const data = await res.json();
     const voices = data.voices || [];
     if (voices.length > 0) {
-      // Pick first (oldest) voice and delete it
-      const toDelete = voices[0];
+      // Pick last (oldest) voice in list and delete it
+      const toDelete = voices[voices.length - 1];
       await fetch(`${FAMESPEAK_API_BASE}/voice-clone/voices/${toDelete.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${key}` },
       });
-      console.log(`[FameSpeak] Pruned old voice ID: ${toDelete.id}`);
+      console.log(`[FameSpeak] Pruned oldest voice ID: ${toDelete.id} (${toDelete.name})`);
     }
   } catch (err) {
     console.error('[FameSpeak] Prune voice error:', err);
