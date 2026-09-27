@@ -70,10 +70,10 @@ export function TopNavbar({
         </div>
 
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+          <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight">
             {currentInfo.title}
           </h2>
-          <p className="text-xs text-slate-500 hidden sm:block">
+          <p className="text-xs sm:text-sm text-slate-600 hidden sm:block mt-0.5 font-medium">
             {activeTab === 'about' ? (
               <>
                 Our technology, mission, and the story of{' '}
@@ -81,7 +81,7 @@ export function TopNavbar({
                   href="https://www.facebook.com/mwaqasgillcs/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-brand-600 hover:underline font-medium"
+                  className="text-brand-600 hover:underline font-semibold"
                   title="Connect with Waqas Gill on Facebook"
                 >
                   Waqas Gill

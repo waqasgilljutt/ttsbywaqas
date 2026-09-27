@@ -16,7 +16,7 @@ const TEMPLATES = [
   },
   {
     name: 'Tech Tutorial',
-    text: "In this walkthrough, we will learn how to connect Next.js 15 with Microsoft Edge Text to Speech API to generate lifelike natural speech in real-time.",
+    text: "In this walkthrough, we will learn how to connect Next.js 15 with EmpireNexs Neural Text to Speech engine to generate lifelike natural speech in real-time.",
   },
   {
     name: 'News Announcement',
@@ -32,7 +32,7 @@ const TEMPLATES = [
   },
   {
     name: 'Urdu Greeting',
-    text: "السلام علیکم! ایج ٹیکسٹ ٹو اسپیچ میں خوش آمدید۔ آپ کا دن اچھا گزرے۔",
+    text: "السلام علیکم! ایمپائرنیکس ٹیکسٹ ٹو اسپیچ میں خوش آمدید۔ آپ کا دن اچھا گزرے۔",
   },
 ];
 
