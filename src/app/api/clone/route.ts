@@ -51,7 +51,10 @@ export async function POST(req: NextRequest) {
     const text = (formData.get('text') as string) || '';
     const voiceName = (formData.get('voiceName') as string) || 'Waqas Gill Cloned Voice';
     const audioFile = formData.get('audio') as Blob | null;
-    const famespeakVoiceId = formData.get('famespeakVoiceId') as string | null;
+    const neuralVoiceId =
+      (formData.get('neuralVoiceId') as string | null) ||
+      (formData.get('clonedVoiceId') as string | null) ||
+      (formData.get('famespeakVoiceId') as string | null);
     const gender = ((formData.get('gender') as string) || 'Male').toLowerCase();
     const userEmail = (formData.get('userEmail') as string) || req.headers.get('x-user-email');
     const skipDeduct = formData.get('skipDeduct') === 'true';
@@ -94,9 +97,9 @@ export async function POST(req: NextRequest) {
     }
 
     const hasAudio = audioFile && audioFile.size > 0;
-    const hasPresetVoice = Boolean(formData.get('gender') || formData.get('voiceName') || famespeakVoiceId);
+    const hasPresetVoice = Boolean(formData.get('gender') || formData.get('voiceName') || neuralVoiceId);
 
-    if (!hasAudio && !hasPresetVoice && !famespeakVoiceId) {
+    if (!hasAudio && !hasPresetVoice && !neuralVoiceId) {
       return NextResponse.json(
         { error: 'A voice sample audio recording or voice profile is required for cloning.' },
         { status: 400 }
@@ -105,13 +108,13 @@ export async function POST(req: NextRequest) {
 
     let buffer: Buffer = Buffer.alloc(0);
     let contentType = 'audio/mpeg';
-    let engineUsed = 'FameSpeak-Neural-Pro';
-    let activeVoiceId = famespeakVoiceId || '';
+    let engineUsed = 'EmpireNexs-Neural-Pro';
+    let activeVoiceId = neuralVoiceId || '';
 
     const isAsync = req.headers.get('x-async-clone') === 'true' || formData.get('async') === 'true';
 
-    // Fast-path: Async non-blocking generation for FameSpeak (immune to 10s Vercel timeouts!)
-    if (isAsync && isFameSpeakConfigured() && (hasAudio || famespeakVoiceId)) {
+    // Fast-path: Async non-blocking generation for EmpireNexs Neural Pro
+    if (isAsync && isFameSpeakConfigured() && (hasAudio || neuralVoiceId)) {
       try {
         let rawAudioBuffer: Buffer | null = null;
         let mimeType = 'audio/wav';
@@ -123,7 +126,7 @@ export async function POST(req: NextRequest) {
 
         const job = await startFameSpeakVoiceCloneJob(
           rawAudioBuffer,
-          famespeakVoiceId,
+          neuralVoiceId,
           trimmedText,
           { voiceName, mimeType }
         );
@@ -137,23 +140,23 @@ export async function POST(req: NextRequest) {
           jobId: job.jobId,
           voiceId: job.voiceId,
           statusUrl: job.statusUrl,
-          engine: 'FameSpeak-Neural-Pro',
+          engine: 'EmpireNexs-Neural-Pro',
         }, { status: 202 });
       } catch (err: unknown) {
-        console.warn('[Voice Cloning Async] FameSpeak job start failed, falling back to sync:', err);
+        console.warn('[EmpireNexs Voice Engine] Async job start failed, falling back to sync:', err);
       }
     }
 
-    // A) Direct synthesis with a saved FameSpeak voice ID
-    if (famespeakVoiceId && isFameSpeakConfigured()) {
+    // A) Direct synthesis with a saved neural voice ID
+    if (neuralVoiceId && isFameSpeakConfigured()) {
       try {
-        console.log(`[Voice Cloning] Synthesizing "${trimmedText.slice(0, 40)}..." with FameSpeak Voice ID: ${famespeakVoiceId}`);
-        const fameRes = await generateSpeechFromVoiceId(famespeakVoiceId, trimmedText);
+        console.log(`[EmpireNexs Voice Engine] Synthesizing "${trimmedText.slice(0, 40)}..." with Voice ID: ${neuralVoiceId}`);
+        const fameRes = await generateSpeechFromVoiceId(neuralVoiceId, trimmedText);
         buffer = fameRes.buffer;
         contentType = fameRes.contentType;
-        engineUsed = 'FameSpeak-Saved-Voice';
+        engineUsed = 'EmpireNexs-Neural-Profile';
       } catch (err: unknown) {
-        console.error('[Voice Cloning] Error generating from FameSpeak Voice ID:', err);
+        console.error('[EmpireNexs Voice Engine] Error generating from Voice ID:', err);
         return NextResponse.json(
           { error: (err as Error)?.message || 'Failed to generate voice from saved profile.' },
           { status: 500 }
@@ -167,13 +170,13 @@ export async function POST(req: NextRequest) {
 
       if (!isFameSpeakConfigured()) {
         return NextResponse.json(
-          { error: 'FameSpeak Voice Engine is not configured. Please check your API settings.' },
+          { error: 'EmpireNexs Voice Engine is not configured. Please check your API settings.' },
           { status: 500 }
         );
       }
 
       try {
-        console.log(`[Voice Cloning] Synthesizing "${trimmedText.slice(0, 40)}..." via FameSpeak Neural Pro Engine...`);
+        console.log(`[EmpireNexs Voice Engine] Synthesizing "${trimmedText.slice(0, 40)}..." via EmpireNexs Neural Pro Engine...`);
         const fameResult = await synthesizeFameSpeakVoiceClone(
           rawAudioBuffer,
           trimmedText,
@@ -185,11 +188,11 @@ export async function POST(req: NextRequest) {
         );
         buffer = fameResult.buffer;
         contentType = fameResult.contentType;
-        engineUsed = fameResult.engine;
+        engineUsed = 'EmpireNexs-Neural-Pro';
         activeVoiceId = fameResult.voiceId || activeVoiceId;
-        console.log(`[Voice Cloning] FameSpeak Neural Pro synthesis successful (${buffer.length} bytes).`);
+        console.log(`[EmpireNexs Voice Engine] EmpireNexs Neural Pro synthesis successful (${buffer.length} bytes).`);
       } catch (fameErr: unknown) {
-        console.error('[Voice Cloning] FameSpeak engine error:', fameErr);
+        console.error('[EmpireNexs Voice Engine] Engine error:', fameErr);
         const errMsg = (fameErr as Error)?.message || 'Voice cloning failed';
         return NextResponse.json(
           { error: `Voice cloning failed: ${errMsg}. Please try again.` },
@@ -228,7 +231,7 @@ export async function POST(req: NextRequest) {
         'Content-Length': buffer.length.toString(),
         'Content-Disposition': `inline; filename="cloned-${encodeURIComponent(voiceName)}.${fileExt}"`,
         'X-Cloning-Engine': engineUsed,
-        ...(activeVoiceId ? { 'X-FameSpeak-Voice-Id': activeVoiceId } : {}),
+        ...(activeVoiceId ? { 'X-Neural-Voice-Id': activeVoiceId } : {}),
         'Cache-Control': 'no-cache',
       },
     });

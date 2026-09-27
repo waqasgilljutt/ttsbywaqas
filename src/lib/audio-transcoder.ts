@@ -6,7 +6,7 @@
  * standard 16-bit 24,000Hz Mono PCM RIFF WAV format.
  * 
  * Why 24,000Hz Mono RIFF WAV?
- * 1. Standard format for studio-grade neural voice synthesis & FameSpeak AI.
+ * 1. Standard format for studio-grade EmpireNexs neural voice synthesis.
  * 2. 24kHz mono PCM WAV is compact (~48KB per second) and decodes instantly with 0 loss.
  * 3. Ensures 100% cross-browser compatibility across Safari, Chrome, Edge, and iOS.
  */

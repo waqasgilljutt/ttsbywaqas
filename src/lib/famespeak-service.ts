@@ -17,6 +17,8 @@ const FALLBACK_FAMESPEAK_KEY = ['fs', 'live', '49eja6KXFGMtjvzXgDqS6y7CNano9s2AX
 
 export function getFameSpeakApiKey(): string {
   return (
+    process.env.NEURAL_VOICE_API_KEY ||
+    process.env.EMPIRENEXS_API_KEY ||
     process.env.FAMESPEAK_API_KEY ||
     process.env.FAME_SPEAK_API_KEY ||
     process.env.FAMESPEAK_KEY ||
@@ -214,7 +216,7 @@ export async function registerFameSpeakVoice(
         return retryData.id;
       }
     }
-    throw new Error(`FameSpeak voice registration failed: ${data.error || JSON.stringify(data)}`);
+    throw new Error(`Voice profile registration failed: ${data.error || 'Server error'}`);
   }
 
   registeredVoiceCache.set(audioHash, { voiceId: data.id, voiceName, createdAt: Date.now() });
@@ -253,7 +255,7 @@ export async function generateSpeechFromVoiceId(
   timeoutMs = 60000
 ): Promise<{ buffer: Buffer; contentType: string }> {
   const key = getFameSpeakApiKey();
-  if (!key) throw new Error('FAMESPEAK_API_KEY is not configured');
+  if (!key) throw new Error('Neural Voice Service is not configured');
 
   const idempotencyKey = `gen-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const submitRes = await fetch(`${FAMESPEAK_API_BASE}/voice-clone/voices/${voiceId}/generations`, {
@@ -268,7 +270,7 @@ export async function generateSpeechFromVoiceId(
 
   const submitData = await submitRes.json();
   if (!submitRes.ok || !submitData.statusUrl) {
-    throw new Error(`FameSpeak generation failed: ${submitData.error || JSON.stringify(submitData)}`);
+    throw new Error(`Voice generation failed: ${submitData.error || 'Unknown error'}`);
   }
 
   const statusUrl = `https://famespeak.online${submitData.statusUrl}`;
@@ -299,11 +301,11 @@ export async function generateSpeechFromVoiceId(
     }
 
     if (pollData.status === 'FAILED' || pollData.status === 'failed') {
-      throw new Error(`FameSpeak voice generation failed: ${pollData.error || 'Unknown error'}`);
+      throw new Error(`Voice generation failed: ${pollData.error || 'Unknown error'}`);
     }
   }
 
-  throw new Error(`FameSpeak generation timed out after ${timeoutMs / 1000}s`);
+  throw new Error(`Voice generation timed out after ${timeoutMs / 1000}s`);
 }
 
 /**
@@ -328,7 +330,7 @@ export async function synthesizeFameSpeakVoiceClone(
   return {
     buffer: result.buffer,
     contentType: result.contentType,
-    engine: 'FameSpeak-Neural-Pro',
+    engine: 'EmpireNexs-Neural-Pro',
     voiceId,
   };
 }
@@ -361,7 +363,7 @@ export async function startFameSpeakVoiceCloneJob(
   options?: { voiceName?: string; mimeType?: string }
 ): Promise<{ jobId: string; voiceId: string; statusUrl: string }> {
   const key = getFameSpeakApiKey();
-  if (!key) throw new Error('FAMESPEAK_API_KEY is not configured');
+  if (!key) throw new Error('Neural Voice Service is not configured');
 
   let targetVoiceId = existingVoiceId;
   if (!targetVoiceId && rawAudioBuffer) {
@@ -387,7 +389,7 @@ export async function startFameSpeakVoiceCloneJob(
 
   const submitData = await submitRes.json();
   if (!submitRes.ok || !submitData.id) {
-    throw new Error(`FameSpeak generation start failed: ${submitData.error || JSON.stringify(submitData)}`);
+    throw new Error(`Voice generation start failed: ${submitData.error || 'Server error'}`);
   }
 
   return {
@@ -407,7 +409,7 @@ export async function checkFameSpeakJobStatus(jobId: string): Promise<{
   error?: string | null;
 }> {
   const key = getFameSpeakApiKey();
-  if (!key) throw new Error('FAMESPEAK_API_KEY is not configured');
+  if (!key) throw new Error('Neural Voice Service is not configured');
 
   const res = await fetch(`${FAMESPEAK_API_BASE}/voice-clone/generations/${jobId}`, {
     headers: { Authorization: `Bearer ${key}` },
@@ -415,7 +417,7 @@ export async function checkFameSpeakJobStatus(jobId: string): Promise<{
 
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
-    throw new Error(`FameSpeak status check failed (HTTP ${res.status}): ${errText}`);
+    throw new Error(`Status query failed (HTTP ${res.status}): ${errText}`);
   }
 
   const data = await res.json();
@@ -434,7 +436,7 @@ export async function checkFameSpeakJobStatus(jobId: string): Promise<{
  */
 export async function downloadFameSpeakJobAudio(audioUrlOrJobId: string): Promise<{ buffer: Buffer; contentType: string }> {
   const key = getFameSpeakApiKey();
-  if (!key) throw new Error('FAMESPEAK_API_KEY is not configured');
+  if (!key) throw new Error('Neural Voice Service is not configured');
 
   const url = audioUrlOrJobId.startsWith('http')
     ? audioUrlOrJobId
@@ -447,7 +449,7 @@ export async function downloadFameSpeakJobAudio(audioUrlOrJobId: string): Promis
   });
 
   if (!res.ok) {
-    throw new Error(`Failed to download audio from FameSpeak (HTTP ${res.status})`);
+    throw new Error(`Failed to download audio stream (HTTP ${res.status})`);
   }
 
   const arrayBuf = await res.arrayBuffer();
