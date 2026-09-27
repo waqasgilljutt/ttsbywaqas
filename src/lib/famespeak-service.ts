@@ -59,8 +59,8 @@ function prepareAudioForFameSpeak(buffer: Buffer, mimeType = 'audio/mp3'): { buf
       const blockAlign = buffer.readUInt16LE(32);
       const bitsPerSample = buffer.readUInt16LE(34);
 
-      // Find data chunk
-      let dataOffset = 36;
+      // Find data chunk starting from offset 12
+      let dataOffset = 12;
       while (dataOffset < buffer.length - 8) {
         const chunkId = buffer.toString('ascii', dataOffset, dataOffset + 4);
         const chunkSize = buffer.readUInt32LE(dataOffset + 4);
@@ -68,11 +68,30 @@ function prepareAudioForFameSpeak(buffer: Buffer, mimeType = 'audio/mp3'): { buf
           const rawPcm = buffer.subarray(dataOffset + 8, dataOffset + 8 + chunkSize);
           const currentDuration = rawPcm.length / byteRate;
 
-          // If less than 32 seconds, repeat PCM data
-          const repetitions = currentDuration < 32 ? Math.ceil(34 / Math.max(currentDuration, 1)) : 1;
-          const repeatedPcm = Buffer.concat(Array(repetitions).fill(rawPcm));
+          // If already >= 30 seconds, return original audio sample directly for maximum fidelity
+          if (currentDuration >= 30) {
+            return {
+              buffer,
+              mimeType: 'audio/wav',
+              filename: 'sample.wav',
+            };
+          }
 
-          // Rebuild header
+          // If less than 32 seconds, repeat PCM data with smooth silence padding to avoid glitch clicks
+          const repetitions = Math.ceil(34 / Math.max(currentDuration, 1));
+          const silenceBytes = Math.floor(byteRate * 0.15);
+          const silenceBuf = Buffer.alloc(silenceBytes - (silenceBytes % blockAlign));
+
+          const pcmParts: Buffer[] = [];
+          for (let r = 0; r < repetitions; r++) {
+            pcmParts.push(rawPcm);
+            if (r < repetitions - 1) {
+              pcmParts.push(silenceBuf);
+            }
+          }
+          const repeatedPcm = Buffer.concat(pcmParts);
+
+          // Rebuild clean RIFF WAV header
           const newHeader = Buffer.alloc(44);
           newHeader.write('RIFF', 0);
           newHeader.writeUInt32LE(36 + repeatedPcm.length, 4);
@@ -167,27 +186,20 @@ export async function registerFameSpeakVoice(
     return cached.voiceId;
   }
 
-  // Check if a voice with this exact name already exists on FameSpeak to avoid duplicates and save quota
+  // Keep FameSpeak account clean: prune oldest voice if >= 10 voices
   try {
     const existing = await listFameSpeakSavedVoices();
-    const matched = existing.find((v) => v.name && v.name.toLowerCase() === voiceName.trim().toLowerCase());
-    if (matched) {
-      console.log(`[FameSpeak] Found existing voice matching "${voiceName}" -> Reusing ID: ${matched.id}`);
-      registeredVoiceCache.set(audioHash, { voiceId: matched.id, voiceName, createdAt: Date.now() });
-      return matched.id;
-    }
-
-    // If account has 15 or more saved voices, prune the oldest one before creating a new one
-    if (existing.length >= 15) {
+    if (existing.length >= 10) {
       await pruneOldestSavedVoice();
     }
   } catch (err) {
-    console.warn('[FameSpeak] Voice check warning:', err);
+    console.warn('[FameSpeak] Voice cleanup warning:', err);
   }
 
   const prepared = prepareAudioForFameSpeak(rawAudioBuffer, mimeType);
   const formData = new FormData();
-  formData.append('name', voiceName.slice(0, 50));
+  const uniqueName = `${voiceName.trim().slice(0, 30)} - ${Date.now().toString(36)}`;
+  formData.append('name', uniqueName);
   const blob = new Blob([new Uint8Array(prepared.buffer)], { type: prepared.mimeType });
   formData.append('sample_audio', blob, prepared.filename);
 

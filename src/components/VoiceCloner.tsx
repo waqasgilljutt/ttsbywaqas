@@ -375,9 +375,9 @@ export function VoiceCloner({
 
       timerIntervalRef.current = setInterval(() => {
         setRecordingTime((prev) => {
-          if (prev >= 30) {
+          if (prev >= 60) {
             stopRecording();
-            return 30;
+            return 60;
           }
           return prev + 1;
         });
@@ -822,7 +822,7 @@ export function VoiceCloner({
           EmpireNexs AI Voice Cloning Studio
         </h2>
         <p className="text-sm text-slate-600">
-          Upload or record a 5–15 second audio sample. Powered by EmpireNexs Neural AI, our studio engine instantly clones your authentic vocal tract, pitch, timbre, and cadence in crystal-clear fidelity.
+          Upload or record a 15–30+ second audio sample. Powered by EmpireNexs Neural AI, our studio engine instantly clones your authentic vocal tract, pitch, timbre, and cadence in crystal-clear fidelity.
         </p>
       </div>
 
@@ -931,7 +931,7 @@ export function VoiceCloner({
                       Click to Record Audio Sample
                     </span>
                     <p className="text-[11px] text-slate-500 max-w-xs">
-                      Record 5 to 15 seconds of clean speech in a quiet room for realistic clone fidelity.
+                      Record 15 to 30+ seconds of clean, natural speech in a quiet room for studio-grade vocal likeness.
                     </p>
                   </div>
                 )}
@@ -943,10 +943,10 @@ export function VoiceCloner({
                       <Sparkles className="w-3.5 h-3.5 text-amber-600" />
                       Tip: Read This Sample Aloud While Recording
                     </span>
-                    <span className="text-[10px] text-amber-700 font-normal">5–10s</span>
+                    <span className="text-[10px] text-amber-700 font-normal">15–30s recommended</span>
                   </div>
                   <p className="text-amber-900 text-xs italic bg-white/80 p-2.5 rounded-lg border border-amber-200/70 leading-relaxed">
-                    &quot;Hello, this is my real voice sample for AI voice cloning on EmpireNexs. Today is a great day and my voice is crystal clear.&quot;
+                    &quot;Hello, this is my authentic voice sample for EmpireNexs AI Voice Cloning. Text to speech technology has transformed how we communicate, share knowledge, and tell stories. Today I am testing my natural vocal resonance, tone, and inflection to create a high-fidelity digital twin of my voice.&quot;
                   </p>
                 </div>
 
@@ -991,7 +991,7 @@ export function VoiceCloner({
                     {uploadedFile ? uploadedFile.name : 'Upload voice sample file'}
                   </label>
                   <span className="text-[11px] text-slate-400">
-                    MP3, WAV, M4A up to 20MB (5s – 30s recommended)
+                    MP3, WAV, M4A up to 20MB (15s – 45s recommended for best accuracy)
                   </span>
                 </div>
 
