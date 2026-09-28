@@ -56,8 +56,18 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
   const [planDurationDays, setPlanDurationDays] = useState<number>(30);
   const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
 
-  // Check if session PIN was already verified in this session
+  // Check if session PIN was already verified in this session and restore cached users immediately
   useEffect(() => {
+    try {
+      const cached = localStorage.getItem('empirenexs_admin_cached_users');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setUsers(parsed);
+        }
+      }
+    } catch {}
+
     const savedPin = sessionStorage.getItem('empirenexs_admin_pin');
     if (savedPin) {
       setPin(savedPin);
@@ -110,82 +120,60 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
   const loadUsers = useCallback(async (activePin: string) => {
     setIsLoadingUsers(true);
     try {
-      // Also sync any registered users from localStorage into server store
-      let localUsers: StoredUser[] = [];
-      try {
-        const stored = localStorage.getItem('empirenexs_registered_accounts');
-        if (stored) {
-          localUsers = JSON.parse(stored);
-          // Purge any temporary/disposable/non-gmail accounts permanently
-          const cleaned = localUsers.filter(
-            (u) => u.email && /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(u.email.trim())
-          );
-          if (cleaned.length !== localUsers.length) {
-            localStorage.setItem('empirenexs_registered_accounts', JSON.stringify(cleaned));
-            localUsers = cleaned;
-          }
-        }
-      } catch (e) {
-        console.warn('Local storage error:', e);
-      }
-
-      // Sync local users to server (strictly @gmail.com only)
-      for (const u of localUsers) {
-        if (u.email && /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(u.email.trim())) {
-          let userCreditsUsed = u.creditsUsed || 0;
-          let userPlan = u.plan;
-          let userLimit = u.creditLimit;
-          let userPlanName = u.planName;
-          try {
-            const cachedCredits = localStorage.getItem(`empirenexs_credits_${u.email.toLowerCase()}`);
-            if (cachedCredits) {
-              const parsed = JSON.parse(cachedCredits);
-              if (parsed.creditsUsed > userCreditsUsed) userCreditsUsed = parsed.creditsUsed;
-              if (parsed.plan) userPlan = parsed.plan;
-              if (parsed.creditLimit) userLimit = parsed.creditLimit;
-              if (parsed.planName) userPlanName = parsed.planName;
-            }
-          } catch {}
-
-          await fetch('/api/admin/users', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'sync',
-              name: u.name,
-              email: u.email,
-              creditsUsed: userCreditsUsed,
-              creditLimit: userLimit,
-              plan: userPlan,
-              planName: userPlanName,
-            }),
-          }).catch(() => {});
-        }
-      }
-
-      const res = await fetch('/api/admin/users', {
+      const targetPin = (activePin || pin || sessionStorage.getItem('empirenexs_admin_pin') || '').trim();
+      const res = await fetch(`/api/admin/users?_t=${Date.now()}&pin=${encodeURIComponent(targetPin)}`, {
+        cache: 'no-store',
         headers: {
-          'x-admin-pin': activePin,
+          'x-admin-pin': targetPin,
           'x-user-email': currentUser?.email || OWNER_EMAIL,
         },
       });
       const data = await res.json();
       if (data.success) {
-        if (data.users) {
+        if (data.users && Array.isArray(data.users)) {
           // Strict Gmail filter: do not display any temp mail under any condition
           const gmailUsers = (data.users as StoredUser[]).filter(
-            (u) => u.email && /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(u.email.trim())
+            (u) => u && u.email && /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(u.email.trim())
           );
           setUsers(gmailUsers);
+          try {
+            localStorage.setItem('empirenexs_admin_cached_users', JSON.stringify(gmailUsers));
+          } catch {}
         }
         if (data.otps) setOtps(data.otps);
+      } else {
+        showNotice(data.error || 'Failed to fetch users from server.', 'error');
       }
+
+      // Non-blocking background sync of any locally stored accounts
+      setTimeout(async () => {
+        try {
+          const stored = localStorage.getItem('empirenexs_registered_accounts');
+          if (stored) {
+            const localUsers: StoredUser[] = JSON.parse(stored);
+            for (const u of localUsers) {
+              if (u.email && /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(u.email.trim())) {
+                fetch('/api/admin/users', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'sync',
+                    name: u.name,
+                    email: u.email,
+                  }),
+                }).catch(() => {});
+              }
+            }
+          }
+        } catch {}
+      }, 500);
     } catch (err) {
       console.warn('Failed to fetch users:', err);
+      showNotice('Network error fetching users list.', 'error');
     } finally {
       setIsLoadingUsers(false);
     }
-  }, [currentUser]);
+  }, [currentUser, pin]);
 
   const handleToggleBlock = async (user: StoredUser) => {
     if (user.email.toLowerCase() === OWNER_EMAIL.toLowerCase()) {
@@ -520,13 +508,15 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
   };
 
   const filteredUsers = users.filter((u) => {
-    const matchesSearch =
-      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!u) return false;
+    const name = (u.name || '').toLowerCase();
+    const userEmail = (u.email || '').toLowerCase();
+    const search = searchQuery.toLowerCase().trim();
+    const matchesSearch = !search || name.includes(search) || userEmail.includes(search);
     if (!matchesSearch) return false;
 
     if (statusFilter === 'active') return !u.isBlocked;
-    if (statusFilter === 'blocked') return u.isBlocked;
+    if (statusFilter === 'blocked') return Boolean(u.isBlocked);
     return true;
   });
 

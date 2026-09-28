@@ -57,22 +57,30 @@ function getEnrichedUsers(): StoredUser[] {
 }
 
 export async function GET(req: NextRequest) {
-  const pin = req.headers.get('x-admin-pin');
-  const userEmail = req.headers.get('x-user-email');
+  const pin = req.headers.get('x-admin-pin') || req.nextUrl.searchParams.get('pin');
+  const userEmail = req.headers.get('x-user-email') || req.nextUrl.searchParams.get('email');
 
   const isOwner = userEmail && userEmail.toLowerCase() === OWNER_EMAIL.toLowerCase();
   const isPinValid = pin === DEFAULT_ADMIN_PIN;
 
+  const noCacheHeaders = {
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+    Pragma: 'no-cache',
+    Expires: '0',
+    'CDN-Cache-Control': 'no-store',
+    'Vercel-CDN-Cache-Control': 'no-store',
+  };
+
   if (!isOwner && !isPinValid) {
     return NextResponse.json(
       { success: false, error: 'Unauthorized: Admin privileges required.' },
-      { status: 403 }
+      { status: 403, headers: noCacheHeaders }
     );
   }
 
   const users = getEnrichedUsers();
   const otps = getActiveOTPs();
-  return NextResponse.json({ success: true, users, otps });
+  return NextResponse.json({ success: true, users, otps }, { headers: noCacheHeaders });
 }
 
 export async function POST(req: NextRequest) {
