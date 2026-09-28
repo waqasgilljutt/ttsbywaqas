@@ -136,8 +136,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, user });
     }
 
-    // Register or Sync user
-    if (action === 'register' || action === 'sync') {
+    // Register, Sync or Admin Create user
+    if (action === 'register' || action === 'sync' || action === 'admin-create-user') {
       const { name, email, password, creditsUsed, creditLimit, plan, planName } = body;
       if (!email || !isStrictGmail(email)) {
         return NextResponse.json(
@@ -168,6 +168,9 @@ export async function POST(req: NextRequest) {
       if (plan) user.plan = plan;
       if (planName) user.planName = planName;
       persistUsersToDisk();
+      if (action === 'admin-create-user') {
+        return NextResponse.json({ success: true, user, users: getEnrichedUsers() });
+      }
       return NextResponse.json({ success: true, user });
     }
 

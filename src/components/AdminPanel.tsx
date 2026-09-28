@@ -29,6 +29,7 @@ import {
   Coins,
   Calendar,
   Mail,
+  UserPlus,
 } from 'lucide-react';
 import { StoredUser, OWNER_EMAIL } from '@/lib/user-types';
 
@@ -55,6 +56,13 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
   const [customPlanNameInput, setCustomPlanNameInput] = useState<string>('');
   const [planDurationDays, setPlanDurationDays] = useState<number>(30);
   const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
+
+  // Add User Manually Modal State
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPlan, setNewUserPlan] = useState<'free' | '1m' | '3m' | '10m' | 'unlimited'>('free');
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   // Check if session PIN was already verified in this session and restore cached users immediately
   useEffect(() => {
@@ -507,6 +515,67 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
     }
   };
 
+  const handleAdminCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedEmail = newUserEmail.trim().toLowerCase();
+    if (!trimmedEmail || !trimmedEmail.endsWith('@gmail.com')) {
+      showNotice('Please enter a valid @gmail.com email address.', 'error');
+      return;
+    }
+
+    setIsCreatingUser(true);
+    try {
+      const activePin = (pin || sessionStorage.getItem('empirenexs_admin_pin') || '').trim();
+      const creditsMap = {
+        free: 30000,
+        '1m': 1000000,
+        '3m': 3000000,
+        '10m': 10000000,
+        unlimited: -1,
+      };
+
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pin': activePin,
+          'x-user-email': currentUser?.email || OWNER_EMAIL,
+        },
+        body: JSON.stringify({
+          action: 'admin-create-user',
+          name: newUserName.trim() || trimmedEmail.split('@')[0],
+          email: trimmedEmail,
+          plan: newUserPlan,
+          creditLimit: creditsMap[newUserPlan],
+          pin: activePin,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        if (data.users && Array.isArray(data.users)) {
+          setUsers(data.users);
+          try {
+            localStorage.setItem('empirenexs_admin_cached_users', JSON.stringify(data.users));
+          } catch {}
+        } else {
+          loadUsers(activePin);
+        }
+        showNotice(`Account for ${trimmedEmail} registered successfully!`);
+        setIsAddUserModalOpen(false);
+        setNewUserName('');
+        setNewUserEmail('');
+        setNewUserPlan('free');
+      } else {
+        showNotice(data.error || 'Failed to create user account.', 'error');
+      }
+    } catch {
+      showNotice('Network error creating user.', 'error');
+    } finally {
+      setIsCreatingUser(false);
+    }
+  };
+
   const filteredUsers = users.filter((u) => {
     if (!u) return false;
     const name = (u.name || '').toLowerCase();
@@ -646,6 +715,16 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
             accept=".json,application/json"
             className="hidden"
           />
+
+          <button
+            type="button"
+            onClick={() => setIsAddUserModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-md shadow-brand-600/20 hover:scale-[1.02] active:scale-95 transition-all"
+            title="Register a new user manually"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>+ Add User</span>
+          </button>
 
           <button
             type="button"
@@ -1355,6 +1434,97 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Add User Manually */}
+      {isAddUserModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => setIsAddUserModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 relative overflow-hidden flex flex-col gap-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-bold">
+                  <UserPlus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Add User Manually</h3>
+                  <p className="text-[11px] text-slate-500">Register and assign credits directly to any Gmail</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAddUserModalOpen(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAdminCreateUser} className="flex flex-col gap-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  placeholder="e.g. Ejaz Sheikh"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-brand-600 focus:bg-white transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Gmail Address <span className="text-brand-600 text-[10px]">(@gmail.com only)</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  placeholder="username@gmail.com"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-brand-600 focus:bg-white transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Select Monthly Plan</label>
+                <select
+                  value={newUserPlan}
+                  onChange={(e) => setNewUserPlan(e.target.value as any)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-brand-600 focus:bg-white transition-all"
+                >
+                  <option value="free">Free Starter (30,000 Credits / Month)</option>
+                  <option value="1m">Starter Pack (1,000,000 Credits / Month)</option>
+                  <option value="3m">Creator Pack (3,000,000 Credits / Month)</option>
+                  <option value="10m">Pro Studio (10,000,000 Credits / Month)</option>
+                  <option value="unlimited">Unlimited VIP (Unlimited Generations / Month)</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 mt-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAddUserModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingUser || !newUserEmail.trim()}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-brand-500/20 disabled:opacity-50 transition-all flex items-center gap-1.5"
+                >
+                  {isCreatingUser ? <span>Creating User...</span> : <span>Create Account</span>}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

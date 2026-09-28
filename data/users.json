@@ -19,6 +19,25 @@
     "planStatus": "active"
   },
   {
+    "id": "user_1790582400000_ejaz",
+    "name": "ejazsheikh198",
+    "email": "ejazsheikh198@gmail.com",
+    "password": "",
+    "createdAt": "2026-09-28T03:00:00.000Z",
+    "lastActive": "2026-09-28T12:00:00.000Z",
+    "voicesGenerated": 0,
+    "creditsUsed": 0,
+    "creditLimit": 30000,
+    "plan": "free",
+    "planName": "Free Starter (Monthly)",
+    "isPaid": false,
+    "role": "user",
+    "isBlocked": false,
+    "planActivatedAt": "2026-09-28T03:00:00.000Z",
+    "planExpiresAt": "2026-10-28T03:00:00.000Z",
+    "planStatus": "active"
+  },
+  {
     "id": "user_1790595505467_fcwp7",
     "name": "Waqas",
     "email": "oc8750714@gmail.com",
