@@ -18,7 +18,7 @@ import {
   ArrowLeft,
   AlertCircle,
 } from 'lucide-react';
-import { OWNER_EMAIL } from '@/lib/user-store';
+import { OWNER_EMAIL } from '@/lib/user-types';
 
 type AuthViewMode =
   | 'signin'
@@ -179,6 +179,16 @@ export function AuthModal({
       } catch (e) {
         console.warn('LocalStorage error:', e);
       }
+
+      fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sync',
+          name: verifiedUser.name,
+          email: verifiedUser.email,
+        }),
+      }).catch(() => {});
 
       setSuccessMsg(`Account verified successfully! Welcome to TTS bY Waqas Gill.`);
       setTimeout(() => {
@@ -738,6 +748,17 @@ export function AuthModal({
               />
             </div>
 
+            {/* Direct Gmail Delivery & Spam Notice */}
+            <div className="p-3 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-950 text-xs flex items-start gap-2.5">
+              <Mail className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+              <div className="leading-relaxed">
+                <span className="font-bold text-amber-900">Code delivered to your Gmail!</span>
+                <p className="mt-0.5 text-[11px] text-amber-800">
+                  Can&apos;t find it in your Primary inbox? Please check your <strong>Spam / Junk</strong> folder or <strong>Promotions</strong> tab.
+                </p>
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={isLoading || otpCode.length !== 6}
@@ -843,6 +864,17 @@ export function AuthModal({
                 placeholder="••••••"
                 className="w-full text-center tracking-[0.4em] font-mono text-xl bg-slate-50 border border-slate-200 rounded-2xl py-2.5 text-slate-900 focus:outline-none focus:border-brand-600 focus:bg-white transition-all shadow-inner"
               />
+            </div>
+
+            {/* Direct Gmail Delivery & Spam Notice */}
+            <div className="p-3 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-950 text-xs flex items-start gap-2.5">
+              <Mail className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+              <div className="leading-relaxed">
+                <span className="font-bold text-amber-900">Reset code sent to your Gmail!</span>
+                <p className="mt-0.5 text-[11px] text-amber-800">
+                  Please check your <strong>Inbox</strong>, and look inside <strong>Spam / Junk</strong> folder if not found.
+                </p>
+              </div>
             </div>
 
             <div>

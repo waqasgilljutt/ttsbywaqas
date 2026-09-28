@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ShieldCheck,
   Lock,
   Unlock,
   Users,
   Download,
+  Upload,
+  Database,
   Search,
   Trash2,
   Ban,
@@ -26,8 +28,9 @@ import {
   Crown,
   Coins,
   Calendar,
+  Mail,
 } from 'lucide-react';
-import { StoredUser, OWNER_EMAIL } from '@/lib/user-store';
+import { StoredUser, OWNER_EMAIL } from '@/lib/user-types';
 
 interface AdminPanelProps {
   currentUser: { name: string; email: string } | null;
@@ -462,6 +465,60 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
     showNotice('User list exported to CSV for Excel successfully!');
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExportJSON = () => {
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(users, null, 2));
+    const link = document.createElement('a');
+    link.setAttribute('href', dataStr);
+    link.setAttribute('download', `tts-waqas-gill-users-db-${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showNotice('Full user database backup (.json) downloaded successfully!');
+  };
+
+  const handleRestoreJSON = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (!Array.isArray(parsed)) {
+        showNotice('Invalid backup file: Must be a JSON array of users.');
+        return;
+      }
+
+      const activePin = pin || sessionStorage.getItem('empirenexs_admin_pin') || '';
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pin': activePin,
+          'x-user-email': currentUser?.email || OWNER_EMAIL,
+        },
+        body: JSON.stringify({
+          action: 'restore-backup',
+          backupUsers: parsed,
+          pin: activePin,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        if (data.users) setUsers(data.users);
+        showNotice(`Database restored successfully! ${parsed.length} accounts loaded into system.`);
+      } else {
+        showNotice(data.error || 'Failed to restore database.');
+      }
+    } catch {
+      showNotice('Error reading JSON backup file.');
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const filteredUsers = users.filter((u) => {
     const matchesSearch =
       u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -590,20 +647,50 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+          {/* Hidden File Input for JSON DB Restore */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleRestoreJSON}
+            accept=".json,application/json"
+            className="hidden"
+          />
+
           <button
             type="button"
             onClick={handleExportCSV}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 hover:scale-[1.02] active:scale-95 transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 hover:scale-[1.02] active:scale-95 transition-all"
+            title="Download user list as CSV for Excel"
           >
             <Download className="w-4 h-4" />
-            <span>Export to Excel (CSV)</span>
+            <span>Export CSV</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportJSON}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 hover:scale-[1.02] active:scale-95 transition-all"
+            title="Download complete database backup JSON"
+          >
+            <Database className="w-4 h-4" />
+            <span>Backup DB</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md shadow-amber-600/20 hover:scale-[1.02] active:scale-95 transition-all"
+            title="Restore database from a saved JSON backup file"
+          >
+            <Upload className="w-4 h-4" />
+            <span>Restore DB</span>
           </button>
 
           <button
             type="button"
             onClick={handleLock}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 hover:scale-[1.02] active:scale-95 transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 hover:scale-[1.02] active:scale-95 transition-all"
           >
             <Lock className="w-4 h-4" />
             <span>Lock Panel</span>
@@ -676,19 +763,29 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
         </div>
       </div>
 
-      {/* Live Email OTP Verification Monitor */}
+      {/* Live Email OTP Verification Monitor (Emergency Backup for Owner) */}
       {otps.length > 0 && (
         <div className="p-5 rounded-3xl bg-slate-900 text-white shadow-md flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                Live Email OTP Verification Monitor
+                Live Email OTP Dispatch Monitor
               </h4>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                Delivered Directly to User&apos;s Gmail
+              </span>
             </div>
             <span className="text-[11px] text-slate-400 font-mono">
-              {otps.length} Recent Request{otps.length > 1 ? 's' : ''}
+              {otps.length} Active Code{otps.length > 1 ? 's' : ''}
             </span>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-slate-300 text-xs flex items-start gap-2.5">
+            <Mail className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+            <p className="text-[11px] leading-relaxed">
+              <strong className="text-white">Owner Notice:</strong> All OTP verification codes are dispatched instantly to the user&apos;s registered Gmail address via Gmail SMTP. This monitor is kept here purely as an <strong>emergency backup</strong> for you (Waqas Gill), so if any user experiences an inbox delay or fails to check their Spam folder, you can assist them immediately.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

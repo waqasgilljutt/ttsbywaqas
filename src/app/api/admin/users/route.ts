@@ -11,6 +11,8 @@ import {
   setUserPlan,
   extendUserPlanDays,
   adjustUserCreditLimit,
+  persistUsersToDisk,
+  replaceAllUsers,
   PLANS_CONFIG,
   UserPlanType,
   isStrictGmail,
@@ -157,6 +159,7 @@ export async function POST(req: NextRequest) {
       }
       if (plan) user.plan = plan;
       if (planName) user.planName = planName;
+      persistUsersToDisk();
       return NextResponse.json({ success: true, user });
     }
 
@@ -201,6 +204,7 @@ export async function POST(req: NextRequest) {
         recordAudioGeneration(email);
         if (typeof creditsUsed === 'number' && user) {
           user.creditsUsed = Math.max(user.creditsUsed || 0, creditsUsed);
+          persistUsersToDisk();
         } else if (characters && typeof characters === 'number') {
           deductCredits(email, characters);
         }
@@ -220,6 +224,23 @@ export async function POST(req: NextRequest) {
         { success: false, error: 'Unauthorized: Invalid Admin PIN or credentials.' },
         { status: 403 }
       );
+    }
+
+    // Admin: Restore / Import Database from JSON Backup
+    if (action === 'restore-backup') {
+      const { backupUsers } = body;
+      if (!Array.isArray(backupUsers) || backupUsers.length === 0) {
+        return NextResponse.json({ success: false, error: 'Invalid backup file or empty user list.' }, { status: 400 });
+      }
+      const ok = replaceAllUsers(backupUsers);
+      if (!ok) {
+        return NextResponse.json({ success: false, error: 'Failed to restore database from backup.' }, { status: 400 });
+      }
+      return NextResponse.json({
+        success: true,
+        message: `Successfully restored ${backupUsers.length} accounts to database!`,
+        users: getEnrichedUsers(),
+      });
     }
 
     // Admin: Set a predefined monthly plan (Free, 1M, 3M, 10M, Unlimited)

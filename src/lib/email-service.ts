@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { OWNER_EMAIL } from './user-store';
+import { OWNER_EMAIL } from './user-types';
 
 export interface OTPRecord {
   email: string;
@@ -55,10 +55,12 @@ export function deleteOTPRecord(email: string): void {
 const DEFAULT_SMTP_EMAIL = 'oc8750714@gmail.com';
 const DEFAULT_SMTP_PASSWORD = 'vrleilglacauujwj';
 
-// Nodemailer transport setup
+// Nodemailer transport setup with official Gmail service and connection timeouts
 function getEmailTransporter() {
   const smtpEmail = (process.env.SMTP_EMAIL || process.env.GMAIL_USER || DEFAULT_SMTP_EMAIL).trim();
-  const smtpPass = (process.env.SMTP_PASSWORD || process.env.GMAIL_APP_PASSWORD || DEFAULT_SMTP_PASSWORD).trim().replace(/\s+/g, '');
+  const smtpPass = (process.env.SMTP_PASSWORD || process.env.GMAIL_APP_PASSWORD || DEFAULT_SMTP_PASSWORD)
+    .trim()
+    .replace(/\s+/g, '');
 
   if (!smtpPass) {
     return null;
@@ -73,17 +75,22 @@ function getEmailTransporter() {
         user: smtpEmail,
         pass: smtpPass,
       },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
   }
 
+  // Recommended official Nodemailer configuration for Gmail
   return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
+    service: 'gmail',
     auth: {
       user: smtpEmail,
       pass: smtpPass,
     },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 }
 
@@ -103,6 +110,24 @@ export async function sendOTPEmail(
       ? 'Welcome to TTS bY Waqas Gill by EmpireNexs! Use the verification code below to verify your Gmail and activate your free account.'
       : 'We received a request to reset the password for your TTS bY Waqas Gill account. Use the code below to set a new password.';
 
+  const textContent = `
+Hello${name ? ` ${name}` : ''},
+
+${actionText}
+
+Your 6-Digit Verification Code: ${code}
+
+(Valid for 10 minutes only)
+
+If you did not request this verification code, please disregard this email. Your account remains secure.
+
+--------------------------------------------------
+Developed with precision by Waqas Gill
+An EmpireNexs Innovation • Free Studio Grade Text-to-Speech Platform
+Website: https://dofashion.online
+Contact: ${OWNER_EMAIL}
+`.trim();
+
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -119,6 +144,7 @@ export async function sendOTPEmail(
           .code { font-family: 'Courier New', monospace; font-size: 34px; font-weight: 900; letter-spacing: 8px; color: #2563eb; margin: 0; }
           .expiry { font-size: 11px; color: #94a3b8; margin-top: 8px; font-weight: 600; }
           .content { font-size: 13px; line-height: 1.6; color: #475569; }
+          .notice-box { margin-top: 18px; padding: 12px; border-radius: 12px; background-color: #fef3c7; border: 1px solid #fde68a; font-size: 11px; color: #92400e; }
           .footer { margin-top: 32px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 11px; color: #94a3b8; }
           .footer a { color: #2563eb; text-decoration: none; font-weight: 600; }
         </style>
@@ -141,7 +167,11 @@ export async function sendOTPEmail(
             <div class="expiry">Valid for 10 minutes only</div>
           </div>
 
-          <div class="content">
+          <div class="notice-box">
+            💡 <strong>Can't find this email in your Primary Inbox?</strong> Please check your <strong>Spam / Junk</strong> folder or <strong>Promotions</strong> tab.
+          </div>
+
+          <div class="content" style="margin-top: 18px;">
             <p style="font-size: 11px; color: #64748b;">
               If you did not request this verification code, please disregard this email. Your account remains secure.
             </p>
@@ -178,7 +208,13 @@ export async function sendOTPEmail(
       from: `"TTS bY Waqas Gill" <${fromEmail}>`,
       to: recipientEmail,
       subject: `${code} is your verification code - TTS bY Waqas Gill`,
+      text: textContent,
       html: htmlContent,
+      headers: {
+        'X-Priority': '1 (Highest)',
+        'X-MSMail-Priority': 'High',
+        Importance: 'High',
+      },
     });
     console.log(`[Email Service] Verification email successfully delivered via Gmail SMTP to ${recipientEmail}`);
     return { success: true, deliveredViaSMTP: true };

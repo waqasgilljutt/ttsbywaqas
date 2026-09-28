@@ -1,0 +1,39 @@
+[
+  {
+    "id": "owner-waqas",
+    "name": "Waqas Gill",
+    "email": "muhammadwaqasmwg@gmail.com",
+    "password": "owner_password_secure",
+    "createdAt": "2026-09-20T10:00:00.000Z",
+    "lastActive": "2026-09-28T11:00:00.000Z",
+    "voicesGenerated": 120,
+    "creditsUsed": 0,
+    "creditLimit": -1,
+    "plan": "unlimited",
+    "planName": "Unlimited VIP (Owner)",
+    "isPaid": true,
+    "role": "owner",
+    "isBlocked": false,
+    "planActivatedAt": "2026-09-20T10:00:00.000Z",
+    "planExpiresAt": null,
+    "planStatus": "active"
+  },
+  {
+    "id": "user_1790054111",
+    "name": "saiem049382",
+    "email": "saiem049382@gmail.com",
+    "createdAt": "2026-09-21T23:00:00.000Z",
+    "lastActive": "2026-09-28T11:00:00.000Z",
+    "voicesGenerated": 0,
+    "creditsUsed": 0,
+    "creditLimit": 30000,
+    "plan": "free",
+    "planName": "Free Starter (Monthly)",
+    "isPaid": false,
+    "role": "user",
+    "isBlocked": false,
+    "planActivatedAt": "2026-09-21T23:00:00.000Z",
+    "planExpiresAt": "2026-10-21T23:00:00.000Z",
+    "planStatus": "active"
+  }
+]

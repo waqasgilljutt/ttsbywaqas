@@ -1,93 +1,32 @@
 // User and Owner Store for TTS bY Waqas Gill (EmpireNexs)
-// Features: 1 Char = 1 Credit, Monthly PKR Plans (30-day validity), Auto-Expiration, Expiring Soon Alerts, Admin Expiry Controls
+// Persistent Storage with data/users.json & /tmp fallback, strict Gmail validation, monthly billing & auto-expiration
 
-export type UserPlanType = 'free' | '1m' | '3m' | '10m' | 'unlimited';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import {
+  StoredUser,
+  UserPlanType,
+  OWNER_EMAIL,
+  FREE_INITIAL_CREDITS,
+  STANDARD_PLAN_DAYS,
+  PLANS_CONFIG,
+  isStrictGmail,
+} from './user-types';
 
-export interface StoredUser {
-  id: string;
-  name: string;
-  email: string;
-  password?: string;
-  createdAt: string;
-  lastActive: string;
-  voicesGenerated: number;
-  creditsUsed: number;
-  creditLimit: number; // 30,000 for free, 1,000,000 for 1M, etc., or -1 for Unlimited
-  plan: UserPlanType;
-  planName: string;
-  isPaid: boolean;
-  role: 'owner' | 'user';
-  isBlocked: boolean;
-  // Monthly billing & expiration fields
-  planActivatedAt?: string;
-  planExpiresAt?: string | null; // null for permanent owner account
-  planStatus?: 'active' | 'expiring_soon' | 'expired';
-  daysRemaining?: number | null;
-}
+export * from './user-types';
 
-export const OWNER_EMAIL = 'muhammadwaqasmwg@gmail.com';
-export const DEFAULT_ADMIN_PIN = process.env.ADMIN_SECRET_PIN || '7860';
+const PRIMARY_DATA_PATH = path.join(process.cwd(), 'data', 'users.json');
+const FALLBACK_DATA_PATH = path.join(os.tmpdir(), 'empirenexs_users.json');
 
-export const FREE_INITIAL_CREDITS = 30000;
-export const MAX_PER_VOICE_CHARACTERS = 50000;
-export const STANDARD_PLAN_DAYS = 30;
-
-export const PLANS_CONFIG = {
-  free: {
-    name: 'Free Starter (Monthly)',
-    credits: 30000,
-    pricePKR: 0,
-    period: 'monthly',
-    validityDays: 30,
-    description: '30,000 Credits / Month (Renews every 30 days)',
-  },
-  '1m': {
-    name: 'Starter Pack (1M / Month)',
-    credits: 1000000,
-    pricePKR: 300,
-    period: 'monthly',
-    validityDays: 30,
-    description: '1,000,000 Credits for Rs. 300 PKR / Month',
-  },
-  '3m': {
-    name: 'Creator Pack (3M / Month)',
-    credits: 3000000,
-    pricePKR: 900,
-    period: 'monthly',
-    validityDays: 30,
-    description: '3,000,000 Credits for Rs. 900 PKR / Month',
-  },
-  '10m': {
-    name: 'Pro Studio (10M / Month)',
-    credits: 10000000,
-    pricePKR: 2500,
-    period: 'monthly',
-    validityDays: 30,
-    description: '10,000,000 Credits for Rs. 2,500 PKR / Month',
-  },
-  unlimited: {
-    name: 'Unlimited VIP (1 Month)',
-    credits: -1, // -1 denotes unlimited
-    pricePKR: 4000,
-    period: 'monthly',
-    validityDays: 30,
-    description: 'Unlimited Voice Generations for Rs. 4,000 PKR / Month',
-  },
-};
-
-export function isStrictGmail(email: string): boolean {
-  if (!email || typeof email !== 'string') return false;
-  return /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(email.trim());
-}
-
-// In-memory cache on server seeded with Waqas Gill owner account and test user
-let usersCache: StoredUser[] = [
+// Default initial seeded users
+const DEFAULT_USERS: StoredUser[] = [
   {
     id: 'owner-waqas',
     name: 'Waqas Gill',
     email: OWNER_EMAIL,
     password: 'owner_password_secure',
-    createdAt: new Date().toISOString(),
+    createdAt: '2026-09-20T10:00:00.000Z',
     lastActive: new Date().toISOString(),
     voicesGenerated: 120,
     creditsUsed: 0,
@@ -97,7 +36,7 @@ let usersCache: StoredUser[] = [
     isPaid: true,
     role: 'owner',
     isBlocked: false,
-    planActivatedAt: new Date().toISOString(),
+    planActivatedAt: '2026-09-20T10:00:00.000Z',
     planExpiresAt: null, // Owner never expires
     planStatus: 'active',
   },
@@ -116,20 +55,106 @@ let usersCache: StoredUser[] = [
     role: 'user',
     isBlocked: false,
     planActivatedAt: '2026-09-21T23:00:00.000Z',
-    planExpiresAt: new Date(Date.now() + 24 * 24 * 60 * 60 * 1000).toISOString(), // 24 days left
+    planExpiresAt: new Date(Date.now() + 24 * 24 * 60 * 60 * 1000).toISOString(),
     planStatus: 'active',
   },
 ];
 
+let usersCache: StoredUser[] | null = null;
+
+function loadUsersFromDisk(): StoredUser[] {
+  let loadedUsers: StoredUser[] | null = null;
+
+  // 1. Try reading primary storage file (data/users.json)
+  try {
+    if (fs.existsSync(PRIMARY_DATA_PATH)) {
+      const raw = fs.readFileSync(PRIMARY_DATA_PATH, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        loadedUsers = parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('[User Store] Could not read primary users.json:', err);
+  }
+
+  // 2. If not found or empty, try reading fallback storage file in os.tmpdir()
+  if (!loadedUsers) {
+    try {
+      if (fs.existsSync(FALLBACK_DATA_PATH)) {
+        const raw = fs.readFileSync(FALLBACK_DATA_PATH, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          loadedUsers = parsed;
+        }
+      }
+    } catch (err) {
+      console.warn('[User Store] Could not read fallback users.json:', err);
+    }
+  }
+
+  // 3. Fallback to default seeded users
+  if (!loadedUsers || loadedUsers.length === 0) {
+    loadedUsers = [...DEFAULT_USERS];
+    persistUsersToDisk(loadedUsers);
+  }
+
+  // Ensure strict Gmail filter
+  loadedUsers = loadedUsers.filter((u) => u && u.email && isStrictGmail(u.email));
+
+  // Ensure owner account always exists
+  if (!loadedUsers.some((u) => u.email.toLowerCase() === OWNER_EMAIL.toLowerCase())) {
+    loadedUsers.unshift(DEFAULT_USERS[0]);
+  }
+
+  return loadedUsers;
+}
+
+export function persistUsersToDisk(usersToSave?: StoredUser[]): void {
+  try {
+    const list = usersToSave || usersCache || DEFAULT_USERS;
+    const jsonStr = JSON.stringify(list, null, 2);
+
+    // Write to primary path (data/users.json)
+    try {
+      const dir = path.dirname(PRIMARY_DATA_PATH);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(PRIMARY_DATA_PATH, jsonStr, 'utf-8');
+    } catch (primaryErr) {
+      console.warn('[User Store] Note: Primary disk write warning (normal in serverless):', primaryErr);
+    }
+
+    // Always also write to /tmp fallback path
+    try {
+      fs.writeFileSync(FALLBACK_DATA_PATH, jsonStr, 'utf-8');
+    } catch (fallbackErr) {
+      console.warn('[User Store] Fallback disk write warning:', fallbackErr);
+    }
+  } catch (err) {
+    console.error('[User Store] Failed to persist users:', err);
+  }
+}
+
+function getCache(): StoredUser[] {
+  if (!usersCache) {
+    usersCache = loadUsersFromDisk();
+  }
+  return usersCache;
+}
+
 export function getAllUsers(): StoredUser[] {
+  const cache = getCache();
   // Enforce Gmail only: automatically purge any non-gmail accounts
-  usersCache = usersCache.filter((u) => isStrictGmail(u.email));
+  usersCache = cache.filter((u) => isStrictGmail(u.email));
   return usersCache;
 }
 
 export function getUserByEmail(email: string): StoredUser | undefined {
   if (!isStrictGmail(email)) return undefined;
-  return usersCache.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  const cache = getCache();
+  return cache.find((u) => u.email.toLowerCase() === email.toLowerCase());
 }
 
 export function isEmailRegistered(email: string): boolean {
@@ -143,7 +168,8 @@ export function registerOrUpdateUser(name: string, email: string, password?: str
     return null;
   }
 
-  const existing = getUserByEmail(normalizedEmail);
+  const cache = getCache();
+  const existing = cache.find((u) => u.email.toLowerCase() === normalizedEmail);
   const now = new Date();
 
   if (existing) {
@@ -154,12 +180,13 @@ export function registerOrUpdateUser(name: string, email: string, password?: str
     if (existing.creditLimit === undefined) existing.creditLimit = existing.role === 'owner' ? -1 : FREE_INITIAL_CREDITS;
     if (!existing.plan) existing.plan = existing.role === 'owner' ? 'unlimited' : 'free';
     if (!existing.planName) existing.planName = existing.role === 'owner' ? 'Unlimited VIP (Owner)' : 'Free Starter (Monthly)';
-    
+
     // Ensure expiration date is set for regular users
     if (existing.role !== 'owner' && !existing.planExpiresAt) {
       existing.planActivatedAt = now.toISOString();
       existing.planExpiresAt = new Date(now.getTime() + STANDARD_PLAN_DAYS * 24 * 60 * 60 * 1000).toISOString();
     }
+    persistUsersToDisk(cache);
     return existing;
   }
 
@@ -184,7 +211,8 @@ export function registerOrUpdateUser(name: string, email: string, password?: str
     planStatus: 'active',
   };
 
-  usersCache.unshift(newUser);
+  cache.unshift(newUser);
+  persistUsersToDisk(cache);
   return newUser;
 }
 
@@ -194,11 +222,13 @@ export function updateUserPassword(email: string, newPassword: string): boolean 
   if (!user) return false;
   user.password = newPassword;
   user.lastActive = new Date().toISOString();
+  persistUsersToDisk(getCache());
   return true;
 }
 
 export function toggleBlockUser(userId: string): { success: boolean; user?: StoredUser; error?: string } {
-  const user = usersCache.find((u) => u.id === userId);
+  const cache = getCache();
+  const user = cache.find((u) => u.id === userId);
   if (!user) {
     return { success: false, error: 'User not found' };
   }
@@ -208,21 +238,35 @@ export function toggleBlockUser(userId: string): { success: boolean; user?: Stor
   }
 
   user.isBlocked = !user.isBlocked;
+  persistUsersToDisk(cache);
   return { success: true, user };
 }
 
 export function deleteUser(userId: string): { success: boolean; error?: string } {
-  const index = usersCache.findIndex((u) => u.id === userId);
+  const cache = getCache();
+  const index = cache.findIndex((u) => u.id === userId);
   if (index === -1) {
     return { success: false, error: 'User not found' };
   }
 
-  if (usersCache[index].email.toLowerCase() === OWNER_EMAIL.toLowerCase()) {
+  if (cache[index].email.toLowerCase() === OWNER_EMAIL.toLowerCase()) {
     return { success: false, error: 'Owner account cannot be deleted.' };
   }
 
-  usersCache.splice(index, 1);
+  cache.splice(index, 1);
+  persistUsersToDisk(cache);
   return { success: true };
+}
+
+export function replaceAllUsers(newUsers: StoredUser[]): boolean {
+  if (!Array.isArray(newUsers)) return false;
+  const valid = newUsers.filter((u) => u && u.email && isStrictGmail(u.email));
+  if (!valid.some((u) => u.email.toLowerCase() === OWNER_EMAIL.toLowerCase())) {
+    valid.unshift(DEFAULT_USERS[0]);
+  }
+  usersCache = valid;
+  persistUsersToDisk(valid);
+  return true;
 }
 
 /**
@@ -374,6 +418,7 @@ export function recordAudioGeneration(email: string): void {
   if (!user) return;
   user.voicesGenerated = (user.voicesGenerated || 0) + 1;
   user.lastActive = new Date().toISOString();
+  persistUsersToDisk(getCache());
 }
 
 /**
@@ -387,6 +432,7 @@ export function deductCredits(email: string, charactersCount: number): void {
   user.creditsUsed = (user.creditsUsed || 0) + charactersCount;
   user.voicesGenerated = (user.voicesGenerated || 0) + 1;
   user.lastActive = new Date().toISOString();
+  persistUsersToDisk(getCache());
 }
 
 /**
@@ -398,7 +444,8 @@ export function setUserPlan(
   planKey: UserPlanType,
   durationDays = STANDARD_PLAN_DAYS
 ): { success: boolean; user?: StoredUser; error?: string } {
-  const user = usersCache.find((u) => u.id === userId);
+  const cache = getCache();
+  const user = cache.find((u) => u.id === userId);
   if (!user) {
     return { success: false, error: 'User not found' };
   }
@@ -425,6 +472,7 @@ export function setUserPlan(
   }
 
   user.lastActive = now.toISOString();
+  persistUsersToDisk(cache);
   return { success: true, user };
 }
 
@@ -435,7 +483,8 @@ export function extendUserPlanDays(
   userId: string,
   extraDays = STANDARD_PLAN_DAYS
 ): { success: boolean; user?: StoredUser; error?: string } {
-  const user = usersCache.find((u) => u.id === userId);
+  const cache = getCache();
+  const user = cache.find((u) => u.id === userId);
   if (!user) {
     return { success: false, error: 'User not found' };
   }
@@ -456,6 +505,7 @@ export function extendUserPlanDays(
   user.planExpiresAt = new Date(baseTime + extraDays * 24 * 60 * 60 * 1000).toISOString();
   user.planStatus = 'active';
   user.lastActive = new Date().toISOString();
+  persistUsersToDisk(cache);
 
   return { success: true, user };
 }
@@ -469,7 +519,8 @@ export function adjustUserCreditLimit(
   customPlanName?: string,
   durationDays = STANDARD_PLAN_DAYS
 ): { success: boolean; user?: StoredUser; error?: string } {
-  const user = usersCache.find((u) => u.id === userId);
+  const cache = getCache();
+  const user = cache.find((u) => u.id === userId);
   if (!user) {
     return { success: false, error: 'User not found' };
   }
@@ -488,5 +539,6 @@ export function adjustUserCreditLimit(
     user.planStatus = 'active';
   }
 
+  persistUsersToDisk(cache);
   return { success: true, user };
 }

@@ -114,6 +114,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (parsed?.email) {
           setCurrentUser(parsed);
           refreshUserCredits(parsed.email);
+
+          // Bi-directional server sync to guarantee permanent persistence
+          fetch('/api/admin/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'sync',
+              name: parsed.name,
+              email: parsed.email,
+            }),
+          }).catch(() => {});
         }
       }
     } catch (e) {
