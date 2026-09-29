@@ -1,4 +1,7 @@
 import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import { OWNER_EMAIL } from './user-types';
 
 export interface OTPRecord {
@@ -11,13 +14,44 @@ export interface OTPRecord {
   createdAt: string;
 }
 
-// In-memory active OTP store
+// In-memory active OTP store with /tmp persistence fallback
 const activeOTPs: Map<string, OTPRecord> = new Map();
+const OTP_FALLBACK_FILE = path.join(os.tmpdir(), 'empirenexs_otps.json');
+
+function loadOTPsFromDisk(): void {
+  try {
+    if (fs.existsSync(OTP_FALLBACK_FILE)) {
+      const raw = fs.readFileSync(OTP_FALLBACK_FILE, 'utf-8');
+      const obj = JSON.parse(raw);
+      const now = Date.now();
+      if (typeof obj === 'object' && obj !== null) {
+        Object.entries(obj).forEach(([key, rec]: [string, any]) => {
+          if (rec && rec.expiresAt > now) {
+            activeOTPs.set(key.toLowerCase(), rec);
+          }
+        });
+      }
+    }
+  } catch {}
+}
+
+function persistOTPsToDisk(): void {
+  try {
+    const obj: Record<string, OTPRecord> = {};
+    const now = Date.now();
+    activeOTPs.forEach((rec, key) => {
+      if (rec.expiresAt > now) {
+        obj[key.toLowerCase()] = rec;
+      }
+    });
+    fs.writeFileSync(OTP_FALLBACK_FILE, JSON.stringify(obj), 'utf-8');
+  } catch {}
+}
 
 // Helper to get all active OTPs for the Admin Panel
 export function getActiveOTPs(): OTPRecord[] {
+  loadOTPsFromDisk();
   const now = Date.now();
-  // Filter out expired ones older than 30 minutes
   const list: OTPRecord[] = [];
   activeOTPs.forEach((record, key) => {
     if (now - record.expiresAt < 1800000) {
@@ -26,6 +60,7 @@ export function getActiveOTPs(): OTPRecord[] {
       activeOTPs.delete(key);
     }
   });
+  persistOTPsToDisk();
   return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
@@ -36,13 +71,19 @@ export function generateOTPCode(): string {
 
 export function saveOTPRecord(record: OTPRecord): void {
   activeOTPs.set(record.email.toLowerCase(), record);
+  persistOTPsToDisk();
 }
 
 export function getOTPRecord(email: string): OTPRecord | undefined {
-  const record = activeOTPs.get(email.toLowerCase());
+  let record = activeOTPs.get(email.toLowerCase());
+  if (!record) {
+    loadOTPsFromDisk();
+    record = activeOTPs.get(email.toLowerCase());
+  }
   if (!record) return undefined;
   if (Date.now() > record.expiresAt) {
     activeOTPs.delete(email.toLowerCase());
+    persistOTPsToDisk();
     return undefined;
   }
   return record;
@@ -50,6 +91,7 @@ export function getOTPRecord(email: string): OTPRecord | undefined {
 
 export function deleteOTPRecord(email: string): void {
   activeOTPs.delete(email.toLowerCase());
+  persistOTPsToDisk();
 }
 
 const DEFAULT_SMTP_EMAIL = 'oc8750714@gmail.com';

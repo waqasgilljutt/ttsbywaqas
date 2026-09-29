@@ -13,6 +13,9 @@ import {
   adjustUserCreditLimit,
   persistUsersToDisk,
   replaceAllUsers,
+  syncUsersFromCloud,
+  saveUsersToCloud,
+  getCloudDatabaseInfo,
   PLANS_CONFIG,
   UserPlanType,
   isStrictGmail,
@@ -78,15 +81,30 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // Hydrate from GitHub Cloud Database
+  await syncUsersFromCloud(true);
   const users = getEnrichedUsers();
   const otps = getActiveOTPs();
-  return NextResponse.json({ success: true, users, otps }, { headers: noCacheHeaders });
+  const cloudInfo = getCloudDatabaseInfo();
+  return NextResponse.json({ success: true, users, otps, cloudInfo }, { headers: noCacheHeaders });
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { action } = body;
+
+    // Force Cloud Database Sync
+    if (action === 'force-cloud-sync') {
+      const synced = await syncUsersFromCloud(true);
+      await saveUsersToCloud(synced);
+      return NextResponse.json({
+        success: true,
+        message: `Cloud database synchronized! ${synced.length} accounts verified.`,
+        cloudInfo: getCloudDatabaseInfo(),
+        users: getEnrichedUsers(),
+      });
+    }
 
     // Verify PIN action
     if (action === 'verify-pin') {
@@ -168,8 +186,9 @@ export async function POST(req: NextRequest) {
       if (plan) user.plan = plan;
       if (planName) user.planName = planName;
       persistUsersToDisk();
+      await saveUsersToCloud();
       if (action === 'admin-create-user') {
-        return NextResponse.json({ success: true, user, users: getEnrichedUsers() });
+        return NextResponse.json({ success: true, user, users: getEnrichedUsers(), cloudInfo: getCloudDatabaseInfo() });
       }
       return NextResponse.json({ success: true, user });
     }
@@ -247,10 +266,12 @@ export async function POST(req: NextRequest) {
       if (!ok) {
         return NextResponse.json({ success: false, error: 'Failed to restore database from backup.' }, { status: 400 });
       }
+      await saveUsersToCloud();
       return NextResponse.json({
         success: true,
         message: `Successfully restored ${backupUsers.length} accounts to database!`,
         users: getEnrichedUsers(),
+        cloudInfo: getCloudDatabaseInfo(),
       });
     }
 
@@ -261,6 +282,7 @@ export async function POST(req: NextRequest) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 400 });
       }
+      await saveUsersToCloud();
       return NextResponse.json({ success: true, user: result.user, users: getEnrichedUsers() });
     }
 
@@ -271,6 +293,7 @@ export async function POST(req: NextRequest) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 400 });
       }
+      await saveUsersToCloud();
       return NextResponse.json({ success: true, user: result.user, users: getEnrichedUsers() });
     }
 
@@ -286,6 +309,7 @@ export async function POST(req: NextRequest) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 400 });
       }
+      await saveUsersToCloud();
       return NextResponse.json({ success: true, user: result.user, users: getEnrichedUsers() });
     }
 
@@ -295,6 +319,7 @@ export async function POST(req: NextRequest) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 400 });
       }
+      await saveUsersToCloud();
       return NextResponse.json({ success: true, user: result.user, users: getEnrichedUsers() });
     }
 
@@ -304,6 +329,7 @@ export async function POST(req: NextRequest) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 400 });
       }
+      await saveUsersToCloud();
       return NextResponse.json({ success: true, users: getEnrichedUsers() });
     }
 

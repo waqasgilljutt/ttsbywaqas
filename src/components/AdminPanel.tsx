@@ -30,6 +30,7 @@ import {
   Calendar,
   Mail,
   UserPlus,
+  Cloud,
 } from 'lucide-react';
 import { StoredUser, OWNER_EMAIL } from '@/lib/user-types';
 
@@ -63,6 +64,17 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPlan, setNewUserPlan] = useState<'free' | '1m' | '3m' | '10m' | 'unlimited'>('free');
   const [isCreatingUser, setIsCreatingUser] = useState(false);
+
+  // Cloud Database state
+  const [cloudInfo, setCloudInfo] = useState<{
+    provider?: string;
+    gistId?: string;
+    connected?: boolean;
+    lastSyncTime?: string | null;
+    error?: string | null;
+    totalUsers?: number;
+  } | null>(null);
+  const [isSyncingCloud, setIsSyncingCloud] = useState(false);
 
   // Check if session PIN was already verified in this session and restore cached users immediately
   useEffect(() => {
@@ -149,6 +161,7 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
           } catch {}
         }
         if (data.otps) setOtps(data.otps);
+        if (data.cloudInfo) setCloudInfo(data.cloudInfo);
       } else {
         showNotice(data.error || 'Failed to fetch users from server.', 'error');
       }
@@ -182,6 +195,41 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
       setIsLoadingUsers(false);
     }
   }, [currentUser, pin]);
+
+  const handleCloudSync = async () => {
+    setIsSyncingCloud(true);
+    try {
+      const activePin = (pin || sessionStorage.getItem('empirenexs_admin_pin') || '').trim();
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'force-cloud-sync',
+          pin: activePin,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.users && Array.isArray(data.users)) {
+          const gmailUsers = (data.users as StoredUser[]).filter(
+            (u) => u && u.email && /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(u.email.trim())
+          );
+          setUsers(gmailUsers);
+          try {
+            localStorage.setItem('empirenexs_admin_cached_users', JSON.stringify(gmailUsers));
+          } catch {}
+        }
+        if (data.cloudInfo) setCloudInfo(data.cloudInfo);
+        showNotice(data.message || 'Cloud database synchronized with GitHub!');
+      } else {
+        showNotice(data.error || 'Failed to sync cloud database.', 'error');
+      }
+    } catch {
+      showNotice('Network error syncing with cloud.', 'error');
+    } finally {
+      setIsSyncingCloud(false);
+    }
+  };
 
   const handleToggleBlock = async (user: StoredUser) => {
     if (user.email.toLowerCase() === OWNER_EMAIL.toLowerCase()) {
@@ -692,11 +740,24 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col gap-1.5">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold w-fit">
-            <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-            <span>Owner Command Center</span>
-            <span className="text-slate-300">•</span>
-            <span className="text-brand-600">Waqas Gill</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold w-fit">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+              <span>Owner Command Center</span>
+              <span className="text-slate-300">•</span>
+              <span className="text-brand-600">Waqas Gill</span>
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold w-fit shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <Cloud className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Cloud DB: Connected (GitHub Gist)</span>
+              {cloudInfo?.totalUsers !== undefined && (
+                <span className="text-emerald-700 bg-emerald-100/80 px-1.5 py-0.2 rounded-full text-[10px]">
+                  {cloudInfo.totalUsers} users
+                </span>
+              )}
+            </div>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
             Registered Users & Access Management
@@ -715,6 +776,17 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
             accept=".json,application/json"
             className="hidden"
           />
+
+          <button
+            type="button"
+            onClick={handleCloudSync}
+            disabled={isSyncingCloud}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-cyan-600/20 hover:scale-[1.02] active:scale-95 transition-all"
+            title="Force synchronization with GitHub Secret Cloud Database"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncingCloud ? 'animate-spin' : ''}`} />
+            <span>{isSyncingCloud ? 'Syncing...' : 'Sync Cloud DB'}</span>
+          </button>
 
           <button
             type="button"

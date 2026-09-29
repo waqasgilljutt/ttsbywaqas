@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOTPRecord, deleteOTPRecord } from '@/lib/email-service';
-import { registerOrUpdateUser, updateUserPassword, getUserByEmail } from '@/lib/user-store';
+import { registerOrUpdateUser, updateUserPassword, getUserByEmail, saveUsersToCloud } from '@/lib/user-store';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,6 +52,9 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // Persist immediately to GitHub Cloud DB
+      await saveUsersToCloud();
+
       return NextResponse.json({
         success: true,
         message: 'Account verified and created successfully!',
@@ -82,6 +85,7 @@ export async function POST(req: NextRequest) {
       }
 
       deleteOTPRecord(normalizedEmail);
+      await saveUsersToCloud();
       const user = getUserByEmail(normalizedEmail);
 
       return NextResponse.json({
