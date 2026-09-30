@@ -12,12 +12,12 @@ export const metadata: Metadata = {
     'unlimited voice cloning plan',
   ],
   alternates: {
-    canonical: 'https://dofashion.online/pricing',
+    canonical: 'https://ttsnexs.online/pricing',
   },
   openGraph: {
     title: 'EmpireNexs AI Voice Studio Pricing & Plans',
     description: 'Affordable AI Voice Cloning & TTS credits. Scale your content creation with zero limits.',
-    url: 'https://dofashion.online/pricing',
+    url: 'https://ttsnexs.online/pricing',
     images: ['/logo.png'],
   },
 };

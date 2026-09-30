@@ -15,12 +15,12 @@ export const metadata: Metadata = {
     'realistic male voice',
   ],
   alternates: {
-    canonical: 'https://dofashion.online/voice-library',
+    canonical: 'https://ttsnexs.online/voice-library',
   },
   openGraph: {
     title: '320+ AI Voices Library | EmpireNexs Neural Voice Studio',
     description: 'Explore 320+ high-fidelity voices across 140+ languages. Free instant previews.',
-    url: 'https://dofashion.online/voice-library',
+    url: 'https://ttsnexs.online/voice-library',
     images: ['/logo.png'],
   },
 };

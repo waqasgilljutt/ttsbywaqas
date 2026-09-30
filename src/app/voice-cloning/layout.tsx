@@ -17,12 +17,12 @@ export const metadata: Metadata = {
     'clone voice ai free',
   ],
   alternates: {
-    canonical: 'https://dofashion.online/voice-cloning',
+    canonical: 'https://ttsnexs.online/voice-cloning',
   },
   openGraph: {
     title: 'Free AI Voice Cloning Tool Online | Clone Any Voice in 1 Minute | EmpireNexs',
     description: 'Clone your authentic voice with EmpireNexs Neural Studio. 100% realistic pitch & cadence. 50,000 characters capacity.',
-    url: 'https://dofashion.online/voice-cloning',
+    url: 'https://ttsnexs.online/voice-cloning',
     images: ['/logo.png'],
   },
 };

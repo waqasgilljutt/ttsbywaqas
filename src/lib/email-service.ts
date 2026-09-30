@@ -166,7 +166,7 @@ If you did not request this verification code, please disregard this email. Your
 --------------------------------------------------
 Developed with precision by Waqas Gill
 An EmpireNexs Innovation • Free Studio Grade Text-to-Speech Platform
-Website: https://dofashion.online
+Website: https://ttsnexs.online
 Contact: ${OWNER_EMAIL}
 `.trim();
 

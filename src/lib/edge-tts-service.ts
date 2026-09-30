@@ -130,7 +130,7 @@ async function synthesizeChunk(
   volume: string
 ): Promise<Buffer> {
   const tts = new MsEdgeTTS();
-  const outputFormat = OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3;
+  const outputFormat = OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3;
   await tts.setMetadata(voice, outputFormat);
 
   return new Promise<Buffer>((resolve, reject) => {
@@ -174,7 +174,7 @@ export async function synthesizeSpeech(
     throw new Error('Text to synthesize cannot be empty.');
   }
 
-  const voice = options.voice || 'en-US-JennyNeural';
+  const voice = options.voice || 'en-US-AndrewMultilingualNeural';
   const rate = options.rate || '+0%';
   const pitch = options.pitch || '+0Hz';
   const volume = options.volume || '+0%';
@@ -199,39 +199,51 @@ export async function synthesizeSpeech(
 
 const FALLBACK_VOICES: Voice[] = [
   {
-    Name: 'Microsoft Server Speech Text to Speech Voice (en-US, JennyNeural)',
-    ShortName: 'en-US-JennyNeural',
-    Gender: 'Female',
-    Locale: 'en-US',
-    LocaleName: 'English (United States)',
-    FriendlyName: 'Microsoft Jenny Online (Natural) - English (United States)',
-    VoiceTag: {
-      ContentCategories: ['General'],
-      VoicePersonalities: ['Friendly', 'Warm', 'Positive'],
-    },
-  },
-  {
-    Name: 'Microsoft Server Speech Text to Speech Voice (en-US, GuyNeural)',
-    ShortName: 'en-US-GuyNeural',
+    Name: 'Microsoft Server Speech Text to Speech Voice (en-US, AndrewMultilingualNeural)',
+    ShortName: 'en-US-AndrewMultilingualNeural',
     Gender: 'Male',
     Locale: 'en-US',
     LocaleName: 'English (United States)',
-    FriendlyName: 'Microsoft Guy Online (Natural) - English (United States)',
+    FriendlyName: 'Andrew (Ultra HD Multilingual) - English (United States)',
     VoiceTag: {
-      ContentCategories: ['News', 'General'],
-      VoicePersonalities: ['Confident', 'Professional'],
+      ContentCategories: ['Studio', 'General', 'Narration'],
+      VoicePersonalities: ['Warm', 'Engaging', 'Ultra-Realistic'],
     },
   },
   {
-    Name: 'Microsoft Server Speech Text to Speech Voice (en-GB, SoniaNeural)',
-    ShortName: 'en-GB-SoniaNeural',
+    Name: 'Microsoft Server Speech Text to Speech Voice (en-US, AvaMultilingualNeural)',
+    ShortName: 'en-US-AvaMultilingualNeural',
     Gender: 'Female',
-    Locale: 'en-GB',
-    LocaleName: 'English (United Kingdom)',
-    FriendlyName: 'Microsoft Sonia Online (Natural) - English (United Kingdom)',
+    Locale: 'en-US',
+    LocaleName: 'English (United States)',
+    FriendlyName: 'Ava (Ultra HD Multilingual) - English (United States)',
     VoiceTag: {
-      ContentCategories: ['General'],
-      VoicePersonalities: ['Warm', 'Pleasant'],
+      ContentCategories: ['Studio', 'General', 'Storytelling'],
+      VoicePersonalities: ['Expressive', 'Clear', 'Ultra-Realistic'],
+    },
+  },
+  {
+    Name: 'Microsoft Server Speech Text to Speech Voice (en-US, BrianMultilingualNeural)',
+    ShortName: 'en-US-BrianMultilingualNeural',
+    Gender: 'Male',
+    Locale: 'en-US',
+    LocaleName: 'English (United States)',
+    FriendlyName: 'Brian (Deep Studio Voice) - English (United States)',
+    VoiceTag: {
+      ContentCategories: ['Narration', 'Documentary'],
+      VoicePersonalities: ['Authoritative', 'Deep', 'Professional'],
+    },
+  },
+  {
+    Name: 'Microsoft Server Speech Text to Speech Voice (en-US, EmmaMultilingualNeural)',
+    ShortName: 'en-US-EmmaMultilingualNeural',
+    Gender: 'Female',
+    Locale: 'en-US',
+    LocaleName: 'English (United States)',
+    FriendlyName: 'Emma (Studio Storyteller) - English (United States)',
+    VoiceTag: {
+      ContentCategories: ['Audiobooks', 'General'],
+      VoicePersonalities: ['Warm', 'Friendly', 'Natural'],
     },
   },
   {
@@ -240,10 +252,10 @@ const FALLBACK_VOICES: Voice[] = [
     Gender: 'Female',
     Locale: 'ur-PK',
     LocaleName: 'Urdu (Pakistan)',
-    FriendlyName: 'Microsoft Uzma Online (Natural) - Urdu (Pakistan)',
+    FriendlyName: 'Uzma (Natural) - Urdu (Pakistan)',
     VoiceTag: {
       ContentCategories: ['General'],
-      VoicePersonalities: ['Friendly'],
+      VoicePersonalities: ['Friendly', 'Natural'],
     },
   },
   {
@@ -252,10 +264,34 @@ const FALLBACK_VOICES: Voice[] = [
     Gender: 'Male',
     Locale: 'ur-PK',
     LocaleName: 'Urdu (Pakistan)',
-    FriendlyName: 'Microsoft Asad Online (Natural) - Urdu (Pakistan)',
+    FriendlyName: 'Asad (Natural) - Urdu (Pakistan)',
     VoiceTag: {
       ContentCategories: ['General'],
-      VoicePersonalities: ['Confident'],
+      VoicePersonalities: ['Confident', 'News'],
+    },
+  },
+  {
+    Name: 'Microsoft Server Speech Text to Speech Voice (en-US, JennyNeural)',
+    ShortName: 'en-US-JennyNeural',
+    Gender: 'Female',
+    Locale: 'en-US',
+    LocaleName: 'English (United States)',
+    FriendlyName: 'Jenny Online (Natural) - English (United States)',
+    VoiceTag: {
+      ContentCategories: ['General'],
+      VoicePersonalities: ['Friendly', 'Warm'],
+    },
+  },
+  {
+    Name: 'Microsoft Server Speech Text to Speech Voice (en-US, GuyNeural)',
+    ShortName: 'en-US-GuyNeural',
+    Gender: 'Male',
+    Locale: 'en-US',
+    LocaleName: 'English (United States)',
+    FriendlyName: 'Guy Online (Natural) - English (United States)',
+    VoiceTag: {
+      ContentCategories: ['News', 'General'],
+      VoicePersonalities: ['Confident', 'Professional'],
     },
   },
 ];

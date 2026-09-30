@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dofashion.online';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ttsnexs.online';
 
 export const viewport: Viewport = {
   themeColor: '#0f172a',
