@@ -165,29 +165,6 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
       } else {
         showNotice(data.error || 'Failed to fetch users from server.', 'error');
       }
-
-      // Non-blocking background sync of any locally stored accounts
-      setTimeout(async () => {
-        try {
-          const stored = localStorage.getItem('empirenexs_registered_accounts');
-          if (stored) {
-            const localUsers: StoredUser[] = JSON.parse(stored);
-            for (const u of localUsers) {
-              if (u.email && /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(u.email.trim())) {
-                fetch('/api/admin/users', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    action: 'sync',
-                    name: u.name,
-                    email: u.email,
-                  }),
-                }).catch(() => {});
-              }
-            }
-          }
-        } catch {}
-      }, 500);
     } catch (err) {
       console.warn('Failed to fetch users:', err);
       showNotice('Network error fetching users list.', 'error');

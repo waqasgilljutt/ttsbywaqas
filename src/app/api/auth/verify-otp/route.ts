@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOTPRecord, deleteOTPRecord } from '@/lib/email-service';
-import { registerOrUpdateUser, updateUserPassword, getUserByEmail, saveUsersToCloud } from '@/lib/user-store';
+import {
+  registerOrUpdateUser,
+  updateUserPassword,
+  getUserByEmail,
+  saveUsersToCloud,
+  syncUsersFromCloud,
+} from '@/lib/user-store';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    // Ingress Cloud Hydration: Guarantee container has latest cloud state before user creation
+    await syncUsersFromCloud(true);
+
     const body = await req.json();
     const { email, code, purpose, newPassword } = body;
 

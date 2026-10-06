@@ -28,8 +28,8 @@ const DEFAULT_USERS: StoredUser[] = [
     password: 'owner_password_secure',
     createdAt: '2026-09-20T10:00:00.000Z',
     lastActive: new Date().toISOString(),
-    voicesGenerated: 120,
-    creditsUsed: 227077,
+    voicesGenerated: 121,
+    creditsUsed: 230018,
     creditLimit: -1, // Unlimited
     plan: 'unlimited',
     planName: 'Unlimited VIP (Owner)',
@@ -38,6 +38,82 @@ const DEFAULT_USERS: StoredUser[] = [
     isBlocked: false,
     planActivatedAt: '2026-09-20T10:00:00.000Z',
     planExpiresAt: null, // Owner never expires
+    planStatus: 'active',
+  },
+  {
+    id: 'user_1791184238979_kryyr',
+    name: 'muhammad.kamran147852369',
+    email: 'muhammad.kamran147852369@gmail.com',
+    password: '',
+    createdAt: '2026-10-05T07:10:38.979Z',
+    lastActive: new Date().toISOString(),
+    voicesGenerated: 0,
+    creditsUsed: 0,
+    creditLimit: 3000000,
+    plan: '3m',
+    planName: 'Creator Pack (3M / Month)',
+    isPaid: true,
+    role: 'user',
+    isBlocked: false,
+    planActivatedAt: '2026-10-05T07:10:38.979Z',
+    planExpiresAt: '2026-11-01T05:50:42.324Z',
+    planStatus: 'active',
+  },
+  {
+    id: 'user_1791264679020_soqr2',
+    name: 'tencentpannel',
+    email: 'tencentpannel@gmail.com',
+    password: '',
+    createdAt: '2026-10-06T05:31:19.020Z',
+    lastActive: new Date().toISOString(),
+    voicesGenerated: 0,
+    creditsUsed: 0,
+    creditLimit: 30000,
+    plan: 'free',
+    planName: 'Free Starter (Monthly)',
+    isPaid: false,
+    role: 'user',
+    isBlocked: false,
+    planActivatedAt: '2026-10-06T05:31:19.020Z',
+    planExpiresAt: '2026-11-05T05:31:19.020Z',
+    planStatus: 'active',
+  },
+  {
+    id: 'user_1791115615153_bb5mr',
+    name: 'hoffmanelenac',
+    email: 'hoffmanelenac@gmail.com',
+    password: '',
+    createdAt: '2026-10-04T12:06:55.153Z',
+    lastActive: new Date().toISOString(),
+    voicesGenerated: 0,
+    creditsUsed: 0,
+    creditLimit: 30000,
+    plan: 'free',
+    planName: 'Free Starter (Monthly)',
+    isPaid: false,
+    role: 'user',
+    isBlocked: false,
+    planActivatedAt: '2026-10-04T12:06:55.153Z',
+    planExpiresAt: '2026-11-03T12:06:55.153Z',
+    planStatus: 'active',
+  },
+  {
+    id: 'user_1790965684544_968mm',
+    name: 'sarahishere0594',
+    email: 'sarahishere0594@gmail.com',
+    password: '',
+    createdAt: '2026-10-02T18:28:04.544Z',
+    lastActive: new Date().toISOString(),
+    voicesGenerated: 0,
+    creditsUsed: 0,
+    creditLimit: 30000,
+    plan: 'free',
+    planName: 'Free Starter (Monthly)',
+    isPaid: false,
+    role: 'user',
+    isBlocked: false,
+    planActivatedAt: '2026-10-02T18:28:04.544Z',
+    planExpiresAt: '2026-11-01T18:28:04.544Z',
     planStatus: 'active',
   },
   {
@@ -56,7 +132,7 @@ const DEFAULT_USERS: StoredUser[] = [
     role: 'user',
     isBlocked: false,
     planActivatedAt: '2026-09-28T03:00:00.000Z',
-    planExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    planExpiresAt: '2026-10-28T03:00:00.000Z',
     planStatus: 'active',
   },
   {
@@ -75,7 +151,7 @@ const DEFAULT_USERS: StoredUser[] = [
     role: 'user',
     isBlocked: false,
     planActivatedAt: '2026-09-28T11:38:25.467Z',
-    planExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    planExpiresAt: '2026-10-28T11:38:25.467Z',
     planStatus: 'active',
   },
   {
@@ -94,7 +170,7 @@ const DEFAULT_USERS: StoredUser[] = [
     role: 'user',
     isBlocked: false,
     planActivatedAt: '2026-09-28T11:45:15.992Z',
-    planExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    planExpiresAt: '2026-10-28T11:45:15.992Z',
     planStatus: 'active',
   },
   {
@@ -113,7 +189,7 @@ const DEFAULT_USERS: StoredUser[] = [
     role: 'user',
     isBlocked: false,
     planActivatedAt: '2026-09-28T11:34:50.745Z',
-    planExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    planExpiresAt: '2026-10-28T11:34:50.745Z',
     planStatus: 'active',
   },
   {
@@ -131,7 +207,7 @@ const DEFAULT_USERS: StoredUser[] = [
     role: 'user',
     isBlocked: false,
     planActivatedAt: '2026-09-21T23:00:00.000Z',
-    planExpiresAt: new Date(Date.now() + 24 * 24 * 60 * 60 * 1000).toISOString(),
+    planExpiresAt: '2026-10-21T23:00:00.000Z',
     planStatus: 'active',
   },
 ];
@@ -224,12 +300,14 @@ export async function syncUsersFromCloud(force = false): Promise<StoredUser[]> {
 
   isSyncingWithCloud = true;
   try {
-    const res = await fetch(`https://api.github.com/gists/${GITHUB_GIST_ID}`, {
+    const res = await fetch(`https://api.github.com/gists/${GITHUB_GIST_ID}?t=${Date.now()}`, {
       headers: {
         'Authorization': `token ${GITHUB_CLOUD_TOKEN}`,
         'User-Agent': 'TTS-Waqas-Gill-App',
         'Accept': 'application/vnd.github.v3+json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
+      cache: 'no-store',
       signal: AbortSignal.timeout(6000),
     });
 
@@ -308,16 +386,159 @@ export async function syncUsersFromCloud(force = false): Promise<StoredUser[]> {
   return usersCache || getCache();
 }
 
-let cloudSaveTimeout: NodeJS.Timeout | null = null;
-
-export async function saveUsersToCloud(usersToSave?: StoredUser[]): Promise<boolean> {
-  const list = usersToSave || usersCache || DEFAULT_USERS;
+export async function saveUsersToCloud(
+  usersToSave?: StoredUser[],
+  isExplicitDelete = false,
+  forceIncomingPlans = false
+): Promise<boolean> {
+  const localList = usersToSave || usersCache || loadUsersFromDisk();
   try {
+    // 1. Pre-fetch latest cloud users to prevent serverless overwrite race conditions
+    let cloudUsers: StoredUser[] = [];
+    try {
+      const getRes = await fetch(`https://api.github.com/gists/${GITHUB_GIST_ID}?t=${Date.now()}`, {
+        headers: {
+          Authorization: `token ${GITHUB_CLOUD_TOKEN}`,
+          'User-Agent': 'TTS-Waqas-Gill-App',
+          Accept: 'application/vnd.github.v3+json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(6000),
+      });
+      if (getRes.ok) {
+        const getData = await getRes.json();
+        const rawContent = getData.files?.['users.json']?.content;
+        if (rawContent) {
+          const parsed = JSON.parse(rawContent);
+          if (Array.isArray(parsed)) {
+            cloudUsers = parsed.filter((u) => u && u.email && isStrictGmail(u.email));
+          }
+        }
+      }
+    } catch (fetchErr) {
+      console.warn('[User Store] Could not pre-fetch cloud gist during save:', fetchErr);
+    }
+
+    // 2. Authoritative Map: Start with DEFAULT_USERS
+    const userMap = new Map<string, StoredUser>();
+    DEFAULT_USERS.forEach((u) => userMap.set(u.email.toLowerCase(), u));
+
+    // Seed with cloud users
+    cloudUsers.forEach((cu) => {
+      userMap.set(cu.email.toLowerCase(), cu);
+    });
+
+    // If explicit admin delete, remove any deleted user
+    if (isExplicitDelete) {
+      const localEmails = new Set(localList.map((u) => u.email.toLowerCase()));
+      for (const email of Array.from(userMap.keys())) {
+        if (email !== OWNER_EMAIL.toLowerCase() && !localEmails.has(email)) {
+          userMap.delete(email);
+        }
+      }
+    }
+
+    // Merge incoming local changes
+    localList.forEach((lu) => {
+      if (!lu || !lu.email || !isStrictGmail(lu.email)) return;
+      const key = lu.email.toLowerCase();
+      const existing = userMap.get(key);
+      if (!existing) {
+        userMap.set(key, lu);
+      } else {
+        let plan = existing.plan;
+        let planName = existing.planName;
+        let creditLimit = existing.creditLimit;
+        let isPaid = existing.isPaid;
+        let planExpiresAt = existing.planExpiresAt;
+        let planActivatedAt = existing.planActivatedAt;
+        let planStatus = existing.planStatus;
+
+        if (forceIncomingPlans) {
+          plan = lu.plan || plan;
+          planName = lu.planName || planName;
+          creditLimit = lu.creditLimit !== undefined ? lu.creditLimit : creditLimit;
+          isPaid = lu.isPaid !== undefined ? lu.isPaid : isPaid;
+          planExpiresAt = lu.planExpiresAt !== undefined ? lu.planExpiresAt : planExpiresAt;
+          planActivatedAt = lu.planActivatedAt || planActivatedAt;
+          planStatus = lu.planStatus || planStatus;
+        } else {
+          // Non-admin save: Protect paid tiers and credit limits
+          const existingIsPaid = existing.plan && existing.plan !== 'free';
+          const incomingIsPaid = lu.plan && lu.plan !== 'free';
+
+          if (incomingIsPaid && !existingIsPaid) {
+            plan = lu.plan;
+            planName = lu.planName;
+            creditLimit = lu.creditLimit;
+            isPaid = lu.isPaid;
+            planExpiresAt = lu.planExpiresAt;
+            planActivatedAt = lu.planActivatedAt;
+            planStatus = lu.planStatus;
+          } else if (incomingIsPaid && existingIsPaid) {
+            const incExpiry = new Date(lu.planExpiresAt || 0).getTime();
+            const existExpiry = new Date(existing.planExpiresAt || 0).getTime();
+            if (incExpiry >= existExpiry) {
+              plan = lu.plan;
+              planName = lu.planName;
+              creditLimit = lu.creditLimit;
+              isPaid = lu.isPaid;
+              planExpiresAt = lu.planExpiresAt;
+              planActivatedAt = lu.planActivatedAt;
+              planStatus = lu.planStatus;
+            }
+          }
+        }
+
+        userMap.set(key, {
+          ...existing,
+          ...lu,
+          password: lu.password || existing.password || '',
+          plan,
+          planName,
+          creditLimit: creditLimit !== undefined ? creditLimit : (existing.creditLimit ?? 30000),
+          isPaid: isPaid ?? false,
+          planExpiresAt,
+          planActivatedAt,
+          planStatus: planStatus || 'active',
+          creditsUsed: Math.max(existing.creditsUsed || 0, lu.creditsUsed || 0),
+          voicesGenerated: Math.max(existing.voicesGenerated || 0, lu.voicesGenerated || 0),
+          lastActive:
+            new Date(lu.lastActive || 0) > new Date(existing.lastActive || 0)
+              ? lu.lastActive
+              : existing.lastActive,
+        });
+      }
+    });
+
+    if (!userMap.has(OWNER_EMAIL.toLowerCase())) {
+      userMap.set(OWNER_EMAIL.toLowerCase(), DEFAULT_USERS[0]);
+    }
+
+    const finalList = Array.from(userMap.values());
+
+    // 3. Shrink Protection: Refuse to drop accounts if not an explicit delete
+    if (!isExplicitDelete && cloudUsers.length > 0 && finalList.length < cloudUsers.length) {
+      console.warn(
+        `[User Store Protection] Blocked attempt to shrink user database from ${cloudUsers.length} to ${finalList.length} users!`
+      );
+      return false;
+    }
+
+    // Update memory cache and disk immediately
+    usersCache = finalList;
+    try {
+      const jsonStr = JSON.stringify(finalList, null, 2);
+      fs.writeFileSync(PRIMARY_DATA_PATH, jsonStr, 'utf-8');
+      fs.writeFileSync(FALLBACK_DATA_PATH, jsonStr, 'utf-8');
+    } catch {}
+
     const payload = {
       description: 'TTS by Waqas Gill (EmpireNexs) - Official Persistent User Database',
       files: {
         'users.json': {
-          content: JSON.stringify(list, null, 2),
+          content: JSON.stringify(finalList, null, 2),
         },
       },
     };
@@ -325,10 +546,10 @@ export async function saveUsersToCloud(usersToSave?: StoredUser[]): Promise<bool
     const res = await fetch(`https://api.github.com/gists/${GITHUB_GIST_ID}`, {
       method: 'PATCH',
       headers: {
-        'Authorization': `token ${GITHUB_CLOUD_TOKEN}`,
+        Authorization: `token ${GITHUB_CLOUD_TOKEN}`,
         'User-Agent': 'TTS-Waqas-Gill-App',
         'Content-Type': 'application/json',
-        'Accept': 'application/vnd.github.v3+json',
+        Accept: 'application/vnd.github.v3+json',
       },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(8000),
@@ -337,7 +558,7 @@ export async function saveUsersToCloud(usersToSave?: StoredUser[]): Promise<bool
     if (res.ok) {
       lastCloudSyncTime = Date.now();
       cloudSyncError = null;
-      console.log(`[User Store] Successfully saved ${list.length} accounts to GitHub Cloud DB.`);
+      console.log(`[User Store] Successfully saved ${finalList.length} accounts to GitHub Cloud DB.`);
       return true;
     } else {
       const errText = await res.text();
@@ -355,12 +576,10 @@ export async function saveUsersToCloud(usersToSave?: StoredUser[]): Promise<bool
 
 export function triggerCloudSaveDebounced(usersToSave?: StoredUser[]): void {
   const list = usersToSave || usersCache || DEFAULT_USERS;
-  if (cloudSaveTimeout) {
-    clearTimeout(cloudSaveTimeout);
-  }
-  cloudSaveTimeout = setTimeout(() => {
-    saveUsersToCloud(list).catch(() => {});
-  }, 1000);
+  // In serverless environments, execute cloud save immediately
+  saveUsersToCloud(list, false, false).catch((err) => {
+    console.warn('[User Store] Background save error:', err);
+  });
 }
 
 export function persistUsersToDisk(usersToSave?: StoredUser[]): void {

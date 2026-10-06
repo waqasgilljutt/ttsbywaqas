@@ -91,13 +91,16 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    // Ingress Cloud Hydration: Guarantee container has latest cloud state on every POST
+    await syncUsersFromCloud(true);
+
     const body = await req.json();
     const { action } = body;
 
     // Force Cloud Database Sync
     if (action === 'force-cloud-sync') {
       const synced = await syncUsersFromCloud(true);
-      await saveUsersToCloud(synced);
+      await saveUsersToCloud(synced, false, true);
       return NextResponse.json({
         success: true,
         message: `Cloud database synchronized! ${synced.length} accounts verified.`,
@@ -186,7 +189,7 @@ export async function POST(req: NextRequest) {
       if (plan) user.plan = plan;
       if (planName) user.planName = planName;
       persistUsersToDisk();
-      await saveUsersToCloud();
+      await saveUsersToCloud(undefined, false, action === 'admin-create-user');
       if (action === 'admin-create-user') {
         return NextResponse.json({ success: true, user, users: getEnrichedUsers(), cloudInfo: getCloudDatabaseInfo() });
       }
@@ -266,7 +269,7 @@ export async function POST(req: NextRequest) {
       if (!ok) {
         return NextResponse.json({ success: false, error: 'Failed to restore database from backup.' }, { status: 400 });
       }
-      await saveUsersToCloud();
+      await saveUsersToCloud(undefined, false, true);
       return NextResponse.json({
         success: true,
         message: `Successfully restored ${backupUsers.length} accounts to database!`,
@@ -282,7 +285,7 @@ export async function POST(req: NextRequest) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 400 });
       }
-      await saveUsersToCloud();
+      await saveUsersToCloud(undefined, false, true);
       return NextResponse.json({ success: true, user: result.user, users: getEnrichedUsers() });
     }
 
@@ -293,7 +296,7 @@ export async function POST(req: NextRequest) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 400 });
       }
-      await saveUsersToCloud();
+      await saveUsersToCloud(undefined, false, true);
       return NextResponse.json({ success: true, user: result.user, users: getEnrichedUsers() });
     }
 
@@ -309,7 +312,7 @@ export async function POST(req: NextRequest) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 400 });
       }
-      await saveUsersToCloud();
+      await saveUsersToCloud(undefined, false, true);
       return NextResponse.json({ success: true, user: result.user, users: getEnrichedUsers() });
     }
 
@@ -319,7 +322,7 @@ export async function POST(req: NextRequest) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 400 });
       }
-      await saveUsersToCloud();
+      await saveUsersToCloud(undefined, false, false);
       return NextResponse.json({ success: true, user: result.user, users: getEnrichedUsers() });
     }
 
@@ -329,7 +332,7 @@ export async function POST(req: NextRequest) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 400 });
       }
-      await saveUsersToCloud();
+      await saveUsersToCloud(undefined, true, false);
       return NextResponse.json({ success: true, users: getEnrichedUsers() });
     }
 
