@@ -10,7 +10,7 @@ import { AudioPlayer } from '@/components/AudioPlayer';
 import { HistoryPanel, HistoryItem } from '@/components/HistoryPanel';
 import { Voice } from '@/lib/edge-tts-service';
 import { synthesizeLargeScript } from '@/lib/batch-synthesizer';
-import { Sparkles, Loader2, AlertCircle, Zap } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, Zap, ArrowRight, Mic2, Play, Volume2 } from 'lucide-react';
 import { SeoContentSection } from '@/components/SeoContentSection';
 
 const INITIAL_TEXT =
@@ -381,10 +381,73 @@ export default function Home() {
         </div>
       )}
 
+      {/* Catchy Studio Hero Banner (Editorial Luxury Dark Aesthetic) */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white/[0.04] via-white/[0.02] to-transparent border border-white/[0.08] p-6 sm:p-10 flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
+        <div className="flex flex-col gap-3.5 max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[11px] font-black uppercase tracking-widest w-fit">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>CREATE. SYNTHESIZE. MONETIZE.</span>
+          </div>
+
+          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-[1.1]">
+            Your All-in-One Voice &amp; Speech{' '}
+            <span className="font-serif italic font-normal bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-400 bg-clip-text text-transparent">
+              Platform
+            </span>
+          </h1>
+
+          <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-xl">
+            Synthesize broadcast-quality speech with <strong>320+ ultra-realistic neural models</strong> across 140+ languages. Supports massive <strong>50,000-character scripts</strong> in a single pass with instant zero-shot voice cloning.
+          </p>
+
+          {/* Quick Action buttons */}
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={handleSynthesize}
+              disabled={isSynthesizing || !text.trim()}
+              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-400 hover:to-amber-400 text-white font-black text-xs sm:text-sm shadow-xl shadow-orange-500/25 hover:shadow-orange-500/40 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+            >
+              <span>Synthesize Script</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push('/voice-cloning')}
+              className="px-5 py-3 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white font-bold text-xs sm:text-sm transition-all hover:scale-[1.02] flex items-center gap-2 cursor-pointer"
+            >
+              <Mic2 className="w-4 h-4 text-orange-400" />
+              <span>Clone Voice</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Floating Quick Stats Cards */}
+        <div className="grid grid-cols-2 gap-3 w-full md:w-auto shrink-0">
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex flex-col gap-1 backdrop-blur-md">
+            <span className="text-2xl font-black text-white">320+</span>
+            <span className="text-[11px] text-slate-400 font-medium">Neural AI Voices</span>
+          </div>
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex flex-col gap-1 backdrop-blur-md">
+            <span className="text-2xl font-black text-orange-400">50,000</span>
+            <span className="text-[11px] text-slate-400 font-medium">Chars / Pass</span>
+          </div>
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex flex-col gap-1 backdrop-blur-md">
+            <span className="text-2xl font-black text-amber-400">&lt;350ms</span>
+            <span className="text-[11px] text-slate-400 font-medium">Instant Latency</span>
+          </div>
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex flex-col gap-1 backdrop-blur-md">
+            <span className="text-2xl font-black text-emerald-400">48kHz</span>
+            <span className="text-[11px] text-slate-400 font-medium">Studio Master</span>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Voice Selector & Prosody Controls (5 cols) */}
         <div className="lg:col-span-5 flex flex-col gap-6">
-          <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs">
+          <div className="studio-card p-6">
             <VoiceSelector
               voices={voices}
               locales={locales}
@@ -408,25 +471,25 @@ export default function Home() {
           />
 
           {/* Info / Engine details card */}
-          <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs text-xs text-slate-600 flex flex-col gap-3">
+          <div className="studio-card p-6 text-xs text-slate-400 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
-                <Sparkles className="w-4 h-4 text-brand-600" />
+              <div className="flex items-center gap-2 text-white font-bold text-sm">
+                <Sparkles className="w-4 h-4 text-orange-400" />
                 <span>About TTSNexs Studio</span>
               </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-brand-50 text-brand-700 font-mono text-[10px] font-bold border border-brand-200">
+              <span className="px-2.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 font-mono text-[10px] font-bold border border-orange-500/20">
                 Studio Engine
               </span>
             </div>
             <p className="leading-relaxed">
-              <strong className="text-slate-900">TTSNexs</strong> delivers studio-quality neural speech synthesis across 320+ realistic voices and 140+ languages with up to 50,000 characters per script and instant voice cloning.
+              <strong className="text-white">TTSNexs</strong> delivers studio-quality neural speech synthesis across 320+ realistic voices and 140+ languages with up to 50,000 characters per script and instant voice cloning.
             </p>
           </div>
         </div>
 
         {/* Right Column: Script Editor, Generation CTA, Audio Player & History (7 cols) */}
         <div className="lg:col-span-7 flex flex-col gap-6">
-          <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs">
+          <div className="studio-card p-6">
             <TextEditor
               text={text}
               onChangeText={setText}
@@ -435,29 +498,29 @@ export default function Home() {
 
             {/* Progress bar with percentage for Simple Text to Speech */}
             {isSynthesizing && (
-              <div className="mt-4 p-4 rounded-2xl bg-brand-50/70 border border-brand-200 flex flex-col gap-2.5 animate-in fade-in">
-                <div className="flex items-center justify-between text-xs font-bold text-brand-900">
+              <div className="mt-4 p-4 rounded-2xl bg-orange-500/10 border border-orange-500/30 flex flex-col gap-2.5 animate-in fade-in">
+                <div className="flex items-center justify-between text-xs font-bold text-orange-200">
                   <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-brand-600" />
+                    <Loader2 className="w-4 h-4 animate-spin text-orange-400" />
                     <span>{synthesisStatusText}</span>
                   </div>
-                  <span className="font-mono text-brand-700 font-extrabold text-sm">
+                  <span className="font-mono text-orange-400 font-extrabold text-sm">
                     {synthesisProgress}%
                   </span>
                 </div>
 
-                <div className="w-full h-3 bg-brand-100 rounded-full overflow-hidden p-0.5">
+                <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden p-0.5">
                   <div
                     style={{ width: `${synthesisProgress}%` }}
-                    className="h-full bg-gradient-to-r from-brand-600 to-indigo-600 rounded-full transition-all duration-300 shadow-sm"
+                    className="h-full bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 rounded-full transition-all duration-300 shadow-sm shadow-orange-500/50"
                   />
                 </div>
               </div>
             )}
 
-            <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-100">
+            <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-white/[0.08]">
               <div className="text-xs text-slate-400 flex items-center gap-1.5">
-                <span className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-600 font-mono text-[10px] font-bold">
+                <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-slate-300 font-mono text-[10px] font-bold">
                   Ctrl + Enter
                 </span>
                 <span>to generate</span>
@@ -467,7 +530,7 @@ export default function Home() {
                 type="button"
                 disabled={isSynthesizing || !text.trim()}
                 onClick={handleSynthesize}
-                className="w-full sm:w-auto px-7 py-3 rounded-2xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-sm shadow-md shadow-brand-500/25 disabled:opacity-50 transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-400 hover:to-amber-400 text-white font-black text-sm shadow-xl shadow-orange-500/25 hover:shadow-orange-500/40 disabled:opacity-50 transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               >
                 {isSynthesizing ? (
                   <>
@@ -476,7 +539,7 @@ export default function Home() {
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" />
+                    <Sparkles className="w-4 h-4 fill-white" />
                     <span>Generate Speech</span>
                   </>
                 )}

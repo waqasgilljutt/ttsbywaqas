@@ -110,13 +110,13 @@ export function AudioPlayer({ audioUrl, voiceName, onDownload, isLoading }: Audi
 
   if (!audioUrl && !isLoading) {
     return (
-      <div className="p-8 rounded-3xl bg-white border border-slate-200/90 shadow-xs text-center flex flex-col items-center justify-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
-          <Disc3 className="w-6 h-6" />
+      <div className="studio-card p-8 text-center flex flex-col items-center justify-center gap-3">
+        <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-slate-400">
+          <Disc3 className="w-6 h-6 text-orange-400" />
         </div>
         <div>
-          <h4 className="text-sm font-bold text-slate-900">Studio Audio Player Ready</h4>
-          <p className="text-xs text-slate-500 mt-1 max-w-sm">
+          <h4 className="text-sm font-bold text-white">Studio Audio Player Ready</h4>
+          <p className="text-xs text-slate-400 mt-1 max-w-sm">
             Enter your script above and click &quot;Generate Speech&quot; to synthesize audio.
           </p>
         </div>
@@ -125,7 +125,7 @@ export function AudioPlayer({ audioUrl, voiceName, onDownload, isLoading }: Audi
   }
 
   return (
-    <div className="p-6 rounded-3xl bg-white border border-brand-200 shadow-md shadow-brand-500/5 flex flex-col gap-4">
+    <div className="studio-card p-6 flex flex-col gap-4">
       {audioUrl && (
         <audio
           ref={audioRef}
@@ -139,10 +139,10 @@ export function AudioPlayer({ audioUrl, voiceName, onDownload, isLoading }: Audi
       {/* Top row: Status & Actions */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-          <span className="text-xs font-bold text-slate-900">Generated Speech Ready</span>
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+          <span className="text-xs font-bold text-white">Generated Speech Ready</span>
           {voiceName && (
-            <span className="text-xs px-2.5 py-0.5 rounded-md bg-brand-50 text-brand-700 font-mono font-semibold border border-brand-200">
+            <span className="text-xs px-2.5 py-0.5 rounded-md bg-orange-500/15 text-orange-300 font-mono font-semibold border border-orange-500/30">
               {voiceName}
             </span>
           )}
@@ -153,15 +153,15 @@ export function AudioPlayer({ audioUrl, voiceName, onDownload, isLoading }: Audi
             type="button"
             title="Copy Audio Data / Link"
             onClick={handleCopyLink}
-            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+            className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 transition-colors border border-white/[0.08] cursor-pointer"
           >
-            {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
+            {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
           </button>
 
           <a
             href={audioUrl || '#'}
-            download={`tts-by-waqas-gill-${voiceName || 'voice'}-${Date.now()}.mp3`}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-xs transition-all hover:scale-[1.02] active:scale-[0.98]"
+            download={`ttsnexs-${voiceName || 'voice'}-${Date.now()}.mp3`}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold shadow-lg shadow-orange-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <Download className="w-3.5 h-3.5" />
             Download MP3
@@ -171,7 +171,7 @@ export function AudioPlayer({ audioUrl, voiceName, onDownload, isLoading }: Audi
 
       {/* Waveform representation */}
       <div className="flex flex-col gap-2 pt-2">
-        <div className="flex items-end justify-between gap-1 h-10 px-1 bg-slate-50 rounded-2xl p-2 border border-slate-100">
+        <div className="flex items-end justify-between gap-1 h-12 px-2 bg-[#07080e]/60 rounded-2xl p-2 border border-white/10">
           {Array.from({ length: 36 }).map((_, i) => {
             const progress = duration > 0 ? currentTime / duration : 0;
             const barPos = i / 36;
@@ -184,8 +184,8 @@ export function AudioPlayer({ audioUrl, voiceName, onDownload, isLoading }: Audi
                 key={i}
                 style={{ height: `${heightPercent}%` }}
                 className={`w-full rounded-full transition-colors ${
-                  isPassed ? 'bg-brand-600' : 'bg-slate-300'
-                } ${isPlaying && isPassed ? 'opacity-100' : 'opacity-70'}`}
+                  isPassed ? 'bg-gradient-to-t from-orange-500 to-amber-400' : 'bg-white/15'
+                } ${isPlaying && isPassed ? 'opacity-100 shadow-[0_0_8px_rgba(249,115,22,0.6)]' : 'opacity-70'}`}
               />
             );
           })}
@@ -203,25 +203,25 @@ export function AudioPlayer({ audioUrl, voiceName, onDownload, isLoading }: Audi
         />
 
         {/* Time Labels with digital clock indicators */}
-        <div className="flex items-center justify-between text-xs font-mono font-bold text-slate-700">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-brand-50 border border-brand-200 text-brand-700 shadow-xs">
-            <span className={`w-2 h-2 rounded-full bg-brand-600 ${isPlaying ? 'animate-ping' : ''}`} />
+        <div className="flex items-center justify-between text-xs font-mono font-bold text-slate-300">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-orange-500/15 border border-orange-500/30 text-orange-300 shadow-xs">
+            <span className={`w-2 h-2 rounded-full bg-orange-400 ${isPlaying ? 'animate-ping' : ''}`} />
             <span>Current: {formatTime(currentTime)}</span>
           </div>
-          <div className="px-3 py-1 rounded-xl bg-slate-100 border border-slate-200 text-slate-600">
+          <div className="px-3 py-1 rounded-xl bg-white/[0.04] border border-white/10 text-slate-400">
             <span>Duration: {formatTime(duration)}</span>
           </div>
         </div>
       </div>
 
       {/* Main Playback Controls Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/[0.08]">
         <div className="flex items-center gap-2">
           <button
             type="button"
             title="Rewind 5s"
             onClick={() => seekRelative(-5)}
-            className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.05] transition-colors cursor-pointer"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -229,7 +229,7 @@ export function AudioPlayer({ audioUrl, voiceName, onDownload, isLoading }: Audi
           <button
             type="button"
             onClick={togglePlay}
-            className="w-11 h-11 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white flex items-center justify-center shadow-md shadow-brand-500/25 transition-all hover:scale-105 active:scale-95"
+            className="w-11 h-11 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center justify-center shadow-lg shadow-orange-500/30 transition-all hover:scale-105 active:scale-95 cursor-pointer"
           >
             {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
           </button>
@@ -238,23 +238,23 @@ export function AudioPlayer({ audioUrl, voiceName, onDownload, isLoading }: Audi
             type="button"
             title="Forward 5s"
             onClick={() => seekRelative(5)}
-            className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.05] transition-colors cursor-pointer"
           >
             <FastForward className="w-4 h-4" />
           </button>
         </div>
 
         {/* Speed Multipliers */}
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs">
+        <div className="flex items-center bg-white/[0.04] border border-white/10 p-1 rounded-xl text-xs">
           {[0.8, 1, 1.25, 1.5, 2].map((spd) => (
             <button
               key={spd}
               type="button"
               onClick={() => setPlaybackRate(spd)}
-              className={`px-2.5 py-1 rounded-lg transition-colors font-mono text-xs font-semibold ${
+              className={`px-2.5 py-1 rounded-lg transition-colors font-mono text-xs font-semibold cursor-pointer ${
                 playbackRate === spd
-                  ? 'bg-white text-brand-700 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               {spd}x
@@ -267,7 +267,7 @@ export function AudioPlayer({ audioUrl, voiceName, onDownload, isLoading }: Audi
           <button
             type="button"
             onClick={toggleMute}
-            className="text-slate-500 hover:text-slate-900 transition-colors"
+            className="text-slate-400 hover:text-white transition-colors cursor-pointer"
           >
             {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>

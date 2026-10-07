@@ -4,49 +4,58 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
   }
 
   body {
-    @apply bg-slate-50 text-slate-900 antialiased min-h-screen selection:bg-brand-500 selection:text-white;
+    @apply bg-[#07080e] text-slate-100 antialiased min-h-screen selection:bg-orange-500 selection:text-white;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-/* Custom clean light scrollbars */
+/* Custom sleek dark scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(241, 245, 249, 0.8);
+  background: rgba(11, 12, 20, 0.8);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(203, 213, 225, 0.8);
+  background: rgba(255, 255, 255, 0.16);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.9);
+  background: rgba(249, 115, 22, 0.6);
 }
 
-/* Custom styled range slider for light theme */
+/* Custom styled range slider for dark studio theme */
 input[type="range"] {
-  @apply accent-brand-600 bg-slate-200 cursor-pointer h-2 rounded-lg;
+  @apply accent-orange-500 bg-white/10 cursor-pointer h-2 rounded-lg;
 }
 
 input[type="range"]::-webkit-slider-thumb {
-  @apply appearance-none w-4 h-4 rounded-full bg-brand-600 shadow-md shadow-brand-500/40 transition-all hover:scale-110 active:scale-95;
+  @apply appearance-none w-4 h-4 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 shadow-lg shadow-orange-500/50 transition-all hover:scale-125 active:scale-95;
 }
 
-/* Crisp white cards & panels */
-.white-card {
-  @apply bg-white border border-slate-200/90 shadow-sm rounded-2xl transition-all;
+/* Dark glass studio card */
+.studio-card {
+  @apply bg-[#0e1019]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl shadow-black/50 rounded-3xl transition-all;
 }
 
-.white-card:hover {
-  @apply shadow-md border-slate-300;
+.studio-card:hover {
+  @apply border-white/[0.16] shadow-orange-500/5;
+}
+
+/* Ambient glow utilities */
+.glow-warm {
+  box-shadow: 0 0 60px -15px rgba(249, 115, 22, 0.25);
+}
+
+.glow-subtle {
+  box-shadow: 0 0 40px -10px rgba(99, 102, 241, 0.15);
 }

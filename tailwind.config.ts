@@ -9,7 +9,18 @@ const config: Config = {
   darkMode: "class",
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        serif: ["var(--font-serif)", "Georgia", "serif"],
+      },
       colors: {
+        surface: {
+          950: "#07080e",
+          900: "#0b0c14",
+          850: "#0e101a",
+          800: "#131623",
+          700: "#1d2133",
+        },
         studio: {
           50: "#f8fafc",
           100: "#f1f5f9",

@@ -33,7 +33,11 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   else if (pathname === '/admin') activeTab = 'admin';
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row text-slate-800">
+    <div className="min-h-screen bg-[#07080e] flex flex-col lg:flex-row text-slate-100 relative overflow-x-hidden selection:bg-orange-500 selection:text-white">
+      {/* Ambient warm neon glow mesh (inspired by luxury dark studio aesthetic) */}
+      <div className="fixed -top-32 -right-32 w-[700px] h-[700px] bg-gradient-to-bl from-orange-500/[0.12] via-amber-500/[0.06] to-transparent rounded-full blur-3xl pointer-events-none -z-0" />
+      <div className="fixed bottom-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-tr from-indigo-600/[0.08] via-purple-600/[0.04] to-transparent rounded-full blur-3xl pointer-events-none -z-0" />
+
       {/* Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
@@ -103,34 +107,34 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         </main>
 
         {/* Global Professional Footer */}
-        <footer className="mt-auto border-t border-slate-200/80 bg-white/60 py-6 px-4 sm:px-8">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+        <footer className="mt-auto border-t border-white/[0.08] bg-[#0b0c14]/80 backdrop-blur-xl py-6 px-4 sm:px-8">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
             <div className="flex items-center gap-2">
-              <span className="font-extrabold text-slate-900 tracking-tight">TTSNexs</span>
-              <span>© {new Date().getFullYear()}</span>
-              <span>•</span>
-              <span>All rights reserved.</span>
+              <span className="font-black text-white tracking-tight">TTSNexs</span>
+              <span className="text-slate-500">© {new Date().getFullYear()}</span>
+              <span className="text-slate-600">•</span>
+              <span className="text-slate-500">All rights reserved.</span>
             </div>
             <div className="flex items-center gap-3 sm:gap-4 flex-wrap justify-center">
-              <span>
+              <span className="text-slate-400">
                 Crafted with passion by{' '}
                 <Link
                   href="/about"
-                  className="font-semibold text-slate-800 hover:text-brand-600 transition-colors"
+                  className="font-semibold text-slate-200 hover:text-orange-400 transition-colors"
                 >
                   Waqas Gill
                 </Link>
               </span>
-              <span>•</span>
-              <Link href="/about" className="hover:text-brand-600 transition-colors font-medium">
+              <span className="text-slate-600">•</span>
+              <Link href="/about" className="hover:text-orange-400 transition-colors font-medium">
                 About
               </Link>
-              <span>•</span>
-              <Link href="/api-access" className="hover:text-brand-600 transition-colors font-medium">
+              <span className="text-slate-600">•</span>
+              <Link href="/api-access" className="hover:text-orange-400 transition-colors font-medium">
                 API Access
               </Link>
-              <span>•</span>
-              <Link href="/pricing" className="hover:text-brand-600 transition-colors font-medium">
+              <span className="text-slate-600">•</span>
+              <Link href="/pricing" className="hover:text-orange-400 transition-colors font-medium">
                 Pricing
               </Link>
             </div>

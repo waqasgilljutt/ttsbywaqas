@@ -16,7 +16,7 @@ const TEMPLATES = [
   },
   {
     name: 'Tech Tutorial',
-    text: "In this walkthrough, we will learn how to connect Next.js 15 with EmpireNexs Neural Text to Speech engine to generate lifelike natural speech in real-time.",
+    text: "In this walkthrough, we will learn how to connect Next.js 15 with TTSNexs Neural Text to Speech engine to generate lifelike natural speech in real-time.",
   },
   {
     name: 'News Announcement',
@@ -32,7 +32,7 @@ const TEMPLATES = [
   },
   {
     name: 'Urdu Greeting',
-    text: "السلام علیکم! ایمپائرنیکس ٹیکسٹ ٹو اسپیچ میں خوش آمدید۔ آپ کا دن اچھا گزرے۔",
+    text: "السلام علیکم! ٹی ٹی ایس نیکس اسٹوڈیو میں خوش آمدید۔ آپ کا دن اچھا گزرے۔",
   },
 ];
 
@@ -56,8 +56,8 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
       {/* Header and Template Badges */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Type className="w-4 h-4 text-brand-600" />
-          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+          <Type className="w-4 h-4 text-orange-400" />
+          <label className="text-xs font-bold text-slate-200 uppercase tracking-wider">
             Script / Text to Synthesize
           </label>
         </div>
@@ -67,7 +67,7 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
             type="button"
             onClick={() => onChangeText('')}
             disabled={disabled}
-            className="text-xs text-slate-500 hover:text-rose-600 flex items-center gap-1 transition-colors font-medium self-end sm:self-auto"
+            className="text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1 transition-colors font-medium self-end sm:self-auto cursor-pointer"
           >
             <Trash2 className="w-3.5 h-3.5" />
             Clear
@@ -78,7 +78,7 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
       {/* Preset Templates */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
         <span className="text-slate-400 flex items-center gap-1 text-[11px] shrink-0 font-medium">
-          <Sparkles className="w-3 h-3 text-brand-600" /> Presets:
+          <Sparkles className="w-3 h-3 text-orange-400" /> Presets:
         </span>
         {TEMPLATES.map((item) => (
           <button
@@ -86,7 +86,7 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
             type="button"
             disabled={disabled}
             onClick={() => onChangeText(item.text)}
-            className="px-3 py-1 rounded-xl bg-slate-100 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-200 border border-slate-200/80 text-slate-700 transition-all whitespace-nowrap text-xs font-medium"
+            className="px-3 py-1 rounded-xl bg-white/[0.04] hover:bg-orange-500/15 hover:text-orange-300 hover:border-orange-500/30 border border-white/[0.08] text-slate-300 transition-all whitespace-nowrap text-xs font-medium cursor-pointer"
           >
             {item.name}
           </button>
@@ -101,28 +101,28 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
           value={text}
           onChange={(e) => onChangeText(e.target.value)}
           placeholder="Enter or paste the text you want the voice to read aloud (up to 50,000 characters)..."
-          className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-600 focus:bg-white transition-all resize-y text-sm leading-relaxed"
+          className="w-full bg-[#07080e]/70 border border-white/10 rounded-2xl p-4 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/60 focus:bg-[#0b0c14] focus:ring-1 focus:ring-orange-500/30 transition-all resize-y text-sm leading-relaxed"
         />
 
         {/* Floating Stats */}
-        <div className="flex items-center justify-between px-2 pt-1 text-xs text-slate-500">
+        <div className="flex items-center justify-between px-2 pt-1 text-xs text-slate-400">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <FileText className="w-3.5 h-3.5 text-brand-600" />
-              <strong className="text-slate-900 font-bold">{wordCount.toLocaleString()}</strong> words
+              <FileText className="w-3.5 h-3.5 text-orange-400" />
+              <strong className="text-white font-bold">{wordCount.toLocaleString()}</strong> words
             </span>
             <span className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-slate-400" />
+              <Clock className="w-3.5 h-3.5 text-slate-500" />
               {formatSpeechTime(totalSeconds)}
             </span>
           </div>
 
           <div
             className={`font-mono text-xs font-semibold ${
-              charCount > maxChars ? 'text-rose-600 font-bold' : 'text-slate-600'
+              charCount > maxChars ? 'text-rose-400 font-bold' : 'text-slate-400'
             }`}
           >
-            <span className={charCount > maxChars ? 'text-rose-600' : 'text-brand-700 font-bold'}>
+            <span className={charCount > maxChars ? 'text-rose-400' : 'text-orange-400 font-bold'}>
               {charCount.toLocaleString()}
             </span>{' '}
             / {maxChars.toLocaleString()} characters (1 char = 1 credit)
@@ -130,7 +130,7 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
         </div>
 
         {charCount > maxChars && (
-          <div className="mt-2.5 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between gap-2 animate-in fade-in font-medium">
+          <div className="mt-2.5 p-3 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between gap-2 animate-in fade-in font-medium">
             <span>
               <strong>Limit Exceeded:</strong> Maximum allowed per voice generation is 50,000 characters. Please trim your script.
             </span>
@@ -138,14 +138,14 @@ export function TextEditor({ text, onChangeText, disabled }: TextEditorProps) {
         )}
 
         {charCount > 3000 && charCount <= maxChars && (
-          <div className="mt-2.5 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+          <div className="mt-2.5 p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between gap-2 animate-in fade-in">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+              <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>
                 <strong>Long-Form Batch Engine Active:</strong> Your {charCount.toLocaleString()} character script will be synthesized seamlessly across chapters into one continuous MP3 with zero timeouts.
               </span>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full shrink-0">
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full shrink-0">
               50,000 Max Ready
             </span>
           </div>

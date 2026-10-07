@@ -64,95 +64,95 @@ export function SeoContentSection() {
   };
 
   return (
-    <section className="w-full mt-16 pt-12 border-t border-slate-200/80 flex flex-col gap-16 text-slate-800">
+    <section className="w-full mt-16 pt-12 border-t border-white/[0.08] flex flex-col gap-16 text-slate-300">
       {/* SECTION 1: Main SEO Value Proposition & H2 */}
       <div className="flex flex-col gap-6 text-center max-w-4xl mx-auto">
-        <div className="inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200/80 text-amber-700 text-xs font-bold uppercase tracking-wider mx-auto shadow-xs">
-          <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+        <div className="inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-bold uppercase tracking-wider mx-auto shadow-xs">
+          <Sparkles className="w-3.5 h-3.5 text-orange-400" />
           <span>The #1 AI Voice Over &amp; Voice Cloning Tool</span>
         </div>
 
-        <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-          Next-Generation <span className="bg-gradient-to-r from-brand-600 to-indigo-600 bg-clip-text text-transparent">AI Text to Speech</span> &amp; Instant Voice Cloning Studio
+        <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+          Next-Generation <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-400 bg-clip-text text-transparent">AI Text to Speech</span> &amp; Instant Voice Cloning Studio
         </h2>
 
-        <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-3xl mx-auto">
+        <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-3xl mx-auto">
           Transform text into hyper-realistic human speech in seconds. Whether you are producing 
           YouTube voiceovers, TikTok narrations, audiobooks, educational e-learning courses, or commercial advertisements, 
-          <strong> TTSNexs</strong> delivers broadcast-quality acoustic fidelity with 
+          <strong className="text-white"> TTSNexs</strong> delivers broadcast-quality acoustic fidelity with 
           over 320 lifelike neural voices and instant microphone-based voice cloning.
         </p>
       </div>
 
       {/* SECTION 2: Key Feature Pillars (Targeting Search Keywords) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex flex-col gap-4 hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 rounded-2xl bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600 shrink-0">
+        <div className="studio-card p-6 flex flex-col gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0">
             <Mic2 className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900 mb-1">
+            <h3 className="text-lg font-bold text-white mb-1">
               Best AI Voice Over Tool
             </h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-400 leading-relaxed">
               Access over 320 expressive AI voices spanning 140+ languages and dialects. Fine-tune pitch, speech cadence, and volume with millisecond precision for natural, humanlike delivery.
             </p>
           </div>
-          <ul className="text-xs text-slate-600 space-y-1.5 mt-auto pt-2 border-t border-slate-100">
+          <ul className="text-xs text-slate-300 space-y-1.5 mt-auto pt-2 border-t border-white/[0.08]">
             <li className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span>Multi-lingual neural prosody</span>
             </li>
             <li className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span>Crystal clear 48kHz MP3 export</span>
             </li>
           </ul>
         </div>
 
-        <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex flex-col gap-4 hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 shrink-0">
+        <div className="studio-card p-6 flex flex-col gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
             <Dna className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900 mb-1">
+            <h3 className="text-lg font-bold text-white mb-1">
               Instant AI Voice Cloning Tool
             </h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-400 leading-relaxed">
               Clone any voice with only 15 to 30 seconds of reference audio. Record through your microphone or upload any audio file to generate speech that mirrors the unique warmth, timbre, and accent.
             </p>
           </div>
-          <ul className="text-xs text-slate-600 space-y-1.5 mt-auto pt-2 border-t border-slate-100">
+          <ul className="text-xs text-slate-300 space-y-1.5 mt-auto pt-2 border-t border-white/[0.08]">
             <li className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span>Zero-shot acoustic cloning</span>
             </li>
             <li className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span>Save &amp; reuse custom voice profiles</span>
             </li>
           </ul>
         </div>
 
-        <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex flex-col gap-4 hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
+        <div className="studio-card p-6 flex flex-col gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
             <Zap className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900 mb-1">
+            <h3 className="text-lg font-bold text-white mb-1">
               50,000 Characters Limit
             </h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-400 leading-relaxed">
               Convert long-form documents, novel chapters, podcast scripts, and research papers without hitting frustrating character roadblocks or needing to merge audio files manually.
             </p>
           </div>
-          <ul className="text-xs text-slate-600 space-y-1.5 mt-auto pt-2 border-t border-slate-100">
+          <ul className="text-xs text-slate-300 space-y-1.5 mt-auto pt-2 border-t border-white/[0.08]">
             <li className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span>Single-pass continuous synthesis</span>
             </li>
             <li className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span>Zero timeout or buffer drops</span>
             </li>
           </ul>
@@ -160,7 +160,7 @@ export function SeoContentSection() {
       </div>
 
       {/* SECTION 3: How It Works in 3 Simple Steps (Rich Snippets target) */}
-      <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white flex flex-col gap-8 shadow-xl">
+      <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-br from-[#0e101a] via-[#131624] to-[#0a0b12] text-white flex flex-col gap-8 shadow-2xl border border-white/[0.08]">
         <div className="flex flex-col gap-2 max-w-2xl">
           <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
             Simple 3-Step Workflow
@@ -168,14 +168,14 @@ export function SeoContentSection() {
           <h3 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
             How to Generate Studio Speech &amp; Voice Clones
           </h3>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
             Create professional-grade voiceovers in less than 30 seconds with no complex software installation required.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs flex flex-col gap-3">
-            <div className="w-8 h-8 rounded-xl bg-brand-500/20 text-brand-300 flex items-center justify-center font-bold text-sm">
+          <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xs flex flex-col gap-3">
+            <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center font-bold text-sm">
               01
             </div>
             <h4 className="font-bold text-sm text-white">Enter or Paste Your Text</h4>
@@ -184,8 +184,8 @@ export function SeoContentSection() {
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs flex flex-col gap-3">
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center font-bold text-sm">
+          <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xs flex flex-col gap-3">
+            <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-sm">
               02
             </div>
             <h4 className="font-bold text-sm text-white">Pick a Voice or Clone Yours</h4>
@@ -194,8 +194,8 @@ export function SeoContentSection() {
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs flex flex-col gap-3">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold text-sm">
+          <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xs flex flex-col gap-3">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-sm">
               03
             </div>
             <h4 className="font-bold text-sm text-white">Synthesize &amp; Download MP3</h4>
@@ -209,47 +209,47 @@ export function SeoContentSection() {
       {/* SECTION 4: Competitive Advantage Comparison Table */}
       <div className="flex flex-col gap-6">
         <div className="text-center max-w-2xl mx-auto">
-          <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Why EmpireNexs is the Top Choice for Voice Synthesis
+          <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            Why TTSNexs is the Top Choice for Voice Synthesis
           </h3>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">
             Compare our platform features against standard text-to-speech tools
           </p>
         </div>
 
-        <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-xs">
+        <div className="overflow-x-auto rounded-3xl border border-white/[0.08] studio-card">
           <table className="w-full text-left border-collapse text-xs sm:text-sm">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold">
+              <tr className="bg-white/[0.03] border-b border-white/[0.08] text-slate-300 font-bold">
                 <th className="p-4 sm:p-5">Feature</th>
-                <th className="p-4 sm:p-5 text-brand-700 bg-brand-50/50">EmpireNexs Voice AI</th>
+                <th className="p-4 sm:p-5 text-orange-400 bg-orange-500/10">TTSNexs Voice AI</th>
                 <th className="p-4 sm:p-5 text-slate-500">Typical Online TTS Tools</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
+            <tbody className="divide-y divide-white/[0.05] text-slate-300">
               <tr>
-                <td className="p-4 sm:p-5 font-semibold text-slate-900">Character Limit Per Script</td>
-                <td className="p-4 sm:p-5 font-bold text-brand-600 bg-brand-50/20">Up to 50,000 Chars</td>
+                <td className="p-4 sm:p-5 font-semibold text-white">Character Limit Per Script</td>
+                <td className="p-4 sm:p-5 font-bold text-orange-400 bg-orange-500/5">Up to 50,000 Chars</td>
                 <td className="p-4 sm:p-5 text-slate-500">1,000 – 3,000 Chars only</td>
               </tr>
               <tr>
-                <td className="p-4 sm:p-5 font-semibold text-slate-900">Neural Voices Variety</td>
-                <td className="p-4 sm:p-5 font-bold text-brand-600 bg-brand-50/20">320+ Voices across 140+ Locales</td>
+                <td className="p-4 sm:p-5 font-semibold text-white">Neural Voices Variety</td>
+                <td className="p-4 sm:p-5 font-bold text-orange-400 bg-orange-500/5">320+ Voices across 140+ Locales</td>
                 <td className="p-4 sm:p-5 text-slate-500">Limited (10 – 30 basic voices)</td>
               </tr>
               <tr>
-                <td className="p-4 sm:p-5 font-semibold text-slate-900">Instant Voice Cloning</td>
-                <td className="p-4 sm:p-5 font-bold text-brand-600 bg-brand-50/20">Included (15-30s reference)</td>
+                <td className="p-4 sm:p-5 font-semibold text-white">Instant Voice Cloning</td>
+                <td className="p-4 sm:p-5 font-bold text-orange-400 bg-orange-500/5">Included (15-30s reference)</td>
                 <td className="p-4 sm:p-5 text-slate-500">Paid Add-on ($20+/mo) or Unavailable</td>
               </tr>
               <tr>
-                <td className="p-4 sm:p-5 font-semibold text-slate-900">Audio Fidelity</td>
-                <td className="p-4 sm:p-5 font-bold text-brand-600 bg-brand-50/20">Studio 48kHz HD Audio</td>
+                <td className="p-4 sm:p-5 font-semibold text-white">Audio Fidelity</td>
+                <td className="p-4 sm:p-5 font-bold text-orange-400 bg-orange-500/5">Studio 48kHz HD Audio</td>
                 <td className="p-4 sm:p-5 text-slate-500">22kHz Compressed / Robotic</td>
               </tr>
               <tr>
-                <td className="p-4 sm:p-5 font-semibold text-slate-900">Free Access Tier</td>
-                <td className="p-4 sm:p-5 font-bold text-emerald-600 bg-brand-50/20">Yes (Free by Waqas Gill)</td>
+                <td className="p-4 sm:p-5 font-semibold text-white">Free Access Tier</td>
+                <td className="p-4 sm:p-5 font-bold text-emerald-400 bg-emerald-500/10">Yes (30,000 Credits / Mo)</td>
                 <td className="p-4 sm:p-5 text-slate-500">Strict paywall after 3 runs</td>
               </tr>
             </tbody>
@@ -260,13 +260,13 @@ export function SeoContentSection() {
       {/* SECTION 5: FAQs (SEO Rich Snippets Target) */}
       <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full">
         <div className="text-center">
-          <span className="text-xs font-bold text-brand-600 uppercase tracking-wider">
+          <span className="text-xs font-bold text-orange-400 uppercase tracking-wider">
             Got Questions?
           </span>
-          <h3 className="text-xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
+          <h3 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight mt-1">
             Frequently Asked Questions
           </h3>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">
             Everything you need to know about our AI voice over generator and voice cloning technology.
           </p>
         </div>
@@ -277,22 +277,22 @@ export function SeoContentSection() {
             return (
               <div
                 key={faq.question}
-                className="rounded-2xl border border-slate-200 bg-white transition-all overflow-hidden shadow-2xs"
+                className="rounded-2xl border border-white/[0.08] studio-card transition-all overflow-hidden"
               >
                 <button
                   type="button"
                   onClick={() => toggleFaq(index)}
-                  className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-slate-900 hover:text-brand-600 transition-colors"
+                  className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-white hover:text-orange-400 transition-colors cursor-pointer"
                 >
                   <span className="text-sm sm:text-base">{faq.question}</span>
                   {isOpen ? (
-                    <ChevronUp className="w-5 h-5 text-brand-600 shrink-0" />
+                    <ChevronUp className="w-5 h-5 text-orange-400 shrink-0" />
                   ) : (
                     <ChevronDown className="w-5 h-5 text-slate-400 shrink-0" />
                   )}
                 </button>
                 {isOpen && (
-                  <div className="px-4 pb-5 sm:px-5 sm:pb-5 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                  <div className="px-4 pb-5 sm:px-5 sm:pb-5 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-white/[0.08] pt-3">
                     {faq.answer}
                   </div>
                 )}
@@ -303,29 +303,29 @@ export function SeoContentSection() {
       </div>
 
       {/* SECTION 6: Footer Branding CTA */}
-      <div className="p-8 rounded-3xl bg-slate-100 border border-slate-200 text-center flex flex-col items-center gap-4">
-        <div className="w-14 h-14 rounded-2xl bg-slate-950 p-2 shadow-md flex items-center justify-center border border-brand-500/30">
+      <div className="p-8 rounded-3xl studio-card text-center flex flex-col items-center gap-4">
+        <div className="w-14 h-14 rounded-2xl bg-[#0b0c14] p-2 shadow-md flex items-center justify-center border border-orange-500/30">
           <img src="/logo.png" alt="TTSNexs Official Logo" className="w-full h-full object-contain" />
         </div>
         <div>
-          <h4 className="text-lg font-bold text-slate-900">
+          <h4 className="text-lg font-bold text-white">
             TTSNexs - Next-Generation AI Voice Studio
           </h4>
-          <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+          <p className="text-xs text-slate-400 max-w-md mx-auto mt-1">
             Empowering creators and developers with studio-grade neural speech, instant voice cloning, and accessible high-capacity synthesis.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <Link
             href="/voice-cloning"
-            className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs transition-colors flex items-center gap-2"
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold text-xs transition-colors flex items-center gap-2 shadow-md"
           >
             <Dna className="w-4 h-4" />
             <span>Try Voice Cloning</span>
           </Link>
           <Link
             href="/about"
-            className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-xs transition-colors"
+            className="px-5 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/10 border border-white/10 text-slate-300 font-semibold text-xs transition-colors"
           >
             About &amp; Creator
           </Link>

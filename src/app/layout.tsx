@@ -1,6 +1,19 @@
 import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
+});
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ttsnexs.online';
 
@@ -209,7 +222,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="light">
+    <html lang="en" className={`${jakarta.variable} ${playfair.variable} dark`}>
       <head>
         <meta name="google-site-verification" content="0BQ6AxuSCNPHJ-nugq23MddBI6RUBp-JTIhwGHOXrTA" />
         <script
@@ -217,7 +230,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdStructuredData) }}
         />
       </head>
-      <body className="bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
+      <body className="bg-[#07080e] text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-orange-500 selection:text-white">
         <AppShell>
           {children}
         </AppShell>
