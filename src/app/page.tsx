@@ -14,7 +14,7 @@ import { Sparkles, Loader2, AlertCircle, Zap } from 'lucide-react';
 import { SeoContentSection } from '@/components/SeoContentSection';
 
 const INITIAL_TEXT =
-  "Welcome to TTS bY Waqas Gill by EmpireNexs! You can customize voice speed, pitch, and choose from over 320 high-fidelity neural voices across dozens of languages. Supports up to 50,000 characters per script!";
+  "Welcome to TTSNexs Studio by EmpireNexs! You can customize voice speed, pitch, and choose from over 320 high-fidelity neural voices across dozens of languages. Supports up to 50,000 characters per script!";
 
 export default function Home() {
   const router = useRouter();

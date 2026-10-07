@@ -86,7 +86,9 @@ export async function GET(req: NextRequest) {
   const users = getEnrichedUsers();
   const otps = getActiveOTPs();
   const cloudInfo = getCloudDatabaseInfo();
-  return NextResponse.json({ success: true, users, otps, cloudInfo }, { headers: noCacheHeaders });
+  const { getAllApiKeys } = await import('@/lib/api-key-store');
+  const apiKeys = getAllApiKeys();
+  return NextResponse.json({ success: true, users, otps, cloudInfo, apiKeys }, { headers: noCacheHeaders });
 }
 
 export async function POST(req: NextRequest) {
@@ -334,6 +336,32 @@ export async function POST(req: NextRequest) {
       }
       await saveUsersToCloud(undefined, true, false);
       return NextResponse.json({ success: true, users: getEnrichedUsers() });
+    }
+
+    // Admin: Provision custom Developer API Key (e.g. 1M, 5M, 10M, 50M)
+    if (action === 'create-api-key') {
+      const { ownerName, ownerEmail, quotaMillion, durationDays, tierLabel } = body;
+      if (!ownerName || !ownerEmail) {
+        return NextResponse.json({ success: false, error: 'Owner Name and Email are required.' }, { status: 400 });
+      }
+      const { createApiKey, getAllApiKeys } = await import('@/lib/api-key-store');
+      const quotaChars = Number(quotaMillion || 1) * 1000000;
+      const key = createApiKey(
+        ownerName,
+        ownerEmail,
+        quotaChars,
+        tierLabel || `${quotaMillion}M Developer Pack`,
+        durationDays ? Number(durationDays) : 30
+      );
+      return NextResponse.json({ success: true, key, apiKeys: getAllApiKeys() });
+    }
+
+    // Admin: Revoke a Developer API Key
+    if (action === 'revoke-api-key') {
+      const { keyString } = body;
+      const { revokeApiKey, getAllApiKeys } = await import('@/lib/api-key-store');
+      revokeApiKey(keyString);
+      return NextResponse.json({ success: true, apiKeys: getAllApiKeys() });
     }
 
     return NextResponse.json({ success: false, error: 'Invalid action specified.' }, { status: 400 });

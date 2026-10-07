@@ -43,7 +43,11 @@ export function TopNavbar({
     },
     'about': {
       title: 'About EmpireNexs',
-      subtitle: 'Our technology, mission, and the story of Waqas Gill',
+      subtitle: 'EmpireNexs technology venture & Founder Waqas Gill',
+    },
+    'api-access': {
+      title: 'Developer REST API',
+      subtitle: 'Integrate neural speech & voice cloning into your software with custom quota',
     },
     'admin': {
       title: 'Owner Command Center',
@@ -77,12 +81,20 @@ export function TopNavbar({
           <p className="text-xs sm:text-sm text-slate-600 hidden sm:block mt-0.5 font-medium">
             {activeTab === 'about' ? (
               <>
-                Our technology, mission, and the story of{' '}
+                <a
+                  href="https://empirenexs.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-600 hover:underline font-semibold"
+                >
+                  EmpireNexs
+                </a>{' '}
+                technology venture &amp; Founder{' '}
                 <a
                   href="https://www.facebook.com/mwaqasgillcs/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-brand-600 hover:underline font-semibold"
+                  className="text-slate-800 hover:text-brand-600 hover:underline font-semibold"
                   title="Connect with Waqas Gill on Facebook"
                 >
                   Waqas Gill

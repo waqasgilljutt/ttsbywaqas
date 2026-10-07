@@ -11,9 +11,10 @@ import {
   ChevronRight,
   ShieldCheck,
   FolderHeart,
+  Terminal,
 } from 'lucide-react';
 
-export type TabType = 'text-to-voice' | 'voice-cloning' | 'voice-library' | 'pricing' | 'about' | 'admin';
+export type TabType = 'text-to-voice' | 'voice-cloning' | 'voice-library' | 'pricing' | 'about' | 'api-access' | 'admin';
 
 interface SidebarProps {
   activeTab?: TabType;
@@ -70,9 +71,17 @@ export function Sidebar({
       id: 'about' as TabType,
       href: '/about',
       label: 'About EmpireNexs',
-      description: 'Vision & Story of Waqas Gill',
+      description: 'Company & Waqas Gill',
       icon: Building2,
       badge: 'Company',
+    },
+    {
+      id: 'api-access' as TabType,
+      href: '/api-access',
+      label: 'Get API Access',
+      description: 'Custom Quota & Developer Key',
+      icon: Terminal,
+      badge: '⚡ API',
     },
   ];
 

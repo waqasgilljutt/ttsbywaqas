@@ -28,6 +28,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   else if (pathname === '/voice-library') activeTab = 'voice-library';
   else if (pathname === '/pricing') activeTab = 'pricing';
   else if (pathname === '/about') activeTab = 'about';
+  else if (pathname === '/api-access') activeTab = 'api-access';
   else if (pathname === '/admin') activeTab = 'admin';
 
   return (

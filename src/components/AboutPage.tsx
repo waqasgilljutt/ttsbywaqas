@@ -33,7 +33,7 @@ export function AboutPage() {
           <span>About the Platform</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-          TTS bY{' '}
+          EmpireNexs &amp; TTS bY{' '}
           <a
             href="https://www.facebook.com/mwaqasgillcs/"
             target="_blank"
@@ -41,11 +41,10 @@ export function AboutPage() {
             className="text-brand-600 hover:text-brand-700 hover:underline transition-all"
           >
             Waqas Gill
-          </a>{' '}
-          &amp; EmpireNexs
+          </a>
         </h2>
         <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-          Pioneering high-fidelity artificial voice synthesis and audio engineering to empower creators, developers, and businesses worldwide.
+          Pioneering high-fidelity artificial voice synthesis and neural audio engineering to empower creators, developers, and businesses worldwide.
         </p>
       </div>
 
@@ -62,10 +61,48 @@ export function AboutPage() {
         ))}
       </div>
 
-      {/* Founder & Company Story Grid */}
+      {/* Company & Founder Story Grid - Company (EmpireNexs) FIRST as requested */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
-        {/* Founder Card */}
-        <div className="p-8 rounded-3xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between gap-6">
+        {/* 1. Company Card (EmpireNexs FIRST) */}
+        <div className="p-8 rounded-3xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between gap-6 hover:border-indigo-300 transition-colors">
+          <div className="flex flex-col gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600">
+              <Building2 className="w-6 h-6" />
+            </div>
+
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">
+                Technology Venture &amp; Parent Company
+              </span>
+              <div className="mt-0.5 flex items-center gap-2">
+                <h3 className="text-2xl font-extrabold text-slate-900">EmpireNexs</h3>
+                <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-bold border border-indigo-200">
+                  Official
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              <strong>EmpireNexs</strong> is a forward-thinking digital innovation venture dedicated to building next-generation AI platforms, full-stack cloud ecosystems, and voice technologies. With a focus on performance, high concurrency, and human-centric design, EmpireNexs bridges the gap between state-of-the-art research models and daily digital workflows.
+            </p>
+          </div>
+
+          <a
+            href="https://empirenexs.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-3.5 rounded-2xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-xs font-bold text-indigo-700 flex items-center justify-between transition-all group shadow-xs"
+          >
+            <span className="flex items-center gap-2">
+              <Globe2 className="w-4 h-4 text-indigo-600" />
+              <span>Visit EmpireNexs Website: https://empirenexs.com</span>
+            </span>
+            <ExternalLink className="w-4 h-4 text-indigo-600 group-hover:translate-x-0.5 transition-transform" />
+          </a>
+        </div>
+
+        {/* 2. Founder Card (Waqas Gill SECOND) */}
+        <div className="p-8 rounded-3xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between gap-6 hover:border-brand-300 transition-colors">
           <div className="flex flex-col gap-4">
             <div className="w-12 h-12 rounded-2xl bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
               <User className="w-6 h-6" />
@@ -73,14 +110,14 @@ export function AboutPage() {
 
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-brand-600">
-                Founder &amp; Lead Architect
+                Founder &amp; Lead AI Architect
               </span>
               <div className="mt-0.5">
                 <a
                   href="https://www.facebook.com/mwaqasgillcs/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xl font-bold text-slate-900 hover:text-brand-600 transition-colors inline-flex items-center gap-1.5 group"
+                  className="text-2xl font-extrabold text-slate-900 hover:text-brand-600 transition-colors inline-flex items-center gap-1.5 group"
                 >
                   <span>Waqas Gill</span>
                   <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-brand-600 transition-colors" />
@@ -97,7 +134,7 @@ export function AboutPage() {
               >
                 Waqas Gill
               </a>{' '}
-              is an innovative technologist and software architect passionate about democratizing artificial intelligence. Recognizing the barriers that expensive voice platforms put on everyday creators, Waqas engineered this platform to provide unbounded 50,000-word neural speech and instant voice cloning free of charge.
+              is an innovative technologist and software architect passionate about democratizing artificial intelligence. Recognizing the barriers that expensive voice platforms put on everyday creators, Waqas engineered this platform to provide unbounded 50,000-character neural speech, instant voice cloning, and flexible developer APIs.
             </p>
           </div>
 
@@ -105,7 +142,7 @@ export function AboutPage() {
             href="https://www.facebook.com/mwaqasgillcs/"
             target="_blank"
             rel="noopener noreferrer"
-            className="p-3 rounded-2xl bg-brand-50 hover:bg-brand-100 border border-brand-200 text-xs font-semibold text-brand-700 flex items-center justify-between transition-colors group"
+            className="p-3.5 rounded-2xl bg-brand-50 hover:bg-brand-100 border border-brand-200 text-xs font-bold text-brand-700 flex items-center justify-between transition-all group shadow-xs"
           >
             <span className="flex items-center gap-2">
               <User className="w-4 h-4 text-brand-600" />
@@ -114,31 +151,30 @@ export function AboutPage() {
             <ExternalLink className="w-4 h-4 text-brand-600 group-hover:translate-x-0.5 transition-transform" />
           </a>
         </div>
+      </div>
 
-        {/* Company Card */}
-        <div className="p-8 rounded-3xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between gap-6">
-          <div className="flex flex-col gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600">
-              <Building2 className="w-6 h-6" />
-            </div>
-
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">
-                Technology Venture
-              </span>
-              <h3 className="text-xl font-bold text-slate-900 mt-0.5">EmpireNexs</h3>
-            </div>
-
-            <p className="text-xs text-slate-600 leading-relaxed">
-              <strong>EmpireNexs</strong> is a forward-thinking digital venture dedicated to building next-generation AI platforms, full-stack cloud ecosystems, and voice technologies. With a focus on performance, reliability, and human-centric design, EmpireNexs bridges the gap between state-of-the-art research models and daily digital workflows.
-            </p>
+      {/* Developer API & Custom Orders Callout Section (Under About Nexs) */}
+      <div className="p-8 sm:p-10 rounded-3xl bg-slate-900 text-white border border-slate-800 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex flex-col gap-2 max-w-xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30 text-xs font-bold w-fit">
+            <Cpu className="w-3.5 h-3.5 text-brand-400" />
+            <span>Developer REST API Access</span>
           </div>
-
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs text-slate-700 flex items-center gap-3">
-            <Globe2 className="w-5 h-5 text-indigo-600 shrink-0" />
-            <span>Building modern AI infrastructure for creators and enterprise brands.</span>
-          </div>
+          <h3 className="text-xl sm:text-2xl font-black">
+            Want to use our Neural Voice API in your software or bots?
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            We provide dedicated Developer API Keys with custom character packages (1M, 5M, 10M, 50M+ characters). Order a custom capacity plan and start integrating in minutes!
+          </p>
         </div>
+
+        <a
+          href="/api-access"
+          className="px-6 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg hover:shadow-xl transition-all shrink-0"
+        >
+          <span>Get Developer API Key</span>
+          <ExternalLink className="w-4 h-4" />
+        </a>
       </div>
 
       {/* Technology Architecture Section */}
@@ -157,7 +193,7 @@ export function AboutPage() {
           </div>
 
           <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col gap-2">
-            <span className="font-bold text-slate-900 text-sm">2. 50k Words Chunking</span>
+            <span className="font-bold text-slate-900 text-sm">2. 50k Chars Chunking</span>
             <p className="text-slate-600 leading-relaxed">
               Intelligent sentence boundary detection chunks large books and articles into safe payloads, recombining them into continuous, gapless audio.
             </p>

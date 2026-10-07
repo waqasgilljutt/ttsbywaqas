@@ -231,7 +231,7 @@ export function VoiceCloner({
   const [uploadedAudioUrl, setUploadedAudioUrl] = useState<string | null>(null);
 
   // Voice parameters (Default: English, Male, auto-detect enabled)
-  const [voiceName, setVoiceName] = useState('Waqas Gill Clone');
+  const [voiceName, setVoiceName] = useState('TTSNexs Neural Clone');
   const [gender, setGender] = useState<'Male' | 'Female'>('Male');
   const [locale, setLocale] = useState('en-US');
   const [autoDetectLanguage, setAutoDetectLanguage] = useState(true);
@@ -243,7 +243,7 @@ export function VoiceCloner({
 
   // Target Script (English by default, as requested)
   const [scriptText, setScriptText] = useState(
-    'Hello! This is a real AI cloned speech generated in my exact voice, powered by EmpireNexs and Waqas Gill.'
+    'Hello! This is a high-fidelity AI cloned speech generated with TTSNexs Studio by EmpireNexs.'
   );
 
   // Optional Reference Text spoken in sample
@@ -1073,7 +1073,7 @@ export function VoiceCloner({
                   type="text"
                   value={voiceName}
                   onChange={(e) => setVoiceName(e.target.value)}
-                  placeholder="e.g. Waqas Gill Official, Host Voice"
+                  placeholder="e.g. Studio Narrator, Podcast Host, Executive Voice"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-brand-600 focus:bg-white transition-all font-medium"
                 />
               </div>

@@ -8,8 +8,9 @@ export const maxDuration = 60;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { text, voice, rate, pitch, volume, userEmail: rawEmail, skipDeduct } = body;
+    const { text, voice, rate, pitch, volume, userEmail: rawEmail, skipDeduct, apiKey: bodyApiKey } = body;
     const userEmail = rawEmail || req.headers.get('x-user-email');
+    const apiKey = req.headers.get('x-api-key') || req.nextUrl.searchParams.get('key') || bodyApiKey;
 
     if (!text || typeof text !== 'string' || text.trim().length === 0) {
       return NextResponse.json(
@@ -21,7 +22,38 @@ export async function POST(req: NextRequest) {
     const trimmedText = text.trim();
     const charCount = trimmedText.length;
 
-    // 1. Enforce Per-Voice Generation Limit of 50,000 Characters
+    // 1. External Scraper & Developer API Key Protection
+    if (apiKey) {
+      const { validateApiKey } = await import('@/lib/api-key-store');
+      const keyCheck = validateApiKey(apiKey, charCount);
+      if (!keyCheck.valid) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: keyCheck.error || 'Invalid or expired Developer API Key.',
+            orderCustomKey: 'https://ttsnexs.online/api-access',
+            contact: 'muhammadwaqasmwg@gmail.com',
+          },
+          { status: 401 }
+        );
+      }
+    } else {
+      const { isInternalWebRequest } = await import('@/lib/api-key-store');
+      const isInternal = isInternalWebRequest(req);
+      if (!isInternal && !userEmail) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Unauthorized: External API access requires an authorized Developer API Key.',
+            message: 'To order a custom API Key with your desired quota (1 Million, 5M, 10M, 50M+ characters), visit https://ttsnexs.online/api-access or contact EmpireNexs on WhatsApp.',
+            apiPortalUrl: 'https://ttsnexs.online/api-access',
+          },
+          { status: 401 }
+        );
+      }
+    }
+
+    // 2. Enforce Per-Voice Generation Limit of 50,000 Characters
     if (charCount > MAX_PER_VOICE_CHARACTERS) {
       return NextResponse.json(
         {
@@ -31,8 +63,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Enforce Account Credits: 1 Character = 1 Credit
-    if (userEmail) {
+    // 3. Enforce Account Credits: 1 Character = 1 Credit for Web Users
+    if (userEmail && !apiKey) {
       // If skipDeduct is active (multi-part batch chunk), verify that the account has not already exceeded limit
       const quota = checkCreditBalance(userEmail, skipDeduct ? 0 : charCount);
       if (!quota.allowed) {
@@ -69,9 +101,24 @@ export async function POST(req: NextRequest) {
       volume: formattedVolume,
     });
 
-    // Deduct credits on successful generation (1 char = 1 credit) unless skipped for client batch orchestrator
-    if (userEmail && !skipDeduct) {
+    // Deduct from API Key quota or user account credits
+    if (apiKey) {
+      const { deductApiKeyChars } = await import('@/lib/api-key-store');
+      deductApiKeyChars(apiKey, charCount);
+    } else if (userEmail && !skipDeduct) {
       deductCredits(userEmail, charCount);
+    }
+
+    const wantsJson = req.headers.get('accept')?.includes('application/json') || body.responseType === 'json';
+    if (wantsJson) {
+      const base64Audio = Buffer.from(buffer).toString('base64');
+      return NextResponse.json({
+        success: true,
+        characters: charCount,
+        voice: voice || 'en-US-JennyNeural',
+        contentType,
+        audioBase64: `data:${contentType};base64,${base64Audio}`,
+      });
     }
 
     return new Response(new Uint8Array(buffer), {

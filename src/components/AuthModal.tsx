@@ -190,7 +190,7 @@ export function AuthModal({
         }),
       }).catch(() => {});
 
-      setSuccessMsg(`Account verified successfully! Welcome to TTS bY Waqas Gill.`);
+      setSuccessMsg(`Account verified successfully! Welcome to TTSNexs.`);
       setTimeout(() => {
         onSuccessLogin(verifiedUser);
         onClose();
@@ -423,7 +423,7 @@ export function AuthModal({
           </div>
 
           <h2 className="text-xl font-bold text-slate-900">
-            {mode === 'signin' && 'Sign In to TTS bY Waqas Gill'}
+            {mode === 'signin' && 'Sign In to TTSNexs'}
             {mode === 'signup' && 'Create Your Account'}
             {mode === 'signup-otp' && 'Verify Your Gmail'}
             {mode === 'forgot-password' && 'Reset Your Password'}
@@ -611,7 +611,7 @@ export function AuthModal({
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Waqas Gill"
+                  placeholder="e.g. John Doe"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-600 focus:bg-white transition-all"
                 />
               </div>
@@ -927,9 +927,18 @@ export function AuthModal({
           </form>
         )}
 
-        {/* Creator Footer with link to Waqas Gill Facebook */}
+        {/* Creator Footer with link to EmpireNexs and Founder */}
         <div className="mt-5 pt-3.5 border-t border-slate-100 text-center text-[11px] text-slate-400">
-          Powered by EmpireNexs • Crafted by{' '}
+          Powered by{' '}
+          <a
+            href="https://empirenexs.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-indigo-600 hover:underline font-bold"
+          >
+            EmpireNexs
+          </a>{' '}
+          • Founder:{' '}
           <a
             href="https://www.facebook.com/mwaqasgillcs/"
             target="_blank"

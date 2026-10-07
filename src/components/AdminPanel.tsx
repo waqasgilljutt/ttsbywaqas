@@ -31,6 +31,9 @@ import {
   Mail,
   UserPlus,
   Cloud,
+  Key,
+  Copy,
+  Terminal,
 } from 'lucide-react';
 import { StoredUser, OWNER_EMAIL } from '@/lib/user-types';
 
@@ -64,6 +67,16 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPlan, setNewUserPlan] = useState<'free' | '1m' | '3m' | '10m' | 'unlimited'>('free');
   const [isCreatingUser, setIsCreatingUser] = useState(false);
+
+  // Developer API Key State
+  const [apiKeys, setApiKeys] = useState<any[]>([]);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [newKeyOwnerName, setNewKeyOwnerName] = useState('');
+  const [newKeyOwnerEmail, setNewKeyOwnerEmail] = useState('');
+  const [newKeyQuotaMillion, setNewKeyQuotaMillion] = useState('5');
+  const [newKeyDurationDays, setNewKeyDurationDays] = useState('30');
+  const [isCreatingApiKey, setIsCreatingApiKey] = useState(false);
+  const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
 
   // Cloud Database state
   const [cloudInfo, setCloudInfo] = useState<{
@@ -162,6 +175,7 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
         }
         if (data.otps) setOtps(data.otps);
         if (data.cloudInfo) setCloudInfo(data.cloudInfo);
+        if (data.apiKeys) setApiKeys(data.apiKeys);
       } else {
         showNotice(data.error || 'Failed to fetch users from server.', 'error');
       }
@@ -601,6 +615,76 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
     }
   };
 
+  const handleCreateApiKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newKeyOwnerName.trim() || !newKeyOwnerEmail.trim()) {
+      showNotice('Owner Name and Email are required.', 'error');
+      return;
+    }
+    setIsCreatingApiKey(true);
+    try {
+      const activePin = (pin || sessionStorage.getItem('empirenexs_admin_pin') || '').trim();
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create-api-key',
+          pin: activePin,
+          ownerName: newKeyOwnerName,
+          ownerEmail: newKeyOwnerEmail,
+          quotaMillion: Number(newKeyQuotaMillion),
+          durationDays: Number(newKeyDurationDays),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotice(`API Key generated! Key: ${data.key?.key}`, 'success');
+        if (data.apiKeys) setApiKeys(data.apiKeys);
+        setIsApiKeyModalOpen(false);
+        setNewKeyOwnerName('');
+        setNewKeyOwnerEmail('');
+      } else {
+        showNotice(data.error || 'Failed to create API key', 'error');
+      }
+    } catch {
+      showNotice('Network error creating API key', 'error');
+    } finally {
+      setIsCreatingApiKey(false);
+    }
+  };
+
+  const handleRevokeApiKey = async (keyString: string) => {
+    if (!confirm('Are you sure you want to revoke this Developer API Key? The customer will lose API access immediately.')) return;
+    try {
+      const activePin = (pin || sessionStorage.getItem('empirenexs_admin_pin') || '').trim();
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'revoke-api-key',
+          pin: activePin,
+          keyString,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotice('API Key revoked successfully', 'success');
+        if (data.apiKeys) setApiKeys(data.apiKeys);
+      } else {
+        showNotice(data.error || 'Failed to revoke API key', 'error');
+      }
+    } catch {
+      showNotice('Network error revoking API key', 'error');
+    }
+  };
+
+  const copyApiKey = (keyText: string, keyId: string) => {
+    navigator.clipboard.writeText(keyText);
+    setCopiedKeyId(keyId);
+    showNotice('API Key copied to clipboard!', 'success');
+    setTimeout(() => setCopiedKeyId(null), 2000);
+  };
+
   const filteredUsers = users.filter((u) => {
     if (!u) return false;
     const name = (u.name || '').toLowerCase();
@@ -777,6 +861,16 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
 
           <button
             type="button"
+            onClick={() => setIsApiKeyModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 hover:scale-[1.02] active:scale-95 transition-all"
+            title="Provision a custom Developer API Key"
+          >
+            <Key className="w-4 h-4" />
+            <span>+ Issue API Key</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handleExportCSV}
             className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 hover:scale-[1.02] active:scale-95 transition-all"
             title="Download user list as CSV for Excel"
@@ -922,6 +1016,99 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
                 </div>
                 <div className="px-3 py-1 rounded-xl bg-brand-500/20 border border-brand-400/40 text-brand-300 font-mono text-base font-extrabold tracking-widest shrink-0">
                   {item.code}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Developer API Keys Management Card */}
+      {apiKeys.length > 0 && (
+        <div className="bg-slate-950 text-white rounded-3xl border border-slate-800 p-6 shadow-md flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                <Key className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white">Active Developer API Keys</h4>
+                <p className="text-xs text-slate-400">Custom character quota API keys issued to third-party clients and apps.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsApiKeyModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 self-start sm:self-auto shadow-xs"
+            >
+              <Key className="w-3.5 h-3.5" />
+              <span>+ Issue Custom API Key</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+            {apiKeys.map((k: any) => (
+              <div
+                key={k.id || k.key}
+                className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between gap-3"
+              >
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-slate-200 truncate">{k.ownerName}</span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        k.status === 'active'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                      }`}
+                    >
+                      {k.status}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-400 truncate">{k.ownerEmail}</span>
+
+                  <div className="mt-1 flex items-center justify-between text-xs bg-slate-950 p-2 rounded-xl border border-slate-800/80">
+                    <span className="text-slate-400 font-medium">Quota:</span>
+                    <span className="font-bold text-amber-400">
+                      {k.characterLimit === -1 ? 'Unlimited' : `${(k.characterLimit / 1000000).toLocaleString()}M chars`}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+                    <span>Used: {Number(k.charactersUsed || 0).toLocaleString()}</span>
+                    <span>
+                      Expires:{' '}
+                      {k.expiresAt
+                        ? new Date(k.expiresAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+                        : 'Never'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
+                  <button
+                    type="button"
+                    onClick={() => copyApiKey(k.key, k.id || k.key)}
+                    className="flex-1 py-1.5 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    {copiedKeyId === (k.id || k.key) ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                    <span>{copiedKeyId === (k.id || k.key) ? 'Copied' : 'Copy Key'}</span>
+                  </button>
+
+                  {k.status === 'active' && (
+                    <button
+                      type="button"
+                      onClick={() => handleRevokeApiKey(k.key)}
+                      className="py-1.5 px-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold border border-rose-500/30 transition-colors"
+                      title="Revoke access"
+                    >
+                      Revoke
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -1571,6 +1758,108 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
                   className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-brand-500/20 disabled:opacity-50 transition-all flex items-center gap-1.5"
                 >
                   {isCreatingUser ? <span>Creating User...</span> : <span>Create Account</span>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Issue Custom Developer API Key */}
+      {isApiKeyModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => setIsApiKeyModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 relative overflow-hidden flex flex-col gap-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <Key className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Issue Developer API Key</h3>
+                  <p className="text-[11px] text-slate-500">Provision dedicated REST API quota for clients &amp; apps</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsApiKeyModalOpen(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateApiKey} className="flex flex-col gap-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Client / Company Name</label>
+                <input
+                  type="text"
+                  required
+                  value={newKeyOwnerName}
+                  onChange={(e) => setNewKeyOwnerName(e.target.value)}
+                  placeholder="e.g. Nexs Automation / John Doe"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-brand-600 focus:bg-white transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Client Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={newKeyOwnerEmail}
+                  onChange={(e) => setNewKeyOwnerEmail(e.target.value)}
+                  placeholder="client@gmail.com"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-brand-600 focus:bg-white transition-all"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Quota (Million Chars)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="1000"
+                    required
+                    value={newKeyQuotaMillion}
+                    onChange={(e) => setNewKeyQuotaMillion(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-brand-600 focus:bg-white transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Validity (Days)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="365"
+                    required
+                    value={newKeyDurationDays}
+                    onChange={(e) => setNewKeyDurationDays(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-brand-600 focus:bg-white transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 mt-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsApiKeyModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingApiKey || !newKeyOwnerName.trim() || !newKeyOwnerEmail.trim()}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 disabled:opacity-50 transition-all flex items-center gap-1.5"
+                >
+                  {isCreatingApiKey ? <span>Generating Key...</span> : <span>Generate API Key</span>}
                 </button>
               </div>
             </form>
