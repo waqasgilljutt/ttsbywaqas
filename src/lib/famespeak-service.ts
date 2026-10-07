@@ -167,6 +167,122 @@ export async function getFameSpeakAccountStatus() {
   };
 }
 
+export interface FameSpeakVoiceMetadata {
+  id: string;
+  name: string;
+  locale: string;
+  localeName: string;
+  gender: 'Male' | 'Female';
+  friendlyName: string;
+  tags?: string[];
+}
+
+export const PROTECTED_VOICE_IDS = new Set<string>([
+  '6ac5fea428b249e398582b70', // Ayesha / Priya Studio Female
+  '6ac52f7c2472d3c842125e20', // Waqas Gill / Asad Studio Male
+  '6ac5fadc28b249e398582b2d', // Alex Studio Pro
+  '6ac49e0c8119a1d03fa6c27d', // Ghaffar Deep Studio
+]);
+
+export const FAMESPEAK_STUDIO_VOICES: Record<string, FameSpeakVoiceMetadata> = {
+  // Urdu Studio Pro
+  'famespeak-ur-ayesha': {
+    id: '6ac5fea428b249e398582b70',
+    name: 'Ayesha Studio Neural',
+    locale: 'ur-PK',
+    localeName: 'Urdu (Pakistan)',
+    gender: 'Female',
+    friendlyName: '👑 Ayesha (FameSpeak Ultra Neural) - Urdu (Pakistan)',
+    tags: ['Ultra Studio', 'Expressive', 'Natural'],
+  },
+  'famespeak-ur-asad': {
+    id: '6ac52f7c2472d3c842125e20',
+    name: 'Asad Studio Neural',
+    locale: 'ur-PK',
+    localeName: 'Urdu (Pakistan)',
+    gender: 'Male',
+    friendlyName: '👑 Asad (FameSpeak Ultra Neural) - Urdu (Pakistan)',
+    tags: ['Ultra Studio', 'Confident', 'News'],
+  },
+  'famespeak-ur-waqas': {
+    id: '6ac52f7c2472d3c842125e20',
+    name: 'Waqas Gill Multilingual',
+    locale: 'ur-PK',
+    localeName: 'Urdu (Pakistan)',
+    gender: 'Male',
+    friendlyName: '👑 Waqas Gill (FameSpeak Multilingual) - Urdu (Pakistan)',
+    tags: ['Celebrity', 'Warm', 'Studio HD'],
+  },
+  'famespeak-ur-ghaffar': {
+    id: '6ac49e0c8119a1d03fa6c27d',
+    name: 'Ghaffar Studio Pro',
+    locale: 'ur-PK',
+    localeName: 'Urdu (Pakistan)',
+    gender: 'Male',
+    friendlyName: '👑 Ghaffar (FameSpeak Deep Studio) - Urdu (Pakistan)',
+    tags: ['Deep Voice', 'Storytelling', 'Radio'],
+  },
+
+  // Hindi Studio Pro
+  'famespeak-hi-priya': {
+    id: '6ac5fea428b249e398582b70',
+    name: 'Priya Studio Neural',
+    locale: 'hi-IN',
+    localeName: 'Hindi (India)',
+    gender: 'Female',
+    friendlyName: '👑 Priya (FameSpeak Ultra Neural) - Hindi (India)',
+    tags: ['Ultra Studio', 'Warm', 'Natural'],
+  },
+  'famespeak-hi-kabir': {
+    id: '6ac52f7c2472d3c842125e20',
+    name: 'Kabir Studio Neural',
+    locale: 'hi-IN',
+    localeName: 'Hindi (India)',
+    gender: 'Male',
+    friendlyName: '👑 Kabir (FameSpeak Ultra Neural) - Hindi (India)',
+    tags: ['Ultra Studio', 'Confident', 'Podcast'],
+  },
+  'famespeak-hi-waqas': {
+    id: '6ac52f7c2472d3c842125e20',
+    name: 'Waqas Gill Hindi Studio',
+    locale: 'hi-IN',
+    localeName: 'Hindi (India)',
+    gender: 'Male',
+    friendlyName: '👑 Waqas Gill (FameSpeak Multilingual) - Hindi (India)',
+    tags: ['Multilingual', 'Warm', 'Studio HD'],
+  },
+
+  // English Studio Pro
+  'famespeak-en-alex': {
+    id: '6ac5fadc28b249e398582b2d',
+    name: 'Alex Studio Pro',
+    locale: 'en-US',
+    localeName: 'English (United States)',
+    gender: 'Male',
+    friendlyName: '👑 Alex (FameSpeak Ultra Neural) - English (US)',
+    tags: ['Ultra Studio', 'Commercial', 'Professional'],
+  },
+  'famespeak-en-sophia': {
+    id: '6ac5fea428b249e398582b70',
+    name: 'Sophia Studio Pro',
+    locale: 'en-US',
+    localeName: 'English (United States)',
+    gender: 'Female',
+    friendlyName: '👑 Sophia (FameSpeak Ultra Neural) - English (US)',
+    tags: ['Ultra Studio', 'Warm', 'Storytelling'],
+  },
+};
+
+export function isFameSpeakVoice(voiceKey: string): boolean {
+  if (!voiceKey) return false;
+  return voiceKey.startsWith('famespeak-') || Boolean(FAMESPEAK_STUDIO_VOICES[voiceKey]);
+}
+
+export function getFameSpeakNeuralVoiceId(voiceKey: string): string | null {
+  const item = FAMESPEAK_STUDIO_VOICES[voiceKey];
+  return item ? item.id : null;
+}
+
 /**
  * Register or reuse a cloned voice in FameSpeak
  */
@@ -186,14 +302,32 @@ export async function registerFameSpeakVoice(
     return cached.voiceId;
   }
 
-  // Keep FameSpeak account clean: prune oldest voice if >= 10 voices
+  // Check if a voice with similar clean name already exists on FameSpeak to avoid re-uploading
   try {
     const existing = await listFameSpeakSavedVoices();
-    if (existing.length >= 10) {
+    const cleanTarget = voiceName.trim().toLowerCase();
+    const matched = existing.find((v) => {
+      if (!v.name) return false;
+      const vName = v.name.trim().toLowerCase();
+      return (
+        vName === cleanTarget ||
+        vName.startsWith(cleanTarget) ||
+        cleanTarget.startsWith(vName)
+      );
+    });
+
+    if (matched) {
+      console.log(`[FameSpeak] Found existing registered voice for "${voiceName}" -> Reusing ID: ${matched.id}`);
+      registeredVoiceCache.set(audioHash, { voiceId: matched.id, voiceName, createdAt: Date.now() });
+      return matched.id;
+    }
+
+    // Keep FameSpeak account clean: prune oldest non-protected voice if >= 12 voices
+    if (existing.length >= 12) {
       await pruneOldestSavedVoice();
     }
   } catch (err) {
-    console.warn('[FameSpeak] Voice cleanup warning:', err);
+    console.warn('[FameSpeak] Voice pre-check warning:', err);
   }
 
   const prepared = prepareAudioForFameSpeak(rawAudioBuffer, mimeType);
@@ -212,7 +346,7 @@ export async function registerFameSpeakVoice(
 
   const data = await res.json();
   if (!res.ok || !data.id) {
-    // If voice limit reached (409), delete the oldest voice to make space
+    // If voice limit reached (409), delete oldest non-protected voice to make space
     if (res.status === 409 || data.code === 'voice_limit_reached') {
       console.warn('[FameSpeak] Voice limit reached, pruning oldest saved voice...');
       await pruneOldestSavedVoice();
@@ -244,9 +378,11 @@ async function pruneOldestSavedVoice(): Promise<void> {
     });
     const data = await res.json();
     const voices = data.voices || [];
-    if (voices.length > 0) {
-      // Pick last (oldest) voice in list and delete it
-      const toDelete = voices[voices.length - 1];
+    // Filter out protected studio voices
+    const candidates = voices.filter((v: { id: string }) => !PROTECTED_VOICE_IDS.has(v.id));
+    if (candidates.length > 0) {
+      // Pick oldest non-protected voice in list and delete it
+      const toDelete = candidates[candidates.length - 1];
       await fetch(`${FAMESPEAK_API_BASE}/voice-clone/voices/${toDelete.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${key}` },

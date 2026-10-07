@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { synthesizeSpeech } from '@/lib/edge-tts-service';
 import { checkCreditBalance, deductCredits, MAX_PER_VOICE_CHARACTERS } from '@/lib/user-store';
+import {
+  isFameSpeakConfigured,
+  isFameSpeakVoice,
+  getFameSpeakNeuralVoiceId,
+  generateSpeechFromVoiceId,
+} from '@/lib/famespeak-service';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -81,25 +87,38 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Format prosody values to match SSML expectations
-    const formattedRate = typeof rate === 'string' && (rate.startsWith('+') || rate.startsWith('-'))
-      ? rate
-      : (typeof rate === 'number' ? `${rate >= 0 ? '+' : ''}${Math.round(rate)}%` : '+0%');
+    let buffer: Buffer;
+    let contentType = 'audio/mpeg';
 
-    const formattedPitch = typeof pitch === 'string' && (pitch.startsWith('+') || pitch.startsWith('-'))
-      ? pitch
-      : (typeof pitch === 'number' ? `${pitch >= 0 ? '+' : ''}${Math.round(pitch)}Hz` : '+0Hz');
+    if (isFameSpeakVoice(voice) && isFameSpeakConfigured()) {
+      const fameVoiceId = getFameSpeakNeuralVoiceId(voice) || '6ac5fadc28b249e398582b2d';
+      console.log(`[TTS Engine] Synthesizing "${trimmedText.slice(0, 30)}..." via FameSpeak Ultra Neural Voice ID: ${fameVoiceId}`);
+      const fameResult = await generateSpeechFromVoiceId(fameVoiceId, trimmedText);
+      buffer = fameResult.buffer;
+      contentType = fameResult.contentType || 'audio/mpeg';
+    } else {
+      // Format prosody values to match SSML expectations
+      const formattedRate = typeof rate === 'string' && (rate.startsWith('+') || rate.startsWith('-'))
+        ? rate
+        : (typeof rate === 'number' ? `${rate >= 0 ? '+' : ''}${Math.round(rate)}%` : '+0%');
 
-    const formattedVolume = typeof volume === 'string' && (volume.startsWith('+') || volume.startsWith('-'))
-      ? volume
-      : (typeof volume === 'number' ? `${volume >= 0 ? '+' : ''}${Math.round(volume)}%` : '+0%');
+      const formattedPitch = typeof pitch === 'string' && (pitch.startsWith('+') || pitch.startsWith('-'))
+        ? pitch
+        : (typeof pitch === 'number' ? `${pitch >= 0 ? '+' : ''}${Math.round(pitch)}Hz` : '+0Hz');
 
-    const { buffer, contentType } = await synthesizeSpeech(trimmedText, {
-      voice: voice || 'en-US-JennyNeural',
-      rate: formattedRate,
-      pitch: formattedPitch,
-      volume: formattedVolume,
-    });
+      const formattedVolume = typeof volume === 'string' && (volume.startsWith('+') || volume.startsWith('-'))
+        ? volume
+        : (typeof volume === 'number' ? `${volume >= 0 ? '+' : ''}${Math.round(volume)}%` : '+0%');
+
+      const result = await synthesizeSpeech(trimmedText, {
+        voice: voice || 'en-US-JennyNeural',
+        rate: formattedRate,
+        pitch: formattedPitch,
+        volume: formattedVolume,
+      });
+      buffer = result.buffer;
+      contentType = result.contentType;
+    }
 
     // Deduct from API Key quota or user account credits
     if (apiKey) {

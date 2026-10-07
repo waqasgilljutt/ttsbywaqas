@@ -299,9 +299,15 @@ export default function Home() {
     setPreviewingVoiceShortName(voice.ShortName);
 
     try {
-      const sampleText = `Hello, this is ${
-        voice.FriendlyName.replace('Microsoft ', '').split(' ')[0]
-      } speaking natural speech.`;
+      const isUrdu = voice.Locale.startsWith('ur') || voice.ShortName.includes('-ur-');
+      const isHindi = voice.Locale.startsWith('hi') || voice.ShortName.includes('-hi-');
+      const sampleText = isUrdu
+        ? 'السلام علیکم! یہ ٹی ٹی ایس اسٹوڈیو کی ہائی ڈیفینیشن نیورل آواز ہے۔'
+        : isHindi
+        ? 'नमस्ते! यह टीटीएस स्टूडियो की हाई डेफिनेशन न्यूरल आवाज़ है।'
+        : `Hello, this is ${
+            voice.FriendlyName.replace('Microsoft ', '').replace('👑 ', '').split(' ')[0]
+          } speaking natural speech.`;
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

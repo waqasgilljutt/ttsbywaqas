@@ -42,12 +42,13 @@ export function VoiceSelector({
 
   const popularLocales = [
     { code: 'all', label: 'All Languages' },
+    { code: 'famespeak', label: '👑 FameSpeak Ultra HD' },
+    { code: 'ur-PK', label: 'Urdu (PK)' },
+    { code: 'hi-IN', label: 'Hindi' },
     { code: 'en-US', label: 'English (US)' },
     { code: 'en-GB', label: 'English (UK)' },
-    { code: 'ur-PK', label: 'Urdu (PK)' },
-    { code: 'es-ES', label: 'Spanish' },
     { code: 'ar-SA', label: 'Arabic' },
-    { code: 'hi-IN', label: 'Hindi' },
+    { code: 'es-ES', label: 'Spanish' },
     { code: 'fr-FR', label: 'French' },
     { code: 'de-DE', label: 'German' },
   ];
@@ -55,7 +56,11 @@ export function VoiceSelector({
   const filteredVoices = useMemo(() => {
     return voices.filter((v) => {
       if (onlyFavorites && !favorites.includes(v.ShortName)) return false;
-      if (selectedLocale !== 'all' && v.Locale.toLowerCase() !== selectedLocale.toLowerCase()) return false;
+      if (selectedLocale === 'famespeak') {
+        if (!v.ShortName.startsWith('famespeak-')) return false;
+      } else if (selectedLocale !== 'all' && v.Locale.toLowerCase() !== selectedLocale.toLowerCase()) {
+        return false;
+      }
       if (selectedGender !== 'all' && v.Gender !== selectedGender) return false;
       if (search.trim()) {
         const query = search.toLowerCase();
@@ -90,62 +95,84 @@ export function VoiceSelector({
       </div>
 
       {/* Selected Voice Card */}
-      {selectedVoice && (
-        <div
-          onClick={() => setIsOpen(!isOpen)}
-          className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 shadow-lg hover:border-orange-500/50 transition-all cursor-pointer flex items-center justify-between group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-300 font-extrabold text-sm shadow-xs shadow-orange-500/20">
-              {selectedVoice.Locale.slice(0, 2).toUpperCase()}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-white text-sm group-hover:text-orange-400 transition-colors">
-                  {selectedVoice.FriendlyName.replace('Microsoft ', '').replace(' Online (Natural)', '')}
-                </span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
-                    selectedVoice.Gender === 'Female'
-                      ? 'bg-pink-500/20 text-pink-300 border border-pink-500/30'
-                      : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                  }`}
-                >
-                  {selectedVoice.Gender}
-                </span>
+      {selectedVoice && (() => {
+        const isFameSpeak = selectedVoice.ShortName.startsWith('famespeak-');
+        return (
+          <div
+            onClick={() => setIsOpen(!isOpen)}
+            className={`p-4 rounded-2xl border shadow-lg transition-all cursor-pointer flex items-center justify-between group ${
+              isFameSpeak
+                ? 'bg-amber-500/[0.08] border-amber-500/40 hover:border-amber-400 shadow-amber-500/10'
+                : 'bg-white/[0.03] border-white/10 hover:border-orange-500/50'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl border flex items-center justify-center font-extrabold text-sm shadow-xs ${
+                  isFameSpeak
+                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-amber-500/20'
+                    : 'bg-orange-500/15 border-orange-500/30 text-orange-300 shadow-orange-500/20'
+                }`}
+              >
+                {isFameSpeak ? '👑' : selectedVoice.Locale.slice(0, 2).toUpperCase()}
               </div>
-              <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5 font-medium">
-                <Globe className="w-3 h-3 text-slate-500" />
-                {selectedVoice.LocaleName || selectedVoice.Locale}
-                {selectedVoice.VoiceTag?.VoicePersonalities?.[0] && (
-                  <>
-                    <span>•</span>
-                    <span className="text-slate-300">{selectedVoice.VoiceTag.VoicePersonalities[0]}</span>
-                  </>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`font-bold text-sm transition-colors ${
+                      isFameSpeak ? 'text-amber-200 group-hover:text-amber-300' : 'text-white group-hover:text-orange-400'
+                    }`}
+                  >
+                    {selectedVoice.FriendlyName.replace('Microsoft ', '').replace(' Online (Natural)', '')}
+                  </span>
+                  {isFameSpeak && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-xs">
+                      ⚡ FameSpeak HD
+                    </span>
+                  )}
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
+                      selectedVoice.Gender === 'Female'
+                        ? 'bg-pink-500/20 text-pink-300 border border-pink-500/30'
+                        : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                    }`}
+                  >
+                    {selectedVoice.Gender}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5 font-medium">
+                  <Globe className="w-3 h-3 text-slate-500" />
+                  {selectedVoice.LocaleName || selectedVoice.Locale}
+                  {selectedVoice.VoiceTag?.VoicePersonalities?.[0] && (
+                    <>
+                      <span>•</span>
+                      <span className="text-slate-300">{selectedVoice.VoiceTag.VoicePersonalities[0]}</span>
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                title="Preview Voice"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPreviewVoice(selectedVoice);
+                }}
+                className="p-2.5 rounded-xl bg-white/[0.06] hover:bg-orange-500 text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
+                {previewingVoiceShortName === selectedVoice.ShortName ? (
+                  <Pause className="w-4 h-4 text-white animate-pulse" />
+                ) : (
+                  <Play className="w-4 h-4 ml-0.5" />
                 )}
-              </p>
+              </button>
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              title="Preview Voice"
-              onClick={(e) => {
-                e.stopPropagation();
-                onPreviewVoice(selectedVoice);
-              }}
-              className="p-2.5 rounded-xl bg-white/[0.06] hover:bg-orange-500 text-slate-300 hover:text-white transition-colors cursor-pointer"
-            >
-              {previewingVoiceShortName === selectedVoice.ShortName ? (
-                <Pause className="w-4 h-4 text-white animate-pulse" />
-              ) : (
-                <Play className="w-4 h-4 ml-0.5" />
-              )}
-            </button>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Expanded Voice Explorer Modal / Dropdown */}
       {isOpen && (
@@ -243,6 +270,7 @@ export function VoiceSelector({
                 const isSelected = selectedVoice?.ShortName === voice.ShortName;
                 const isFav = favorites.includes(voice.ShortName);
                 const isPlaying = previewingVoiceShortName === voice.ShortName;
+                const isFameSpeak = voice.ShortName.startsWith('famespeak-');
 
                 return (
                   <div
@@ -250,7 +278,11 @@ export function VoiceSelector({
                     onClick={() => onSelectVoice(voice)}
                     className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group ${
                       isSelected
-                        ? 'bg-orange-500/15 border-orange-500 text-white shadow-md shadow-orange-500/15'
+                        ? isFameSpeak
+                          ? 'bg-amber-500/20 border-amber-400 text-white shadow-md shadow-amber-500/25 ring-1 ring-amber-400/40'
+                          : 'bg-orange-500/15 border-orange-500 text-white shadow-md shadow-orange-500/15'
+                        : isFameSpeak
+                        ? 'bg-amber-500/[0.04] border-amber-500/30 hover:border-amber-400/60 hover:bg-amber-500/[0.08]'
                         : 'bg-white/[0.02] border-white/[0.06] hover:border-white/15 hover:bg-white/[0.05]'
                     }`}
                   >
@@ -258,17 +290,26 @@ export function VoiceSelector({
                       <div
                         className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-extrabold shrink-0 ${
                           isSelected
-                            ? 'bg-gradient-to-tr from-orange-500 to-amber-500 text-white'
+                            ? isFameSpeak
+                              ? 'bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 font-black'
+                              : 'bg-gradient-to-tr from-orange-500 to-amber-500 text-white'
+                            : isFameSpeak
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                             : 'bg-white/[0.06] text-slate-400 border border-white/10'
                         }`}
                       >
-                        {voice.Locale.slice(0, 2).toUpperCase()}
+                        {isFameSpeak ? '👑' : voice.Locale.slice(0, 2).toUpperCase()}
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 truncate">
-                          <span className={`font-bold text-xs truncate ${isSelected ? 'text-orange-300' : 'text-slate-200 group-hover:text-white'}`}>
+                          <span className={`font-bold text-xs truncate ${isSelected ? (isFameSpeak ? 'text-amber-300' : 'text-orange-300') : 'text-slate-200 group-hover:text-white'}`}>
                             {voice.FriendlyName.replace('Microsoft ', '').replace(' Online (Natural)', '')}
                           </span>
+                          {isFameSpeak && (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded font-extrabold bg-amber-500/25 text-amber-300 border border-amber-500/40 shrink-0">
+                              ⚡ FameSpeak HD
+                            </span>
+                          )}
                           <span
                             className={`text-[9px] px-1 py-0.2 rounded shrink-0 font-medium ${
                               voice.Gender === 'Female'

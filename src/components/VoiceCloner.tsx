@@ -34,6 +34,7 @@ export interface SavedClone {
   audioUrl: string;
   gender?: 'Male' | 'Female';
   locale?: string;
+  neuralVoiceId?: string;
 }
 
 export interface VoiceClonerProps {
@@ -230,6 +231,9 @@ export function VoiceCloner({
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedAudioUrl, setUploadedAudioUrl] = useState<string | null>(null);
 
+  // Cached active neural voice ID for instant generation (~3-4s)
+  const [activeNeuralVoiceId, setActiveNeuralVoiceId] = useState<string | null>(null);
+
   // Voice parameters (Default: English, Male, auto-detect enabled)
   const [voiceName, setVoiceName] = useState('TTSNexs Neural Clone');
   const [gender, setGender] = useState<'Male' | 'Female'>('Male');
@@ -295,6 +299,9 @@ export function VoiceCloner({
       setVoiceName(initialClone.name);
       if (initialClone.gender) setGender(initialClone.gender);
       if (initialClone.locale) setLocale(initialClone.locale);
+      if (initialClone.neuralVoiceId) {
+        setActiveNeuralVoiceId(initialClone.neuralVoiceId);
+      }
 
       if (initialClone.audioUrl && initialClone.audioUrl.startsWith('data:')) {
         const b = base64ToBlob(initialClone.audioUrl);
@@ -336,6 +343,8 @@ export function VoiceCloner({
     }
     try {
       setErrorMsg(null);
+      setActiveNeuralVoiceId(null);
+      setSelectedCloneId(null);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -402,6 +411,8 @@ export function VoiceCloner({
       return;
     }
     setErrorMsg(null);
+    setActiveNeuralVoiceId(null);
+    setSelectedCloneId(null);
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 20 * 1024 * 1024) {
@@ -475,6 +486,7 @@ export function VoiceCloner({
       audioUrl: persistentUrl,
       gender,
       locale,
+      neuralVoiceId: activeNeuralVoiceId || undefined,
     };
 
     const updated = [newClone, ...savedClones.filter((c) => c.id !== newClone.id)];
@@ -505,6 +517,11 @@ export function VoiceCloner({
     setVoiceName(clone.name);
     if (clone.gender) setGender(clone.gender);
     if (clone.locale) setLocale(clone.locale);
+    if (clone.neuralVoiceId) {
+      setActiveNeuralVoiceId(clone.neuralVoiceId);
+    } else {
+      setActiveNeuralVoiceId(null);
+    }
 
     if (clone.audioUrl && clone.audioUrl.startsWith('data:')) {
       const b = base64ToBlob(clone.audioUrl);
@@ -571,12 +588,18 @@ export function VoiceCloner({
     setCloneStatusText('Connecting to Neural Voice Engine...');
     setErrorMsg(null);
 
-    const steps = [
-      { progress: 30, text: 'Extracting speaker pitch, vocal tract resonance & timbre embeddings...' },
-      { progress: 60, text: 'Neural AI engine synthesizing your authentic voice...' },
-      { progress: 85, text: 'Finalizing neural voice synthesis...' },
-      { progress: 95, text: 'Mastering high-definition audio stream...' },
-    ];
+    const steps = activeNeuralVoiceId
+      ? [
+          { progress: 40, text: '⚡ Ultra-Fast: Accessing cached neural voice profile...' },
+          { progress: 75, text: 'Synthesizing authentic voice speech...' },
+          { progress: 95, text: 'Mastering high-definition audio stream...' },
+        ]
+      : [
+          { progress: 30, text: 'Extracting speaker pitch, vocal tract resonance & timbre embeddings...' },
+          { progress: 60, text: 'Neural AI engine synthesizing your authentic voice...' },
+          { progress: 85, text: 'Finalizing neural voice synthesis...' },
+          { progress: 95, text: 'Mastering high-definition audio stream...' },
+        ];
     let stepIndex = 0;
 
     progressTimerRef.current = setInterval(() => {
@@ -585,13 +608,15 @@ export function VoiceCloner({
         setCloneStatusText(steps[stepIndex].text);
         stepIndex++;
       }
-    }, 1600);
+    }, activeNeuralVoiceId ? 800 : 1600);
 
     try {
-      const finalWavBlob = audioBlobToUse ? await transcodeAudioToStandardWav(audioBlobToUse) : null;
+      const finalWavBlob = (!activeNeuralVoiceId && audioBlobToUse) ? await transcodeAudioToStandardWav(audioBlobToUse) : null;
       
       const formData = new FormData();
-      if (finalWavBlob) {
+      if (activeNeuralVoiceId) {
+        formData.append('neuralVoiceId', activeNeuralVoiceId);
+      } else if (finalWavBlob) {
         formData.append('audio', finalWavBlob, 'voice-sample.wav');
       }
       formData.append('text', scriptText.trim());
@@ -627,6 +652,21 @@ export function VoiceCloner({
       if (response.status === 202) {
         const jobData = await response.json();
         const jobId = jobData.jobId;
+        const returnedVoiceId = jobData.voiceId;
+        if (returnedVoiceId) {
+          setActiveNeuralVoiceId(returnedVoiceId);
+          if (selectedCloneId) {
+            setSavedClones((prev) => {
+              const updated = prev.map((c) =>
+                c.id === selectedCloneId ? { ...c, neuralVoiceId: returnedVoiceId } : c
+              );
+              try {
+                localStorage.setItem('empirenexs_saved_clones', JSON.stringify(updated));
+              } catch {}
+              return updated;
+            });
+          }
+        }
         const totalChars = scriptText.trim().length;
 
         if (progressTimerRef.current) clearInterval(progressTimerRef.current);
@@ -637,7 +677,7 @@ export function VoiceCloner({
         let lastReportedProgress = 25;
 
         while (Date.now() - pollStartTime < maxPollMs) {
-          await new Promise((r) => setTimeout(r, 1500));
+          await new Promise((r) => setTimeout(r, 1000));
           const pollRes = await fetch(`/api/clone?jobId=${jobId}`);
           if (!pollRes.ok) continue;
           const pollData = await pollRes.json();
@@ -654,7 +694,7 @@ export function VoiceCloner({
             );
           } else {
             const elapsedSec = (Date.now() - pollStartTime) / 1000;
-            const smoothPercent = Math.min(92, Math.round(25 + elapsedSec * 1.5));
+            const smoothPercent = Math.min(92, Math.round(25 + elapsedSec * 2.5));
             if (smoothPercent > lastReportedProgress) {
               lastReportedProgress = smoothPercent;
             }
@@ -680,6 +720,10 @@ export function VoiceCloner({
           throw new Error('Voice generation timed out on neural engine. Please try again.');
         }
       } else {
+        const returnedVoiceId = response.headers.get('x-neural-voice-id');
+        if (returnedVoiceId) {
+          setActiveNeuralVoiceId(returnedVoiceId);
+        }
         audioBlob = await response.blob();
       }
 
@@ -1264,10 +1308,18 @@ export function VoiceCloner({
               </div>
             )}
 
+            {/* Fast-Path Badge */}
+            {activeNeuralVoiceId && !isCloning && (
+              <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold animate-in fade-in">
+                <Zap className="w-4 h-4 text-amber-400 animate-pulse shrink-0" />
+                <span>Voice Profile Cached: Fast-Path Neural Generation (~3s) Active</span>
+              </div>
+            )}
+
             {/* Action Button */}
             <button
               type="button"
-              disabled={isCloning || (!recordedAudioBlob && !uploadedFile && !recordedAudioUrl)}
+              disabled={isCloning || (!recordedAudioBlob && !uploadedFile && !recordedAudioUrl && !activeNeuralVoiceId)}
               onClick={handleCloneAndSpeak}
               className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-sm shadow-xl shadow-orange-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
             >
@@ -1275,6 +1327,11 @@ export function VoiceCloner({
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
                   <span>Synthesizing Cloned Voice ({cloneProgress}%)...</span>
+                </>
+              ) : activeNeuralVoiceId ? (
+                <>
+                  <Zap className="w-5 h-5 text-amber-300 fill-amber-300" />
+                  <span>Generate Cloned Speech (Instant ~3s)</span>
                 </>
               ) : (
                 <>

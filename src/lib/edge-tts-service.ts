@@ -29,6 +29,23 @@ let cachedVoices: Voice[] | null = null;
 let lastVoiceFetchTime = 0;
 const CACHE_TTL_MS = 1000 * 60 * 60 * 6; // 6 hours
 
+import { FAMESPEAK_STUDIO_VOICES } from './famespeak-service';
+
+export const FAMESPEAK_VOICE_LIST: Voice[] = Object.entries(FAMESPEAK_STUDIO_VOICES).map(
+  ([key, meta]) => ({
+    Name: key,
+    ShortName: key,
+    Gender: meta.gender,
+    Locale: meta.locale,
+    LocaleName: meta.localeName,
+    FriendlyName: meta.friendlyName,
+    VoiceTag: {
+      ContentCategories: ['Studio', 'Neural Pro'],
+      VoicePersonalities: meta.tags || ['Ultra Natural', 'Studio HD'],
+    },
+  })
+);
+
 export async function fetchVoices(): Promise<Voice[]> {
   const now = Date.now();
   if (cachedVoices && now - lastVoiceFetchTime < CACHE_TTL_MS) {
@@ -55,14 +72,15 @@ export async function fetchVoices(): Promise<Voice[]> {
     }
 
     const data: Voice[] = await res.json();
-    cachedVoices = data;
+    const mergedVoices = [...FAMESPEAK_VOICE_LIST, ...data];
+    cachedVoices = mergedVoices;
     lastVoiceFetchTime = now;
-    return data;
+    return mergedVoices;
   } catch (error) {
     console.warn('Direct Bing voice fetch failed, using fallback or cached:', error);
     if (cachedVoices) return cachedVoices;
     // Fallback to essential starter voices
-    return FALLBACK_VOICES;
+    return [...FAMESPEAK_VOICE_LIST, ...FALLBACK_VOICES];
   }
 }
 
