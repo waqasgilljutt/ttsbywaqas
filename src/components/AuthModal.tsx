@@ -83,7 +83,20 @@ export function AuthModal({
   const [resendCountdown, setResendCountdown] = useState(0);
 
   const googleBtnRef = useRef<HTMLDivElement | null>(null);
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+  const [googleClientId, setGoogleClientId] = useState(
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''
+  );
+
+  useEffect(() => {
+    if (!googleClientId) {
+      fetch('/api/auth/google-client-id')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.clientId) setGoogleClientId(data.clientId);
+        })
+        .catch(() => {});
+    }
+  }, [googleClientId]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
