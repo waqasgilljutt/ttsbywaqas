@@ -302,27 +302,9 @@ export async function registerFameSpeakVoice(
     return cached.voiceId;
   }
 
-  // Check if a voice with similar clean name already exists on FameSpeak to avoid re-uploading
+  // Keep FameSpeak account clean: prune oldest non-protected voice if >= 12 voices
   try {
     const existing = await listFameSpeakSavedVoices();
-    const cleanTarget = voiceName.trim().toLowerCase();
-    const matched = existing.find((v) => {
-      if (!v.name) return false;
-      const vName = v.name.trim().toLowerCase();
-      return (
-        vName === cleanTarget ||
-        vName.startsWith(cleanTarget) ||
-        cleanTarget.startsWith(vName)
-      );
-    });
-
-    if (matched) {
-      console.log(`[FameSpeak] Found existing registered voice for "${voiceName}" -> Reusing ID: ${matched.id}`);
-      registeredVoiceCache.set(audioHash, { voiceId: matched.id, voiceName, createdAt: Date.now() });
-      return matched.id;
-    }
-
-    // Keep FameSpeak account clean: prune oldest non-protected voice if >= 12 voices
     if (existing.length >= 12) {
       await pruneOldestSavedVoice();
     }

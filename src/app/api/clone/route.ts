@@ -145,8 +145,11 @@ export async function POST(req: NextRequest) {
 
     const isAsync = req.headers.get('x-async-clone') === 'true' || formData.get('async') === 'true';
 
+    // Prioritize fresh audio: if audio is provided, always clone the audio sample, don't reuse an old voiceId
+    const targetVoiceIdToReuse = hasAudio ? null : neuralVoiceId;
+
     // Fast-path: Async non-blocking generation for EmpireNexs Neural Pro
-    if (isAsync && isFameSpeakConfigured() && (hasAudio || neuralVoiceId)) {
+    if (isAsync && isFameSpeakConfigured() && (hasAudio || targetVoiceIdToReuse)) {
       try {
         let rawAudioBuffer: Buffer | null = null;
         let mimeType = 'audio/wav';
@@ -158,7 +161,7 @@ export async function POST(req: NextRequest) {
 
         const job = await startFameSpeakVoiceCloneJob(
           rawAudioBuffer,
-          neuralVoiceId,
+          targetVoiceIdToReuse,
           trimmedText,
           { voiceName, mimeType }
         );
@@ -182,14 +185,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // A) Direct synthesis with a saved neural voice ID
-    if (neuralVoiceId && isFameSpeakConfigured()) {
+    // A) Direct synthesis with a saved neural voice ID (only when no fresh audio sample was uploaded)
+    if (!hasAudio && targetVoiceIdToReuse && isFameSpeakConfigured()) {
       try {
-        console.log(`[EmpireNexs Voice Engine] Synthesizing "${trimmedText.slice(0, 40)}..." with Voice ID: ${neuralVoiceId}`);
-        const fameRes = await generateSpeechFromVoiceId(neuralVoiceId, trimmedText);
+        console.log(`[EmpireNexs Voice Engine] Synthesizing "${trimmedText.slice(0, 40)}..." with Voice ID: ${targetVoiceIdToReuse}`);
+        const fameRes = await generateSpeechFromVoiceId(targetVoiceIdToReuse, trimmedText);
         buffer = fameRes.buffer;
         contentType = fameRes.contentType;
         engineUsed = 'EmpireNexs-Neural-Profile';
+        activeVoiceId = targetVoiceIdToReuse;
       } catch (err: unknown) {
         console.error('[EmpireNexs Voice Engine] Error generating from Voice ID:', err);
         return NextResponse.json(

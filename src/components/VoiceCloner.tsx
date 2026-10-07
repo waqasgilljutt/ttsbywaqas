@@ -233,6 +233,7 @@ export function VoiceCloner({
 
   // Cached active neural voice ID for instant generation (~3-4s)
   const [activeNeuralVoiceId, setActiveNeuralVoiceId] = useState<string | null>(null);
+  const [clonedAudioFingerprint, setClonedAudioFingerprint] = useState<string | null>(null);
 
   // Voice parameters (Default: English, Male, auto-detect enabled)
   const [voiceName, setVoiceName] = useState('TTSNexs Neural Clone');
@@ -301,6 +302,10 @@ export function VoiceCloner({
       if (initialClone.locale) setLocale(initialClone.locale);
       if (initialClone.neuralVoiceId) {
         setActiveNeuralVoiceId(initialClone.neuralVoiceId);
+        setClonedAudioFingerprint(`clone-${initialClone.id}`);
+      } else {
+        setActiveNeuralVoiceId(null);
+        setClonedAudioFingerprint(null);
       }
 
       if (initialClone.audioUrl && initialClone.audioUrl.startsWith('data:')) {
@@ -317,9 +322,25 @@ export function VoiceCloner({
         setSelectedCloneId(null);
         setRecordedAudioBlob(null);
         setRecordedAudioUrl(null);
+        setActiveNeuralVoiceId(null);
+        setClonedAudioFingerprint(null);
       }
     }
   }, [initialClone]);
+
+  const currentAudioFingerprint = selectedCloneId
+    ? `clone-${selectedCloneId}`
+    : uploadedFile
+    ? `file-${uploadedFile.name}-${uploadedFile.size}`
+    : recordedAudioBlob
+    ? `rec-${recordedAudioBlob.size}`
+    : null;
+
+  const isFastPathActive = Boolean(
+    activeNeuralVoiceId &&
+    currentAudioFingerprint &&
+    clonedAudioFingerprint === currentAudioFingerprint
+  );
 
   const formatTime = (timeInSeconds: number) => {
     if (isNaN(timeInSeconds) || timeInSeconds < 0) return '00:00';
@@ -344,6 +365,7 @@ export function VoiceCloner({
     try {
       setErrorMsg(null);
       setActiveNeuralVoiceId(null);
+      setClonedAudioFingerprint(null);
       setSelectedCloneId(null);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
@@ -412,6 +434,7 @@ export function VoiceCloner({
     }
     setErrorMsg(null);
     setActiveNeuralVoiceId(null);
+    setClonedAudioFingerprint(null);
     setSelectedCloneId(null);
     const file = e.target.files?.[0];
     if (file) {
@@ -519,8 +542,10 @@ export function VoiceCloner({
     if (clone.locale) setLocale(clone.locale);
     if (clone.neuralVoiceId) {
       setActiveNeuralVoiceId(clone.neuralVoiceId);
+      setClonedAudioFingerprint(`clone-${clone.id}`);
     } else {
       setActiveNeuralVoiceId(null);
+      setClonedAudioFingerprint(null);
     }
 
     if (clone.audioUrl && clone.audioUrl.startsWith('data:')) {
@@ -588,7 +613,22 @@ export function VoiceCloner({
     setCloneStatusText('Connecting to Neural Voice Engine...');
     setErrorMsg(null);
 
-    const steps = activeNeuralVoiceId
+    // Compute current audio fingerprint to guarantee we only reuse voiceId for the exact same sample
+    const currentAudioFingerprint = selectedCloneId
+      ? `clone-${selectedCloneId}`
+      : uploadedFile
+      ? `file-${uploadedFile.name}-${uploadedFile.size}`
+      : recordedAudioBlob
+      ? `rec-${recordedAudioBlob.size}`
+      : null;
+
+    const isReusingCachedProfile = Boolean(
+      activeNeuralVoiceId &&
+      currentAudioFingerprint &&
+      clonedAudioFingerprint === currentAudioFingerprint
+    );
+
+    const steps = isReusingCachedProfile
       ? [
           { progress: 40, text: '⚡ Ultra-Fast: Accessing cached neural voice profile...' },
           { progress: 75, text: 'Synthesizing authentic voice speech...' },
@@ -608,13 +648,13 @@ export function VoiceCloner({
         setCloneStatusText(steps[stepIndex].text);
         stepIndex++;
       }
-    }, activeNeuralVoiceId ? 800 : 1600);
+    }, isReusingCachedProfile ? 800 : 1600);
 
     try {
-      const finalWavBlob = (!activeNeuralVoiceId && audioBlobToUse) ? await transcodeAudioToStandardWav(audioBlobToUse) : null;
+      const finalWavBlob = (!isReusingCachedProfile && audioBlobToUse) ? await transcodeAudioToStandardWav(audioBlobToUse) : null;
       
       const formData = new FormData();
-      if (activeNeuralVoiceId) {
+      if (isReusingCachedProfile && activeNeuralVoiceId) {
         formData.append('neuralVoiceId', activeNeuralVoiceId);
       } else if (finalWavBlob) {
         formData.append('audio', finalWavBlob, 'voice-sample.wav');
@@ -655,6 +695,7 @@ export function VoiceCloner({
         const returnedVoiceId = jobData.voiceId;
         if (returnedVoiceId) {
           setActiveNeuralVoiceId(returnedVoiceId);
+          setClonedAudioFingerprint(currentAudioFingerprint);
           if (selectedCloneId) {
             setSavedClones((prev) => {
               const updated = prev.map((c) =>
@@ -723,6 +764,7 @@ export function VoiceCloner({
         const returnedVoiceId = response.headers.get('x-neural-voice-id');
         if (returnedVoiceId) {
           setActiveNeuralVoiceId(returnedVoiceId);
+          setClonedAudioFingerprint(currentAudioFingerprint);
         }
         audioBlob = await response.blob();
       }
@@ -1002,6 +1044,8 @@ export function VoiceCloner({
                       onClick={() => {
                         setRecordedAudioBlob(null);
                         setRecordedAudioUrl(null);
+                        setActiveNeuralVoiceId(null);
+                        setClonedAudioFingerprint(null);
                       }}
                       title="Clear Recording"
                       className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors cursor-pointer"
@@ -1047,6 +1091,9 @@ export function VoiceCloner({
                       onClick={() => {
                         setUploadedFile(null);
                         setUploadedAudioUrl(null);
+                        setRecordedAudioBlob(null);
+                        setActiveNeuralVoiceId(null);
+                        setClonedAudioFingerprint(null);
                       }}
                       className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors cursor-pointer"
                     >
@@ -1098,6 +1145,8 @@ export function VoiceCloner({
                     setRecordedAudioUrl(null);
                     setUploadedFile(null);
                     setUploadedAudioUrl(null);
+                    setActiveNeuralVoiceId(null);
+                    setClonedAudioFingerprint(null);
                     if (onClearInitialClone) onClearInitialClone();
                   }}
                   className="text-orange-400 hover:text-orange-300 font-bold hover:underline shrink-0 cursor-pointer"
@@ -1309,7 +1358,7 @@ export function VoiceCloner({
             )}
 
             {/* Fast-Path Badge */}
-            {activeNeuralVoiceId && !isCloning && (
+            {isFastPathActive && !isCloning && (
               <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold animate-in fade-in">
                 <Zap className="w-4 h-4 text-amber-400 animate-pulse shrink-0" />
                 <span>Voice Profile Cached: Fast-Path Neural Generation (~3s) Active</span>
@@ -1319,7 +1368,7 @@ export function VoiceCloner({
             {/* Action Button */}
             <button
               type="button"
-              disabled={isCloning || (!recordedAudioBlob && !uploadedFile && !recordedAudioUrl && !activeNeuralVoiceId)}
+              disabled={isCloning || (!recordedAudioBlob && !uploadedFile && !recordedAudioUrl && !isFastPathActive)}
               onClick={handleCloneAndSpeak}
               className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-sm shadow-xl shadow-orange-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
             >
@@ -1328,7 +1377,7 @@ export function VoiceCloner({
                   <Loader2 className="w-5 h-5 animate-spin" />
                   <span>Synthesizing Cloned Voice ({cloneProgress}%)...</span>
                 </>
-              ) : activeNeuralVoiceId ? (
+              ) : isFastPathActive ? (
                 <>
                   <Zap className="w-5 h-5 text-amber-300 fill-amber-300" />
                   <span>Generate Cloned Speech (Instant ~3s)</span>
