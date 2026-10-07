@@ -2,80 +2,15 @@
 
 import React, { useState } from 'react';
 import {
-  Code2,
   Terminal,
   Zap,
-  ShieldCheck,
   CheckCircle2,
-  Copy,
-  Check,
   MessageCircle,
   Mail,
-  ExternalLink,
-  Cpu,
-  Layers,
-  Sparkles,
-  ArrowRight,
-  Send,
 } from 'lucide-react';
 
 export function ApiAccessPage() {
-  const [copiedCode, setCopiedCode] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState<'curl' | 'nodejs' | 'python'>('curl');
   const [customQuotaInput, setCustomQuotaInput] = useState('5');
-
-  const curlCode = `curl -X POST "https://ttsnexs.online/api/tts" \\
-  -H "x-api-key: nexs_live_your_api_key" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "text": "Hello world! This is studio grade neural speech powered by EmpireNexs.",
-    "voice": "en-US-JennyNeural",
-    "rate": "+0%",
-    "pitch": "+0Hz"
-  }' \\
-  --output speech.mp3`;
-
-  const nodeCode = `const response = await fetch("https://ttsnexs.online/api/tts", {
-  method: "POST",
-  headers: {
-    "x-api-key": "nexs_live_your_api_key",
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    text: "Hello world! This is studio grade neural speech.",
-    voice: "en-US-JennyNeural",
-    rate: "+0%",
-  }),
-});
-
-const audioBuffer = await response.arrayBuffer();
-// Save audioBuffer to speech.mp3`;
-
-  const pythonCode = `import requests
-
-url = "https://ttsnexs.online/api/tts"
-headers = {
-    "x-api-key": "nexs_live_your_api_key",
-    "Content-Type": "application/json"
-}
-payload = {
-    "text": "Hello world! This is studio grade neural speech.",
-    "voice": "en-US-JennyNeural",
-    "rate": "+0%"
-}
-
-response = requests.post(url, json=payload, headers=headers)
-with open("speech.mp3", "wb") as f:
-    f.write(response.content)`;
-
-  const currentCode =
-    selectedLanguage === 'curl' ? curlCode : selectedLanguage === 'nodejs' ? nodeCode : pythonCode;
-
-  const copySnippet = () => {
-    navigator.clipboard.writeText(currentCode);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2000);
-  };
 
   const tiers = [
     {
@@ -175,74 +110,7 @@ with open("speech.mp3", "wb") as f:
         </div>
       </div>
 
-      {/* Code Showcase & Interactive Documentation */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-slate-950 text-white border border-slate-800 shadow-xl flex flex-col gap-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-brand-400">
-              <Code2 className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-white">Simple, Powerful REST Endpoints</h3>
-              <p className="text-xs text-slate-400">Send text, receive studio-quality MP3 audio in milliseconds.</p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <div className="inline-flex rounded-xl bg-slate-900 border border-slate-800 p-1">
-              {(['curl', 'nodejs', 'python'] as const).map((lang) => (
-                <button
-                  key={lang}
-                  type="button"
-                  onClick={() => setSelectedLanguage(lang)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${
-                    selectedLanguage === lang
-                      ? 'bg-brand-600 text-white'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {lang}
-                </button>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              onClick={copySnippet}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-xs font-semibold"
-              title="Copy Code"
-            >
-              {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-              <span className="hidden sm:inline">{copiedCode ? 'Copied!' : 'Copy'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Code Snippet Box */}
-        <pre className="p-4 sm:p-6 rounded-2xl bg-slate-900/90 border border-slate-800/80 text-xs sm:text-sm font-mono text-slate-300 overflow-x-auto leading-relaxed">
-          <code>{currentCode}</code>
-        </pre>
-
-        {/* Quick Specs */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-          <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800/80 flex flex-col gap-1">
-            <span className="text-[11px] text-slate-400 font-medium">Protocol</span>
-            <span className="text-xs font-bold text-slate-200 font-mono">HTTPS REST (POST)</span>
-          </div>
-          <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800/80 flex flex-col gap-1">
-            <span className="text-[11px] text-slate-400 font-medium">Authentication</span>
-            <span className="text-xs font-bold text-slate-200 font-mono">x-api-key header</span>
-          </div>
-          <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800/80 flex flex-col gap-1">
-            <span className="text-[11px] text-slate-400 font-medium">Max Pass Length</span>
-            <span className="text-xs font-bold text-emerald-400 font-mono">50,000 Chars / Call</span>
-          </div>
-          <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800/80 flex flex-col gap-1">
-            <span className="text-[11px] text-slate-400 font-medium">Audio Output</span>
-            <span className="text-xs font-bold text-amber-400 font-mono">48kHz MP3 / Base64</span>
-          </div>
-        </div>
-      </div>
 
       {/* Quota & Pricing Tiers */}
       <div className="flex flex-col gap-6">
