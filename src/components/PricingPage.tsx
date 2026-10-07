@@ -102,7 +102,7 @@ export function PricingPage() {
         'Up to 50,000 characters per single script',
         'All 322+ voices across 140+ languages',
         'Full Voice Cloning & Studio access',
-        'Direct 1-on-1 priority support from Waqas Gill',
+        'Direct 1-on-1 priority VIP support',
         'Renew or extend anytime',
       ],
       cta: 'Get Unlimited for Rs. 4,000 / mo',
@@ -113,9 +113,9 @@ export function PricingPage() {
 
   const handleBuyClick = (planName: string, price: string) => {
     const text = encodeURIComponent(
-      `Hello Waqas Gill! I want to activate/renew the monthly ${planName} (${price}) for my account on "TTS bY Waqas Gill". Please share payment details.`
+      `Hello! I want to activate/renew the monthly ${planName} (${price}) for my account on "TTSNexs". Please share payment details.`
     );
-    window.open(`https://www.facebook.com/mwaqasgillcs/`, '_blank');
+    window.open(`https://wa.me/923180429188?text=${text}`, '_blank');
   };
 
   return (
@@ -145,20 +145,20 @@ export function PricingPage() {
             Easy Activation via EasyPaisa, JazzCash, or Bank Transfer
           </h3>
           <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
-            Send payment to Waqas Gill, share the transaction screenshot on WhatsApp or Facebook, and your monthly plan will be activated within 5 minutes with a fresh 30-day validity!
+            Send payment, share the transaction screenshot on WhatsApp, and your monthly plan will be activated within 5 minutes with a fresh 30-day validity!
           </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
           <a
-            href="https://www.facebook.com/mwaqasgillcs/"
+            href="https://wa.me/923180429188?text=Hello!%20I%20want%20to%20activate%20a%20plan%20for%20TTSNexs.%20Please%20guide%20me."
             target="_blank"
             rel="noopener noreferrer"
-            className="px-5 py-3 rounded-2xl bg-white text-slate-900 font-bold text-xs shadow-md hover:bg-slate-100 flex items-center gap-2 transition-all hover:scale-105"
+            className="px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs shadow-md flex items-center gap-2 transition-all hover:scale-105"
           >
-            <PhoneCall className="w-4 h-4 text-brand-600" />
-            <span>Contact Waqas Gill</span>
-            <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+            <PhoneCall className="w-4 h-4 text-slate-950" />
+            <span>Chat on WhatsApp</span>
+            <ExternalLink className="w-3.5 h-3.5 text-slate-950/70" />
           </a>
         </div>
       </div>

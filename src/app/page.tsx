@@ -14,7 +14,7 @@ import { Sparkles, Loader2, AlertCircle, Zap } from 'lucide-react';
 import { SeoContentSection } from '@/components/SeoContentSection';
 
 const INITIAL_TEXT =
-  "Welcome to TTSNexs Studio by EmpireNexs! You can customize voice speed, pitch, and choose from over 320 high-fidelity neural voices across dozens of languages. Supports up to 50,000 characters per script!";
+  "Welcome to TTSNexs Studio! You can customize voice speed, pitch, and choose from over 320 high-fidelity neural voices across dozens of languages. Supports up to 50,000 characters per script!";
 
 export default function Home() {
   const router = useRouter();
@@ -412,33 +412,14 @@ export default function Home() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
                 <Sparkles className="w-4 h-4 text-brand-600" />
-                <span>
-                  About TTS{' '}
-                  <a
-                    href="https://www.facebook.com/mwaqasgillcs/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-brand-600 hover:underline"
-                  >
-                    bY Waqas Gill
-                  </a>
-                </span>
+                <span>About TTSNexs Studio</span>
               </div>
               <span className="px-2.5 py-0.5 rounded-full bg-brand-50 text-brand-700 font-mono text-[10px] font-bold border border-brand-200">
-                EmpireNexs
+                Studio Engine
               </span>
             </div>
             <p className="leading-relaxed">
-              Crafted and powered by <strong className="text-slate-900">EmpireNexs</strong> under the direction of{' '}
-              <a
-                href="https://www.facebook.com/mwaqasgillcs/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-brand-700 hover:text-brand-800 hover:underline font-bold transition-colors"
-                title="Connect with Waqas Gill on Facebook"
-              >
-                Waqas Gill
-              </a>. Harnesses Microsoft neural speech synthesis delivering hyper-realistic human voiceovers across 320+ voices with up to 50,000 characters per voice.
+              <strong className="text-slate-900">TTSNexs</strong> delivers studio-quality neural speech synthesis across 320+ realistic voices and 140+ languages with up to 50,000 characters per script and instant voice cloning.
             </p>
           </div>
         </div>

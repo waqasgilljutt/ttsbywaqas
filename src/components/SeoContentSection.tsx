@@ -25,24 +25,24 @@ interface FAQItem {
 
 const FAQ_LIST: FAQItem[] = [
   {
-    question: 'What is EmpireNexs and why is it considered the best AI voice over tool?',
+    question: 'What is TTSNexs and why is it considered the best AI voice over tool?',
     answer:
-      'EmpireNexs is a cutting-edge, studio-grade AI Voice Generator and Instant Voice Cloning platform developed by Waqas Gill. It offers 320+ ultra-realistic neural voices spanning 140+ languages and regional accents. Unlike traditional platforms that restrict you to 1,000 or 3,000 characters, EmpireNexs supports up to 50,000 characters in a single pass with natural human inflection and zero robotic tone.',
+      'TTSNexs is a cutting-edge, studio-grade AI Voice Generator and Instant Voice Cloning platform. It offers 320+ ultra-realistic neural voices spanning 140+ languages and regional accents. Unlike traditional platforms that restrict you to 1,000 or 3,000 characters, TTSNexs supports up to 50,000 characters in a single pass with natural human inflection and zero robotic tone.',
   },
   {
     question: 'How does the instant voice cloning tool work?',
     answer:
-      'Our zero-shot neural voice cloning engine allows you to replicate your own voice or any target speaker in seconds. Simply record 15 to 30 seconds of clean speech using your microphone or upload an audio file (MP3, WAV, M4A). EmpireNexs analyzes vocal timbre, pitch harmonics, and pacing to produce authentic clone speech from any written script.',
+      'Our zero-shot neural voice cloning engine allows you to replicate your own voice or any target speaker in seconds. Simply record 15 to 30 seconds of clean speech using your microphone or upload an audio file (MP3, WAV, M4A). TTSNexs analyzes vocal timbre, pitch harmonics, and pacing to produce authentic clone speech from any written script.',
   },
   {
     question: 'Can I generate full audiobooks and long scripts with 50,000 characters?',
     answer:
-      'Yes! EmpireNexs is purpose-built for creators, authors, and video producers. Our high-throughput synthesis engine processes scripts up to 50,000 characters directly into high-fidelity 48kHz audio without unnatural pauses or chapter fragmentation.',
+      'Yes! TTSNexs is purpose-built for creators, authors, and video producers. Our high-throughput synthesis engine processes scripts up to 50,000 characters directly into high-fidelity 48kHz audio without unnatural pauses or chapter fragmentation.',
   },
   {
-    question: 'Is EmpireNexs Text to Speech free to use for YouTube and podcasts?',
+    question: 'Is TTSNexs Text to Speech free to use for YouTube and podcasts?',
     answer:
-      'Yes, EmpireNexs offers generous free access for YouTube content creators, podcasters, educators, and indie developers. You can export studio-grade MP3/WAV files for your video voiceovers, social media reels, and presentations.',
+      'Yes, TTSNexs offers generous free access for YouTube content creators, podcasters, educators, and indie developers. You can export studio-grade MP3/WAV files for your video voiceovers, social media reels, and presentations.',
   },
   {
     question: 'Which languages and accents are supported?',
@@ -50,9 +50,9 @@ const FAQ_LIST: FAQItem[] = [
       'Over 140 locales are supported, including English (US, UK, Australia, India, Canada), Urdu (Pakistan, India), Hindi, Arabic (UAE, Saudi, Egypt), Spanish, French, German, Japanese, Portuguese, Chinese, and many more with native regional dialects.',
   },
   {
-    question: 'How does EmpireNexs compare to ElevenLabs and other TTS tools?',
+    question: 'How does TTSNexs compare to ElevenLabs and other TTS tools?',
     answer:
-      'While legacy commercial platforms charge exorbitant monthly subscriptions and cap character lengths at low tiers, EmpireNexs democratizes AI voice technology by offering 50,000-character scripts, instant cloning, and 320+ lifelike neural voices with fast synthesis speeds and accessible tiers.',
+      'While legacy commercial platforms charge exorbitant monthly subscriptions and cap character lengths at low tiers, TTSNexs democratizes AI voice technology by offering 50,000-character scripts, instant cloning, and 320+ lifelike neural voices with fast synthesis speeds and accessible tiers.',
   },
 ];
 
@@ -79,7 +79,7 @@ export function SeoContentSection() {
         <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-3xl mx-auto">
           Transform text into hyper-realistic human speech in seconds. Whether you are producing 
           YouTube voiceovers, TikTok narrations, audiobooks, educational e-learning courses, or commercial advertisements, 
-          <strong> EmpireNexs</strong> delivers broadcast-quality acoustic fidelity with 
+          <strong> TTSNexs</strong> delivers broadcast-quality acoustic fidelity with 
           over 320 lifelike neural voices and instant microphone-based voice cloning.
         </p>
       </div>
@@ -304,15 +304,15 @@ export function SeoContentSection() {
 
       {/* SECTION 6: Footer Branding CTA */}
       <div className="p-8 rounded-3xl bg-slate-100 border border-slate-200 text-center flex flex-col items-center gap-4">
-        <div className="w-14 h-14 rounded-2xl bg-slate-950 p-2 shadow-md flex items-center justify-center border border-amber-500/30">
-          <img src="/logo.png" alt="EmpireNexs 3D Logo" className="w-full h-full object-contain" />
+        <div className="w-14 h-14 rounded-2xl bg-slate-950 p-2 shadow-md flex items-center justify-center border border-brand-500/30">
+          <img src="/logo.png" alt="TTSNexs Official Logo" className="w-full h-full object-contain" />
         </div>
         <div>
           <h4 className="text-lg font-bold text-slate-900">
-            Powered by EmpireNexs &amp; Waqas Gill
+            TTSNexs - Next-Generation AI Voice Studio
           </h4>
           <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
-            Building the next generation of artificial intelligence, high-fidelity neural speech, and creative audio tools for the world.
+            Empowering creators and developers with studio-grade neural speech, instant voice cloning, and accessible high-capacity synthesis.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -327,7 +327,7 @@ export function SeoContentSection() {
             href="/about"
             className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-xs transition-colors"
           >
-            About Waqas Gill
+            About &amp; Creator
           </Link>
         </div>
       </div>

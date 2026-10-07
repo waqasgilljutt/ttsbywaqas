@@ -42,8 +42,8 @@ export function TopNavbar({
       subtitle: 'Transparent plans for creators, developers, and businesses',
     },
     'about': {
-      title: 'About EmpireNexs',
-      subtitle: 'EmpireNexs technology venture & Founder Waqas Gill',
+      title: 'About TTSNexs',
+      subtitle: 'Next-generation neural AI voice synthesis studio',
     },
     'api-access': {
       title: 'Developer REST API',
@@ -70,8 +70,8 @@ export function TopNavbar({
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="w-8 h-8 rounded-xl bg-slate-950 p-1 flex items-center justify-center border border-amber-500/25 lg:hidden shrink-0">
-          <img src="/logo.png" alt="EmpireNexs" className="w-full h-full object-contain" />
+        <div className="w-8 h-8 rounded-xl bg-slate-950 p-1 flex items-center justify-center border border-brand-500/25 lg:hidden shrink-0">
+          <img src="/logo.png" alt="TTSNexs" className="w-full h-full object-contain" />
         </div>
 
         <div>
@@ -79,30 +79,7 @@ export function TopNavbar({
             {currentInfo.title}
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 hidden sm:block mt-0.5 font-medium">
-            {activeTab === 'about' ? (
-              <>
-                <a
-                  href="https://empirenexs.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-brand-600 hover:underline font-semibold"
-                >
-                  EmpireNexs
-                </a>{' '}
-                technology venture &amp; Founder{' '}
-                <a
-                  href="https://www.facebook.com/mwaqasgillcs/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-slate-800 hover:text-brand-600 hover:underline font-semibold"
-                  title="Connect with Waqas Gill on Facebook"
-                >
-                  Waqas Gill
-                </a>
-              </>
-            ) : (
-              currentInfo.subtitle
-            )}
+            {currentInfo.subtitle}
           </p>
         </div>
       </div>
@@ -110,12 +87,12 @@ export function TopNavbar({
       {/* Right: Engine status and Auth Profile/Button */}
       <div className="flex items-center gap-3">
         {/* Active Engine Badge */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-amber-500/30 text-xs text-slate-200 font-medium shadow-xs">
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-brand-500/30 text-xs text-slate-200 font-medium shadow-xs">
           <div className="w-4 h-4 rounded-full overflow-hidden shrink-0 flex items-center justify-center">
-            <img src="/logo.png" alt="EmpireNexs" className="w-full h-full object-contain" />
+            <img src="/logo.png" alt="TTSNexs" className="w-full h-full object-contain" />
           </div>
           <span>Engine:</span>
-          <span className="text-amber-400 font-bold">EmpireNexs Neural</span>
+          <span className="text-brand-400 font-bold">TTSNexs Neural</span>
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5"></span>
         </div>
 

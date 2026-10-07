@@ -13,12 +13,14 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "EmpireNexs - Best AI Voice Generator & Instant Voice Cloning Tool",
-    template: "%s | EmpireNexs AI Voice Platform",
+    default: "TTSNexs - Best AI Voice Generator & Instant Voice Cloning Studio",
+    template: "%s | TTSNexs AI Studio",
   },
   description:
-    "Experience studio-grade Text to Speech with 320+ realistic AI voices in 140+ languages and instant voice cloning with EmpireNexs. Supports up to 50,000 characters per script, 100% free by Waqas Gill.",
+    "Experience studio-grade Text to Speech with 320+ realistic AI voices in 140+ languages and instant voice cloning with TTSNexs. Supports up to 50,000 characters per script.",
   keywords: [
+    "TTSNexs",
+    "TTS Nexs",
     "voice over tool",
     "voice cloning tool",
     "best tts",
@@ -33,9 +35,6 @@ export const metadata: Metadata = {
     "hindi ai voice generator",
     "instant voice clone",
     "voiceover generator for youtube",
-    "EmpireNexs",
-    "TTS By Waqas Gill",
-    "Waqas Gill",
   ],
   authors: [
     {
@@ -43,13 +42,13 @@ export const metadata: Metadata = {
       url: "https://www.facebook.com/mwaqasgillcs/",
     },
     {
-      name: "EmpireNexs",
+      name: "TTSNexs",
       url: siteUrl,
     },
   ],
-  creator: "Waqas Gill (EmpireNexs)",
-  publisher: "EmpireNexs",
-  applicationName: "EmpireNexs AI Voice Studio",
+  creator: "Waqas Gill",
+  publisher: "TTSNexs",
+  applicationName: "TTSNexs AI Voice Studio",
   alternates: {
     canonical: siteUrl,
   },
@@ -68,26 +67,26 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: siteUrl,
-    siteName: "EmpireNexs AI Voice Platform",
-    title: "EmpireNexs - Best AI Voice Generator & Instant Voice Cloning Tool",
+    siteName: "TTSNexs Studio",
+    title: "TTSNexs - Best AI Voice Generator & Instant Voice Cloning Studio",
     description:
-      "Generate studio-quality voiceovers with 320+ lifelike AI voices or clone your voice in seconds. Supports 50,000 characters per script, 100% free by Waqas Gill.",
+      "Generate studio-quality voiceovers with 320+ lifelike AI voices or clone your voice in seconds. Supports 50,000 characters per script.",
     images: [
       {
         url: "/logo.png",
         width: 1024,
         height: 1024,
-        alt: "EmpireNexs Official 3D Black and Gold Logo",
+        alt: "TTSNexs Official Logo",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "EmpireNexs - Best AI Voice Generator & Instant Voice Cloning Tool",
+    title: "TTSNexs - Best AI Voice Generator & Instant Voice Cloning Studio",
     description:
       "Studio-grade AI Voice Over & Instant Voice Cloning with 320+ realistic voices and up to 50,000 characters per script.",
     images: ["/logo.png"],
-    creator: "@EmpireNexs",
+    creator: "@TTSNexs",
   },
   icons: {
     icon: [
@@ -106,7 +105,7 @@ const jsonLdStructuredData = {
   "@graph": [
     {
       "@type": "SoftwareApplication",
-      "name": "EmpireNexs AI Voice Generator & Voice Cloner",
+      "name": "TTSNexs AI Voice Generator & Voice Cloner",
       "applicationCategory": "MultimediaApplication",
       "operatingSystem": "All modern browsers (Chrome, Edge, Safari, Firefox)",
       "url": siteUrl,

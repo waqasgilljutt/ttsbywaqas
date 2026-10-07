@@ -70,10 +70,10 @@ export function Sidebar({
     {
       id: 'about' as TabType,
       href: '/about',
-      label: 'About EmpireNexs',
-      description: 'Company & Waqas Gill',
+      label: 'About TTSNexs',
+      description: 'Story & Creator',
       icon: Building2,
-      badge: 'Company',
+      badge: 'About',
     },
     {
       id: 'api-access' as TabType,
@@ -116,18 +116,21 @@ export function Sidebar({
         <div className="flex flex-col gap-6">
           {/* Brand Header */}
           <Link href="/" onClick={onCloseMobile} className="flex items-center gap-3.5 group">
-            <div className="w-12 h-12 rounded-2xl bg-slate-950 p-2 shadow-md shadow-amber-500/20 shrink-0 group-hover:scale-105 transition-transform flex items-center justify-center border border-amber-500/30">
-              <img src="/logo.png" alt="EmpireNexs Official Logo" className="w-full h-full object-contain" />
+            <div className="w-12 h-12 rounded-2xl bg-slate-950 p-2 shadow-md shadow-brand-500/20 shrink-0 group-hover:scale-105 transition-transform flex items-center justify-center border border-brand-500/30">
+              <img src="/logo.png" alt="TTSNexs Official Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h1 className="text-lg font-black text-slate-900 tracking-tight group-hover:text-brand-600 transition-colors">
-                  EmpireNexs
+                <h1 className="text-xl font-black text-slate-900 tracking-tight group-hover:text-brand-600 transition-colors">
+                  TTSNexs
                 </h1>
+                <span className="px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-700 font-extrabold text-[10px] border border-brand-200">
+                  AI
+                </span>
               </div>
-              <p className="text-xs font-bold text-amber-700 uppercase tracking-wider mt-0.5 flex items-center gap-1.5">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-0.5 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                TTS By Waqas Gill
+                Neural Voice Studio
               </p>
             </div>
           </Link>

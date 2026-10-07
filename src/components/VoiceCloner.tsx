@@ -816,13 +816,13 @@ export function VoiceCloner({
       <div className="flex flex-col gap-1.5">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-semibold w-fit">
           <Sparkles className="w-3.5 h-3.5 text-brand-600" />
-          <span>EmpireNexs Neural Pro Voice Engine</span>
+          <span>TTSNexs Neural Voice Engine</span>
         </div>
         <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-          EmpireNexs AI Voice Cloning Studio
+          TTSNexs AI Voice Cloning Studio
         </h2>
         <p className="text-sm text-slate-600">
-          Upload or record a 15–30+ second audio sample. Powered by EmpireNexs Neural AI, our studio engine instantly clones your authentic vocal tract, pitch, timbre, and cadence in crystal-clear fidelity.
+          Upload or record a 15–30+ second audio sample. Powered by TTSNexs Neural AI, our studio engine instantly clones your authentic vocal tract, pitch, timbre, and cadence in crystal-clear fidelity.
         </p>
       </div>
 

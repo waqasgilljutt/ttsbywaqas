@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { AppProvider, useApp } from '@/context/AppContext';
 import { Sidebar, TabType } from '@/components/Sidebar';
@@ -100,6 +101,41 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         <main className="flex-1 px-4 sm:px-8 py-8 max-w-7xl w-full mx-auto">
           {children}
         </main>
+
+        {/* Global Professional Footer */}
+        <footer className="mt-auto border-t border-slate-200/80 bg-white/60 py-6 px-4 sm:px-8">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-slate-900 tracking-tight">TTSNexs</span>
+              <span>© {new Date().getFullYear()}</span>
+              <span>•</span>
+              <span>All rights reserved.</span>
+            </div>
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap justify-center">
+              <span>
+                Crafted with passion by{' '}
+                <Link
+                  href="/about"
+                  className="font-semibold text-slate-800 hover:text-brand-600 transition-colors"
+                >
+                  Waqas Gill
+                </Link>
+              </span>
+              <span>•</span>
+              <Link href="/about" className="hover:text-brand-600 transition-colors font-medium">
+                About
+              </Link>
+              <span>•</span>
+              <Link href="/api-access" className="hover:text-brand-600 transition-colors font-medium">
+                API Access
+              </Link>
+              <span>•</span>
+              <Link href="/pricing" className="hover:text-brand-600 transition-colors font-medium">
+                Pricing
+              </Link>
+            </div>
+          </div>
+        </footer>
       </div>
 
       {/* Authentication Modal */}

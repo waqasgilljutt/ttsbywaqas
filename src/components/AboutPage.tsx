@@ -25,23 +25,15 @@ export function AboutPage() {
     <div className="max-w-5xl mx-auto flex flex-col gap-10 pb-16">
       {/* Hero Banner */}
       <div className="text-center flex flex-col items-center gap-4 max-w-2xl mx-auto">
-        <div className="w-20 h-20 rounded-3xl bg-slate-950 p-3 shadow-xl shadow-amber-500/15 flex items-center justify-center border border-amber-500/30">
-          <img src="/logo.png" alt="EmpireNexs Official 3D Logo" className="w-full h-full object-contain" />
+        <div className="w-20 h-20 rounded-3xl bg-slate-950 p-3 shadow-xl shadow-brand-500/15 flex items-center justify-center border border-brand-500/30">
+          <img src="/logo.png" alt="TTSNexs Official Logo" className="w-full h-full object-contain" />
         </div>
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-semibold">
           <Building2 className="w-3.5 h-3.5" />
           <span>About the Platform</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-          EmpireNexs &amp; TTS bY{' '}
-          <a
-            href="https://www.facebook.com/mwaqasgillcs/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-brand-600 hover:text-brand-700 hover:underline transition-all"
-          >
-            Waqas Gill
-          </a>
+          About TTSNexs AI Studio
         </h2>
         <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
           Pioneering high-fidelity artificial voice synthesis and neural audio engineering to empower creators, developers, and businesses worldwide.
