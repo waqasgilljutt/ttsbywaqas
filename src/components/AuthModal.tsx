@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   Mail,
@@ -19,6 +19,35 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { OWNER_EMAIL } from '@/lib/user-types';
+
+declare global {
+  interface Window {
+    google?: {
+      accounts?: {
+        id?: {
+          initialize: (config: {
+            client_id: string;
+            callback: (response: { credential?: string }) => void;
+            auto_select?: boolean;
+            cancel_on_tap_outside?: boolean;
+          }) => void;
+          prompt: (notification?: unknown) => void;
+          renderButton: (
+            parent: HTMLElement,
+            options: {
+              theme?: string;
+              size?: string;
+              width?: number | string;
+              text?: string;
+              shape?: string;
+              logo_alignment?: string;
+            }
+          ) => void;
+        };
+      };
+    };
+  }
+}
 
 type AuthViewMode =
   | 'signin'
@@ -52,6 +81,9 @@ export function AuthModal({
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [resendCountdown, setResendCountdown] = useState(0);
+
+  const googleBtnRef = useRef<HTMLDivElement | null>(null);
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -342,40 +374,46 @@ export function AuthModal({
     }
   };
 
-  // 6. GOOGLE 1-CLICK AUTH
-  const handleGoogleAuth = () => {
-    setErrorMsg('');
+  // 6. OFFICIAL GOOGLE 1-CLICK AUTH
+  const handleGoogleCredentialResponse = async (response: { credential?: string }) => {
+    if (!response?.credential) return;
+
     setIsLoading(true);
+    setErrorMsg('');
 
-    // Prompt user for their Google Email or authenticate
-    const googleEmailPrompt = prompt(
-      'Enter your @gmail.com to continue with Google Sign-In:',
-      email.endsWith('@gmail.com') ? email : ''
-    );
+    try {
+      const base64Url = response.credential.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      const payload = JSON.parse(jsonPayload);
+      const googleEmail = (payload.email || '').toLowerCase().trim();
+      const googleName = payload.name || googleEmail.split('@')[0];
 
-    if (!googleEmailPrompt) {
-      setIsLoading(false);
-      return;
-    }
+      if (!googleEmail || !googleEmail.endsWith('@gmail.com')) {
+        setIsLoading(false);
+        setErrorMsg('Only official @gmail.com accounts are permitted.');
+        return;
+      }
 
-    const normalized = googleEmailPrompt.trim().toLowerCase();
-    if (!validateIsGmail(normalized)) {
-      setIsLoading(false);
-      setErrorMsg('Only valid @gmail.com accounts are supported for Google Sign-In.');
-      return;
-    }
-
-    setTimeout(async () => {
-      const isOwner = normalized === OWNER_EMAIL.toLowerCase();
+      const isOwner = googleEmail === OWNER_EMAIL.toLowerCase();
       const googleUser = {
-        name: isOwner ? 'Waqas Gill' : normalized.split('@')[0],
-        email: normalized,
+        name: isOwner ? 'Waqas Gill' : googleName,
+        email: googleEmail,
       };
 
       await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'register', name: googleUser.name, email: googleUser.email }),
+        body: JSON.stringify({
+          action: 'register',
+          name: googleUser.name,
+          email: googleUser.email,
+        }),
       }).catch(() => {});
 
       try {
@@ -390,7 +428,62 @@ export function AuthModal({
         onSuccessLogin(googleUser);
         onClose();
       }, 700);
-    }, 700);
+    } catch {
+      setIsLoading(false);
+      setErrorMsg('Failed to verify Google Sign-In. Please try again.');
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen || typeof window === 'undefined') return;
+
+    if (googleClientId) {
+      const initGIS = () => {
+        if (window.google?.accounts?.id) {
+          window.google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: handleGoogleCredentialResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+          });
+
+          if (googleBtnRef.current) {
+            window.google.accounts.id.renderButton(googleBtnRef.current, {
+              theme: 'outline',
+              size: 'large',
+              width: 360,
+              text: mode === 'signup' ? 'signup_with' : 'continue_with',
+              shape: 'rectangular',
+              logo_alignment: 'left',
+            });
+          }
+        }
+      };
+
+      if (window.google?.accounts?.id) {
+        initGIS();
+      } else {
+        const timer = setInterval(() => {
+          if (window.google?.accounts?.id) {
+            clearInterval(timer);
+            initGIS();
+          }
+        }, 300);
+        return () => clearInterval(timer);
+      }
+    }
+  }, [isOpen, googleClientId, mode]);
+
+  const handleGoogleAuth = () => {
+    setErrorMsg('');
+
+    if (googleClientId && typeof window !== 'undefined' && window.google?.accounts?.id) {
+      window.google.accounts.id.prompt();
+    } else {
+      setErrorMsg(
+        'Google Client ID is not configured yet. Please sign up or login with your Gmail & password above.'
+      );
+    }
   };
 
   return (
@@ -554,31 +647,36 @@ export function AuthModal({
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={handleGoogleAuth}
-              className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-2.5 transition-all shadow-2xs"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                />
-              </svg>
-              <span>Continue with Google</span>
-            </button>
+            <div className="w-full flex flex-col items-center justify-center min-h-[40px]">
+              <div ref={googleBtnRef} className="w-full flex justify-center empty:hidden" />
+              {!googleClientId && (
+                <button
+                  type="button"
+                  onClick={handleGoogleAuth}
+                  className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-2.5 transition-all shadow-2xs cursor-pointer"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                    />
+                  </svg>
+                  <span>Continue with Google</span>
+                </button>
+              )}
+            </div>
 
             <div className="text-center pt-2">
               <button
@@ -686,31 +784,36 @@ export function AuthModal({
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={handleGoogleAuth}
-              className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-2.5 transition-all shadow-2xs"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                />
-              </svg>
-              <span>Sign Up with Google</span>
-            </button>
+            <div className="w-full flex flex-col items-center justify-center min-h-[40px]">
+              <div ref={googleBtnRef} className="w-full flex justify-center empty:hidden" />
+              {!googleClientId && (
+                <button
+                  type="button"
+                  onClick={handleGoogleAuth}
+                  className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-2.5 transition-all shadow-2xs cursor-pointer"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                    />
+                  </svg>
+                  <span>Sign Up with Google</span>
+                </button>
+              )}
+            </div>
 
             <div className="text-center pt-2">
               <button

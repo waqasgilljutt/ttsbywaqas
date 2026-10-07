@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
+import Script from "next/script";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -231,6 +232,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-[#07080e] text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-orange-500 selection:text-white">
+        <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
         <AppShell>
           {children}
         </AppShell>
