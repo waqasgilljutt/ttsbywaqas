@@ -106,8 +106,6 @@ export function AuthModal({
     return () => clearTimeout(timer);
   }, [resendCountdown]);
 
-  if (!isOpen) return null;
-
   const validateIsGmail = (emailToTest: string): boolean => {
     const trimmed = emailToTest.trim().toLowerCase();
     return /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(trimmed);
@@ -498,6 +496,8 @@ export function AuthModal({
       );
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div
