@@ -110,7 +110,10 @@ export const metadata: Metadata = {
     apple: "/apple-icon.png",
   },
   verification: {
-    google: "0BQ6AxuSCNPHJ-nugq23MddBI6RUBp-JTIhwGHOXrTA",
+    google: [
+      "5PiEnZu87wkcKW0c5UygbndWdvArtqxM9-MRpV-a01Y",
+      "0BQ6AxuSCNPHJ-nugq23MddBI6RUBp-JTIhwGHOXrTA",
+    ],
   },
 };
 
@@ -225,6 +228,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${jakarta.variable} ${playfair.variable} dark`}>
       <head>
+        <meta name="google-site-verification" content="5PiEnZu87wkcKW0c5UygbndWdvArtqxM9-MRpV-a01Y" />
         <meta name="google-site-verification" content="0BQ6AxuSCNPHJ-nugq23MddBI6RUBp-JTIhwGHOXrTA" />
         <script
           type="application/ld+json"
