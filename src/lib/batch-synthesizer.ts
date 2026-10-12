@@ -24,7 +24,7 @@ export interface BatchProgressInfo {
  */
 export function splitScriptIntoNaturalChunks(
   text: string,
-  maxChunkLength: number = 800
+  maxChunkLength: number = 2500
 ): string[] {
   const trimmed = text.trim();
   if (trimmed.length <= maxChunkLength) {
@@ -98,7 +98,7 @@ export async function synthesizeLargeScript(
   text: string,
   fetchChunkFn: (chunkText: string, chunkIndex: number, totalChunks: number) => Promise<Blob>,
   onProgress?: (info: BatchProgressInfo) => void,
-  maxChunkSize: number = 800
+  maxChunkSize: number = 2500
 ): Promise<Blob> {
   const chunks = splitScriptIntoNaturalChunks(text, maxChunkSize);
   const totalChunks = chunks.length;
