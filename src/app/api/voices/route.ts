@@ -55,13 +55,20 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      total: filtered.length,
-      allTotal: allVoices.length,
-      locales: availableLocales,
-      voices: filtered,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        total: filtered.length,
+        allTotal: allVoices.length,
+        locales: availableLocales,
+        voices: filtered,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800',
+        },
+      }
+    );
   } catch (err: unknown) {
     console.error('Error in /api/voices:', err);
     return NextResponse.json(

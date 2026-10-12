@@ -718,7 +718,7 @@ export function VoiceCloner({
         let lastReportedProgress = 25;
 
         while (Date.now() - pollStartTime < maxPollMs) {
-          await new Promise((r) => setTimeout(r, 1000));
+          await new Promise((r) => setTimeout(r, 2500));
           const pollRes = await fetch(`/api/clone?jobId=${jobId}`);
           if (!pollRes.ok) continue;
           const pollData = await pollRes.json();

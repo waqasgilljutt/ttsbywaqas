@@ -6,5 +6,12 @@ export async function GET() {
     process.env.GOOGLE_CLIENT_ID ||
     '';
 
-  return NextResponse.json({ clientId });
+  return NextResponse.json(
+    { clientId },
+    {
+      headers: {
+        'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800',
+      },
+    }
+  );
 }
